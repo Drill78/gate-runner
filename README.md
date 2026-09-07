@@ -2,6 +2,8 @@
 
 Gate Runner × Roguelike，原创中世纪奇幻十二层远征。当前版本 **v0.2**。
 
+**[立即试玩](https://gate-runner-seven.vercel.app)** · [GitHub 仓库](https://github.com/Drill78/gate-runner)
+
 - 真正俯视、全宽连续横移，支持键盘、鼠标与触屏。
 - 不同宽度的两门或三门选择，兵力没有 999 上限，面板解释兵力与火力。
 - 三职业完整立绘、25 项可叠加遗物、六条 build 方向。

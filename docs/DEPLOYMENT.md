@@ -1,5 +1,9 @@
 # 试玩版部署
 
+**已发布 v0.2：[打开试玩](https://gate-runner-seven.vercel.app)**。2026-09-07 发布至 Vercel production，部署状态 READY。首页、脚本、样式、四张 WebP 与 favicon 均经匿名 HTTP 检查返回 200，文件哈希与本地构建一致。
+
+本次为已编译静态文件部署，项目名 `gate-runner`，代码提交 `175a390`。GitHub 源码已上传；尚未把该 Vercel 项目连接到 Git 自动部署。后续改代码需再次发布，或在项目设置连接 GitHub 后使用下述构建配置。
+
 本版输出可移植静态站点，游戏逻辑、界面、美术、音效均在浏览器侧运行，不需要数据库或环境变量。Vercel 和 Netlify 配置已放在仓库根目录。
 
 ## 本地运行
