@@ -1,5 +1,5 @@
-import { restoreRun, type Run } from './game';
-const RUN_KEY = 'ashen-gates-run-v1',
+import { restoreRun, type Run } from './game.ts';
+const RUN_KEY = 'ashen-gates-run-v2',
   BEST_KEY = 'ashen-gates-record-v1',
   SOUND_KEY = 'ashen-gates-sound-v1';
 const EVENT = 'ashen-gates-storage';

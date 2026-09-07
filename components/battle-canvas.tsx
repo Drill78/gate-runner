@@ -1,6 +1,13 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { type Battle, type Run, stepBattle, activateSkill } from '@/lib/game';
+import { type Run } from '@/lib/game';
+import {
+  type Battle,
+  stepBattle,
+  activateSkill,
+  movePlayer,
+  setMoveAxis,
+} from '@/lib/combat';
 import { drawBattle } from '@/lib/renderer';
 
 export interface BattleSnapshot {
@@ -9,7 +16,11 @@ export interface BattleSnapshot {
   cooldown: number;
   time: number;
   message: string;
-  lane: number;
+  x: number;
+  wave: number;
+  totalWaves: number;
+  duration: number;
+  enrage: boolean;
 }
 export function BattleCanvas({
   battle,
@@ -30,7 +41,8 @@ export function BattleCanvas({
   const current = useRef({ paused, muted, onSnapshot, onEnd, onPause });
   useEffect(() => {
     current.current = { paused, muted, onSnapshot, onEnd, onPause };
-  }, [paused, muted, onSnapshot, onEnd, onPause]);
+    if (paused) setMoveAxis(battle, 0);
+  }, [paused, muted, onSnapshot, onEnd, onPause, battle]);
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
@@ -100,6 +112,13 @@ export function BattleCanvas({
         /* Keep combat running if audio fails. */
       }
     };
+    const held = new Set<string>();
+    const updateAxis = () =>
+      setMoveAxis(
+        battle,
+        (held.has('ArrowRight') || held.has('KeyD') ? 1 : 0) -
+          (held.has('ArrowLeft') || held.has('KeyA') ? 1 : 0),
+      );
     const key = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest('input,textarea,[role="dialog"]'))
         return;
@@ -122,15 +141,18 @@ export function BattleCanvas({
       }
       if (current.current.paused) return;
       ensureAudio();
-      if (code === 'ArrowLeft' || code === 'KeyA') battle.lane = -1;
-      if (code === 'ArrowRight' || code === 'KeyD') battle.lane = 1;
+      if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(code)) {
+        held.add(code);
+        updateAxis();
+      }
       if (code === 'Space' && !e.repeat) activateSkill(battle);
     };
     const pointer = (e: PointerEvent) => {
       if (current.current.paused) return;
       ensureAudio();
+      if (e.type === 'pointerdown') element.setPointerCapture(e.pointerId);
       const rect = element.getBoundingClientRect();
-      battle.lane = e.clientX < rect.left + rect.width / 2 ? -1 : 1;
+      movePlayer(battle, ((e.clientX - rect.left) / rect.width - 0.5) / 0.455);
     };
     const loop = (now: number) => {
       const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
@@ -151,7 +173,11 @@ export function BattleCanvas({
           cooldown: battle.cooldown,
           time: battle.time,
           message: battle.time < battle.messageUntil ? battle.message : '',
-          lane: battle.lane,
+          x: battle.x,
+          wave: battle.wave,
+          totalWaves: battle.totalWaves,
+          duration: battle.duration,
+          enrage: battle.enrage,
         });
       }
       if (battle.state !== 'running' && !finished) {
@@ -161,6 +187,17 @@ export function BattleCanvas({
       frame = requestAnimationFrame(loop);
     };
     window.addEventListener('keydown', key);
+    const keyup = (e: KeyboardEvent) => {
+      if (!['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) return;
+      held.delete(e.code);
+      if (!current.current.paused) updateAxis();
+    };
+    const blur = () => {
+      held.clear();
+      setMoveAxis(battle, 0);
+    };
+    window.addEventListener('keyup', keyup);
+    window.addEventListener('blur', blur);
     window.addEventListener('pointerdown', ensureAudio);
     element.addEventListener('pointerdown', pointer);
     element.addEventListener('pointermove', drag);
@@ -172,6 +209,8 @@ export function BattleCanvas({
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener('keydown', key);
+      window.removeEventListener('keyup', keyup);
+      window.removeEventListener('blur', blur);
       window.removeEventListener('pointerdown', ensureAudio);
       element.removeEventListener('pointerdown', pointer);
       element.removeEventListener('pointermove', drag);
@@ -182,7 +221,7 @@ export function BattleCanvas({
     <canvas
       ref={canvas}
       className="battle-canvas"
-      aria-label="战斗场地：方向键或 A D 换道，空格释放技能。触屏可点击或拖动换道。"
+      aria-label="俯视战斗场地：按住方向键或 A D 连续左右移动，空格释放技能。触屏点击任意位置或拖动移动。"
     />
   );
 }

@@ -353,7 +353,7 @@ h1 span {
 .arena-art {
   position: absolute;
   inset: 0;
-  background: url('/art/citadel.png') 50% 50%/cover;
+  background: url('/art/citadel.webp') 50% 50%/cover;
   z-index: -3;
 }
 .arena-vignette {
@@ -2274,4 +2274,419 @@ h1 span {
   .room-heading h2 {
     font-size: 23px;
   }
+}
+/* v0.2 — portraits, legible statistics and an overhead battlefield. */
+.game-layout {
+  grid-template-columns: 190px minmax(0, 1fr) 304px;
+  min-height: 730px;
+  max-height: 960px;
+}
+.panel {
+  background: linear-gradient(145deg, #1d2825ee, #111d1be8);
+  border-color: #aab8a638;
+}
+.panel-heading {
+  color: #ede6d0;
+  font-size: 15px;
+}
+.hero-portrait {
+  position: absolute;
+  width: 88%;
+  height: 91%;
+  object-fit: contain;
+  object-position: center bottom;
+  right: -12%;
+  bottom: 5%;
+  pointer-events: none;
+  filter: drop-shadow(0 18px 28px #0009);
+  z-index: -1;
+}
+.arena-setup .arena-art {
+  filter: brightness(0.63) saturate(0.65);
+}
+.arena-setup .arena-vignette {
+  background:
+    linear-gradient(90deg, #0d1c20b0, #0d1c2010 70%),
+    linear-gradient(0deg, #0a151bf9, transparent 56%);
+}
+.arena-setup .stage-title {
+  top: 14%;
+  left: 7%;
+  right: 40%;
+}
+.arena-setup .stage-title > span {
+  font-size: 10px;
+  letter-spacing: 2px;
+  line-height: 1.9;
+}
+.arena-setup .stage-title h2 {
+  font-size: clamp(29px, 3.1vw, 47px);
+  font-weight: 600;
+  letter-spacing: 4px;
+  line-height: 1.35;
+  margin: 17px 0;
+}
+.arena-setup .stage-title p {
+  font-size: 15px;
+  line-height: 1.9;
+  color: #d3dccc;
+}
+.hero-intro-tags {
+  color: #dfc88a;
+  font-size: 13px;
+  margin-top: 20px;
+  line-height: 1.8;
+}
+.journey-stamp {
+  position: absolute;
+  left: 7%;
+  top: 48%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #dfc98e;
+}
+.journey-stamp > span {
+  font:
+    40px Georgia,
+    serif;
+  border-top: 1px solid #d1b470;
+  border-bottom: 1px solid #d1b470;
+  padding: 9px 0;
+}
+.journey-stamp p {
+  font-size: 12px;
+  line-height: 1.9;
+  letter-spacing: 2px;
+}
+.arena-bottom {
+  z-index: 1;
+  bottom: 28px;
+}
+.arena-bottom .squad-preview {
+  background: #102020c9;
+  border: 1px solid #cbb77544;
+  width: fit-content;
+  margin: 0 auto 15px;
+  padding: 7px 17px;
+  border-radius: 30px;
+}
+.arena-bottom > p {
+  font-size: 13px;
+  color: #cad2c4;
+}
+.class-card {
+  min-height: 108px;
+  padding: 9px 13px;
+}
+.class-card strong {
+  font-size: 18px;
+}
+.class-card em {
+  font-size: 12px;
+}
+.class-emblem {
+  overflow: hidden;
+  width: 64px;
+  height: 82px;
+  flex-shrink: 0;
+  background: radial-gradient(ellipse at center, #ab997733, #101a17);
+  border-radius: 5px;
+}
+.class-emblem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  transform: scale(1.6);
+  transform-origin: center 27%;
+}
+.hero-description {
+  color: #c8cebc;
+  font-size: 14px;
+  line-height: 1.85;
+}
+.build-panel {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #8b947177 transparent;
+}
+.adventurer {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.adventurer h2 {
+  font-size: 21px;
+}
+.adventurer .class-emblem {
+  width: 60px;
+  height: 68px;
+}
+.resource-grid b {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  color: #f4e6bd;
+}
+.resource-grid div > span {
+  font-size: 13px;
+}
+.combat-stats {
+  gap: 10px;
+}
+.combat-stats > span {
+  font-size: 13px;
+  color: #b9c9be;
+}
+.combat-stats b {
+  color: #f1e9d3;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.firepower-note {
+  font-size: 12px;
+  color: #aebeb0;
+  line-height: 1.7;
+  margin: 10px 20px 16px;
+}
+.synergy-box {
+  margin-top: 12px;
+}
+.synergy-box p {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.relic-card h3 {
+  font-size: 20px;
+}
+.relic-card p,
+.route-choice p,
+.room-options p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #c8d1bf;
+}
+.battle-progress {
+  top: 58px;
+}
+.battle-progress > div:last-child {
+  font-size: 13px;
+  color: #e1dfc6;
+}
+.battle-hud {
+  position: absolute;
+  top: 98px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  justify-content: space-around;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #b1ba9140;
+  border-radius: 4px;
+  background: #101c1deb;
+  pointer-events: none;
+  box-shadow: 0 8px 18px #09141140;
+}
+.battle-hud > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #b9c6b6;
+  font-size: 11px;
+}
+.battle-hud b {
+  color: #f7eac0;
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+.battle-hud .hud-health b {
+  color: #e7bfaa;
+}
+.battle-hud small {
+  font-size: 12px;
+  color: #aab7a5;
+}
+.battle-message {
+  top: 166px;
+  font-size: 14px;
+  text-shadow:
+    0 2px 4px #000,
+    0 0 9px #000;
+}
+.move-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 66px;
+  height: 51px;
+  border: 1px solid #c1b77c99;
+  background: #132725ed;
+  border-radius: 5px;
+  color: #f1e2b2;
+  touch-action: none;
+  user-select: none;
+}
+.move-button:active {
+  background: #5d683eed;
+  border-color: #e6d7a2;
+}
+.move-button kbd {
+  font-size: 13px;
+}
+.skill-button strong {
+  font-size: 16px;
+}
+.skill-button small {
+  font-size: 10px;
+}
+@media (min-width: 1550px) {
+  .game-layout {
+    grid-template-columns: 210px minmax(0, 1fr) 330px;
+  }
+}
+@media (max-width: 1200px) {
+  .game-layout {
+    grid-template-columns: 156px minmax(0, 1fr) 256px;
+    gap: 12px;
+  }
+  .class-emblem {
+    width: 52px;
+    height: 73px;
+  }
+  .class-card {
+    padding: 8px;
+    gap: 10px;
+  }
+  .class-card strong {
+    font-size: 16px;
+  }
+  .hero-intro-tags {
+    max-width: 100px;
+  }
+  .battle-hud {
+    left: 12px;
+    right: 12px;
+  }
+}
+@media (max-width: 960px) {
+  .game-layout {
+    grid-template-columns: minmax(0, 1fr) 260px;
+  }
+  .arena-setup .stage-title {
+    right: 40%;
+  }
+}
+@media (max-width: 650px) {
+  .game-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+  }
+  .arena {
+    min-height: 610px;
+  }
+  .is-battle .arena {
+    min-height: 670px;
+    height: min(790px, 90dvh);
+  }
+  .hero-panel {
+    order: -1;
+  }
+  .class-options {
+    gap: 7px;
+  }
+  .class-card {
+    min-height: 94px;
+    padding: 7px 3px;
+    gap: 3px;
+  }
+  .class-card strong {
+    font-size: 14px;
+  }
+  .class-emblem {
+    width: 40px;
+    height: 48px;
+  }
+  .class-card small,
+  .class-card em {
+    display: none;
+  }
+  .hero-portrait {
+    width: 101%;
+    height: 90%;
+    right: -17%;
+    bottom: 8%;
+  }
+  .arena-setup .stage-title {
+    left: 7%;
+    right: 48%;
+    top: 12%;
+  }
+  .arena-setup .stage-title h2 {
+    font-size: 31px;
+  }
+  .arena-setup .stage-title p {
+    font-size: 13px;
+  }
+  .journey-stamp {
+    top: 49%;
+  }
+  .hero-intro-tags {
+    max-width: 110px;
+    font-size: 12px;
+  }
+  .battle-controls {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+  }
+  .battle-message {
+    top: 162px;
+    left: 12px;
+    right: 12px;
+    font-size: 12px;
+  }
+  .battle-hud {
+    top: 97px;
+    padding: 8px;
+  }
+  .battle-hud b {
+    font-size: 19px;
+  }
+  .build-panel {
+    max-height: none;
+    overflow: visible;
+  }
+  .resource-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .firepower-note {
+    margin-left: 16px;
+  }
+}
+.character-name {
+  color: #e0c180;
+  font-size: 15px;
+  letter-spacing: 1px;
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+.battle-hud > span {
+  font-size: 12px;
+}
+.hero-description,
+.relic-card p,
+.route-choice p,
+.room-options p {
+  font-size: 16px;
+}
+.help-content p {
+  font-size: 16px;
+  line-height: 1.9;
+}
+.combat-stats > span {
+  font-size: 14px;
 }

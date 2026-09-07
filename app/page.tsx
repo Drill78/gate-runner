@@ -44,19 +44,24 @@ import {
   HEROES,
   ACTS,
   createRun,
-  createBattle,
   enterNode,
   completeRoom,
   chooseReward,
   restAction,
   shopBuy,
   eventAction,
-  activateSkill,
-  setBattleLane,
-  type Battle,
+  formatNumber,
   type ClassId,
   type Run,
 } from '@/lib/game';
+
+import {
+  createBattle,
+  activateSkill,
+  setMoveAxis,
+  movePlayer,
+  type Battle,
+} from '@/lib/combat';
 
 import {
   subscribeStorage,
@@ -141,9 +146,24 @@ export default function Home() {
     setRun(createRun(run.classId));
   };
   const toggleSound = () => persistSound(!muted);
-  const move = (lane: -1 | 1) => {
-    if (battle && !blocked) setBattleLane(battle, lane);
+  const move = (axis: number) => {
+    if (battle && !blocked) setMoveAxis(battle, axis);
   };
+  const moveProps = (axis: -1 | 1) => ({
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      move(axis);
+    },
+    onPointerUp: () => move(0),
+    onPointerCancel: () => move(0),
+    onLostPointerCapture: () => move(0),
+    onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (e.key === 'Enter' && battle && !blocked) {
+        e.preventDefault();
+        movePlayer(battle, battle.x + axis * 0.25);
+      }
+    },
+  });
   const skill = () => {
     if (battle && !blocked) activateSkill(battle);
   };
@@ -260,26 +280,25 @@ export default function Home() {
           </div>
           {run.phase === 'setup' ? (
             <>
+              <img
+                className="hero-portrait"
+                src={`/art/${hero.id}.webp`}
+                alt={`${hero.name}全身立绘`}
+              />
               <div className="stage-title">
-                <span>BEYOND THE GATES</span>
-                <h2>
-                  穿越迷雾
-                  <br />
-                  直面高塔
-                </h2>
-                <p>集结队伍 · 夺取秘宝 · 改写命运</p>
+                <span>CHOOSE YOUR LEGEND</span>
+                <h2>{hero.name}</h2>
+                <div className="character-name">{hero.person}</div>
+                <p>“{hero.quote}”</p>
+                <div className="hero-intro-tags">{hero.tags}</div>
               </div>
-              <div className="demo-gates">
-                <div className="gate green">
-                  <small>援军之门</small>
-                  <strong>+10</strong>
-                  <span>招募新的追随者</span>
-                </div>
-                <div className="gate blue">
-                  <small>回响之门</small>
-                  <strong>×2</strong>
-                  <span>让队伍成倍壮大</span>
-                </div>
+              <div className="journey-stamp">
+                <span>Ⅻ</span>
+                <p>
+                  十二层高塔
+                  <br />
+                  一次命运远征
+                </p>
               </div>
               <div className="arena-bottom">
                 <div className="squad-preview">
@@ -308,7 +327,7 @@ export default function Home() {
                   <ArrowRight size={19} />
                 </button>
                 <p>
-                  ← → / A D 选择方向 <span>·</span> 自动攻击
+                  按住 ← → / A D 自由移动 <span>·</span> 自动攻击
                 </p>
               </div>
             </>
@@ -325,26 +344,52 @@ export default function Home() {
               />
               <div className="battle-progress">
                 <Progress
-                  value={Math.min(100, ((snapshot?.time || 0) / 31) * 100)}
+                  value={Math.min(
+                    100,
+                    ((snapshot?.time || 0) /
+                      (snapshot?.duration || battle.duration)) *
+                      100,
+                  )}
                   aria-label="关卡进度"
                 />
                 <div>
-                  <span>入口</span>
                   <span>
-                    {(snapshot?.time || 0) > 25 ? '首领现身' : '前往关底'}
+                    波次 {snapshot?.wave || 1} / {battle.totalWaves}
+                  </span>
+                  <span>
+                    {snapshot?.enrage
+                      ? '首领狂暴'
+                      : (snapshot?.time || 0) > battle.finalStart
+                        ? '首领现身'
+                        : '突破防线'}
                     <Flag size={12} />
                   </span>
                 </div>
+              </div>
+              <div className="battle-hud" aria-label="即时战况">
+                <span className="hud-health">
+                  生命{' '}
+                  <b>
+                    {Math.ceil(game.hp)}
+                    <small> / {game.maxHp}</small>
+                  </b>
+                </span>
+                <span>
+                  护盾 <b>{Math.ceil(snapshot?.shield || 0)}</b>
+                </span>
+                <span>
+                  兵力 <b>{formatNumber(game.squad)}</b>
+                </span>
               </div>
               <output className="battle-message" aria-live="polite">
                 {snapshot?.message}
               </output>
               <div className="battle-controls">
                 <button
-                  className={`lane-button ${snapshot?.lane === -1 ? 'chosen' : ''}`}
-                  onClick={() => move(-1)}
+                  className="move-button"
+                  {...moveProps(-1)}
                   disabled={blocked}
-                  aria-label="向左换道"
+                  aria-label="按住向左移动"
                 >
                   <ChevronLeft size={23} />
                   <kbd>A</kbd>
@@ -371,10 +416,10 @@ export default function Home() {
                   </span>
                 </button>
                 <button
-                  className={`lane-button ${snapshot?.lane === 1 ? 'chosen' : ''}`}
-                  onClick={() => move(1)}
+                  className="move-button"
+                  {...moveProps(1)}
                   disabled={blocked}
-                  aria-label="向右换道"
+                  aria-label="按住向右移动"
                 >
                   <kbd>D</kbd>
                   <ChevronRight size={23} />
@@ -422,7 +467,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          EARLY ACCESS <b>v0.1</b>
+          EARLY ACCESS <b>v0.2</b>
         </span>
       </footer>
       <Dialog

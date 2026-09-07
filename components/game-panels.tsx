@@ -38,6 +38,8 @@ import {
   availableNodes,
   familyCount,
   stats,
+  firepower,
+  formatNumber,
   weaponName,
   type ClassId,
   type Run,
@@ -102,7 +104,6 @@ export function ClassPicker({
       </div>
       <div className="class-options">
         {HEROES.map((h) => {
-          const HIcon = CLASS_ICONS[h.id];
           return (
             <button
               key={h.id}
@@ -112,7 +113,7 @@ export function ClassPicker({
               onClick={() => onSelect(h.id)}
             >
               <span className="class-emblem">
-                <HIcon size={29} />
+                <img src={`/art/${h.id}.webp`} alt="" />
               </span>
               <span>
                 <small>{h.sub}</small>
@@ -294,9 +295,9 @@ export function BuildPanel({
   onCodex: () => void;
 }) {
   const hero = HEROES.find((h) => h.id === run.classId)!;
-  const Icon = CLASS_ICONS[run.classId];
   const s = stats(run, shield),
     count = familyCount(run);
+  const power = firepower(run, shield);
   const families = { knight: '圣盾反击', ranger: '暴击连射', mage: '奥术回响' };
   return (
     <aside className="build-panel panel">
@@ -312,7 +313,7 @@ export function BuildPanel({
       </div>
       <div className="adventurer">
         <span className="class-emblem" style={{ color: hero.color }}>
-          <Icon size={30} />
+          <img src={`/art/${hero.id}.webp`} alt="" />
         </span>
         <div>
           <small>{hero.sub}</small>
@@ -343,8 +344,8 @@ export function BuildPanel({
       <div className="resource-grid">
         <div>
           <Users size={18} />
-          <b>{run.squad}</b>
-          <span>队伍</span>
+          <b>{formatNumber(run.squad)}</b>
+          <span>兵力</span>
         </div>
         <div>
           <Coins size={18} />
@@ -371,11 +372,17 @@ export function BuildPanel({
           <strong>{weaponName(run)}</strong>
           <span>
             {run.weaponTier < 3 ? '普通' : run.weaponTier < 6 ? '稀有' : '史诗'}{' '}
-            · 基础伤害 {s.damage.toFixed(1)}
+            · 攻击强度 {s.damage.toFixed(1)}
           </span>
         </div>
       </div>
       <div className="combat-stats">
+        <span>
+          兵力加成<b>×{power.multiplier.toFixed(2)}</b>
+        </span>
+        <span>
+          齐射伤害<b>{power.volley.toFixed(1)}</b>
+        </span>
         <span>
           攻击频率<b>{s.rate.toFixed(1)} / 秒</b>
         </span>
@@ -383,10 +390,13 @@ export function BuildPanel({
           暴击率<b>{Math.round(s.crit * 100)}%</b>
         </span>
         <span>
-          队伍火力
-          <b>{(s.damage * Math.sqrt(run.squad) * s.rate).toFixed(0)} / 秒</b>
+          常态每秒火力
+          <b>{power.dps.toFixed(0)}</b>
         </span>
       </div>
+      <p className="firepower-note">
+        齐射 = 攻击强度 × 兵力加成。兵力收益递减，持续增长。
+      </p>
       <div className={`synergy-box ${s.synergy ? 'unlocked' : ''}`}>
         <div>
           <Sparkles size={16} />
@@ -797,14 +807,15 @@ export function Help() {
         <h3>01 · 穿过数值之门</h3>
         <p>
           使用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd>{' '}
-          换道。触屏点击左右半边，也可以拖动。队伍通过门时结算加法或乘法；红门会减少兵力，队伍最少保留
+          持续左右移动，松开即停。触屏在场地任意位置点击或拖动。门有不同宽度，每组
+          2–3 道；以队长中心经过的门结算一次。门隙不生效，红门减少兵力，最少保留
           1 人。
         </p>
       </section>
       <section>
         <h3>02 · 瞄准，自动开火</h3>
         <p>
-          队伍自动攻击当前道路的目标。提前换道对准宝箱，在跑过前击破可升级武器、获得金币。漏掉敌人会受伤；荆棘陷阱只伤害同一条路上的队伍。
+          队伍自动攻击瞄准范围内最近的目标。兵装秘匣升级武器；补给宝箱提供金币和兵力。需要持续对准才能击破。漏掉敌人仍会受伤；红色预警倒计时结束前移出范围，可躲开攻击。
         </p>
       </section>
       <section>
@@ -824,8 +835,17 @@ export function Help() {
       <section>
         <h3>05 · 登上十二层高塔</h3>
         <p>
-          三幕各 4
-          层，每幕末尾挑战首领。首领停在路中央，两条路都能攻击；未击败时会持续反击。生命归零则本局结束，所有职业始终可选。
+          三幕各 4 层，每幕战斗分别有 8 / 10 / 12
+          波敌军，越往上节奏越快。首领停在中央，需要瞄准并躲避其预警攻击；登场
+          22 秒后狂暴。生命归零则本局结束，所有职业始终可选。
+        </p>
+      </section>
+      <section>
+        <h3>06 · 兵力与攻击强度</h3>
+        <p>
+          兵力代表军团规模，没有 999 上限；武器和遗物提升攻击强度。兵力加成 = 1
+          + log₂(1 + 兵力 / 12)，齐射伤害 = 攻击强度 ×
+          兵力加成。每秒火力包含攻速和平均暴击收益，未计技能、弹射和灼烧。受伤会损失兵力，护盾完全吸收伤害时不会损兵。
         </p>
       </section>
       <p className="save-explanation">

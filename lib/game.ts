@@ -17,7 +17,6 @@ export type NodeKind =
   | 'shop'
   | 'event'
   | 'boss';
-export type Lane = -1 | 1;
 export interface Hero {
   id: ClassId;
   name: string;
@@ -31,10 +30,14 @@ export interface Hero {
   skill: string;
   skillDesc: string;
   passive: string;
+  person: string;
+  quote: string;
 }
 export const HEROES: Hero[] = [
   {
     id: 'knight',
+    person: '阿德里克·维恩',
+    quote: '我会让最后一个人，也走过这道门。',
     name: '誓约骑士',
     sub: 'THE OATHKEEPER',
     color: '#d5af68',
@@ -44,11 +47,13 @@ export const HEROES: Hero[] = [
     squad: 12,
     weapon: '卫士长剑',
     skill: '不破誓约',
-    skillDesc: '获得 24 护盾，6 秒内伤害提高 50%。',
+    skillDesc: '获得 18 护盾，6 秒内伤害提高 50%。',
     passive: '每场战斗获得 15 护盾；护甲减伤 12%。',
   },
   {
     id: 'ranger',
+    person: '希尔雯·暮叶',
+    quote: '门会欺骗你，箭不会。',
     name: '灰林游侠',
     sub: 'THE WAYFARER',
     color: '#8cb5a0',
@@ -58,11 +63,13 @@ export const HEROES: Hero[] = [
     squad: 15,
     weapon: '灰木长弓',
     skill: '箭雨齐射',
-    skillDesc: '对所有可见敌人和宝箱造成 5 倍单次伤害。',
+    skillDesc: '对所有可见敌人和宝箱造成 4 倍单次伤害。',
     passive: '初始暴击率 20%；攻击速度更快。',
   },
   {
     id: 'mage',
+    person: '瑟兰·灰烛',
+    quote: '每一点火光，都曾有一个名字。',
     name: '秘火法师',
     sub: 'THE ARCANIST',
     color: '#aea1d9',
@@ -72,7 +79,7 @@ export const HEROES: Hero[] = [
     squad: 10,
     weapon: '秘火法杖',
     skill: '秘火新星',
-    skillDesc: '对所有可见目标造成 6 倍单次伤害，召唤 3 名队员。',
+    skillDesc: '对所有可见目标造成 4.5 倍单次伤害，召唤 3 名队员。',
     passive: '每经过一道门，额外召唤 2 名队员。',
   },
 ];
@@ -141,7 +148,7 @@ export const RELICS: Relic[] = [
     family: 'all',
     tag: '军团',
     rarity: '稀有',
-    desc: '正向乘法门的倍率 +0.25。',
+    desc: '正向乘法门的倍率 +0.08。',
     max: 3,
     icon: 'copy',
   },
@@ -171,7 +178,7 @@ export const RELICS: Relic[] = [
     family: 'all',
     tag: '生存',
     rarity: '稀有',
-    desc: '击败敌人时恢复 6 生命。',
+    desc: '击败敌人时恢复 3 生命。',
     max: 3,
     icon: 'heart',
   },
@@ -211,7 +218,7 @@ export const RELICS: Relic[] = [
     family: 'knight',
     tag: '圣盾',
     rarity: '稀有',
-    desc: '每点当前护盾提供 1% 额外伤害。',
+    desc: '每点当前护盾提供 0.5% 额外伤害。',
     max: 3,
     icon: 'sword',
   },
@@ -221,7 +228,7 @@ export const RELICS: Relic[] = [
     family: 'knight',
     tag: '圣盾',
     rarity: '普通',
-    desc: '每次通过正向门时获得 8 护盾。',
+    desc: '每次通过正向门时获得 6 护盾。',
     max: 3,
     icon: 'shield',
   },
@@ -251,7 +258,7 @@ export const RELICS: Relic[] = [
     family: 'knight',
     tag: '圣盾',
     rarity: '史诗',
-    desc: '主动技能冷却缩短 4 秒，技能护盾额外 +30。',
+    desc: '主动技能冷却缩短 4 秒，技能护盾额外 +12。',
     max: 1,
     icon: 'crown',
   },
@@ -321,7 +328,7 @@ export const RELICS: Relic[] = [
     family: 'mage',
     tag: '奥术',
     rarity: '普通',
-    desc: '攻击使目标灼烧，每秒造成 10 伤害，持续 3 秒。',
+    desc: '攻击使目标灼烧，每秒造成 14 伤害，持续 3 秒。',
     max: 3,
     icon: 'flame',
   },
@@ -386,7 +393,7 @@ export interface RouteNode {
   kind: NodeKind;
 }
 export interface Run {
-  version: 1;
+  version: 2;
   phase: Phase;
   classId: ClassId;
   seed: number;
@@ -448,7 +455,7 @@ export function createMap(seed: number): RouteNode[][] {
 export function createRun(classId: ClassId, seed = 12345): Run {
   const h = HEROES.find((h) => h.id === classId)!;
   return {
-    version: 1,
+    version: 2,
     phase: 'setup',
     classId,
     seed,
@@ -513,13 +520,13 @@ export function stats(run: Run, shield = 0) {
   const ranger = run.classId === 'ranger';
   return {
     damage:
-      (warrior ? 6.8 : ranger ? 5.2 : 8.3) *
-      (1 + (run.weaponTier - 1) * 0.22) *
+      (warrior ? 7.2 : ranger ? 5.4 : 8.8) *
+      (1 + (run.weaponTier - 1) * 0.1) *
       (1 + r('steel') * 0.2 + r('surge') * 0.25) *
-      (1 + shield * r('bash') * 0.01) *
+      (1 + shield * r('bash') * 0.005) *
       (synergy && warrior ? 1.15 : 1),
     rate:
-      (ranger ? 3 : 2.1) *
+      (ranger ? 3.5 : 2.7) *
       (1 + r('quiver') * 0.2 + (synergy && run.classId === 'mage' ? 0.2 : 0)),
     crit: Math.min(
       0.85,
@@ -532,7 +539,7 @@ export function stats(run: Run, shield = 0) {
     armor: Math.min(0.6, (warrior ? 0.12 : 0) + r('plate') * 0.08),
     shieldStart: (warrior ? 15 : 0) + r('bulwark') * 15 + r('ward') * 18,
     gateAdd: r('recruit') * 5,
-    gateMult: r('mirror') * 0.25,
+    gateMult: r('mirror') * 0.08,
     summon: (run.classId === 'mage' ? 2 : 0) + r('summon') * 3 + r('army') * 3,
     cooldown: 12 - (r('paladin') + r('hunter') + r('archmage')) * 4,
     synergy,
@@ -572,7 +579,7 @@ export function addRelic(run: Run, id: string): Run {
     n.maxHp += 20;
     n.hp = Math.min(n.maxHp, n.hp + 20);
   }
-  if (id === 'army') n.squad = Math.min(999, n.squad + 20);
+  if (id === 'army') n.squad = safeTroops(n.squad + 20);
   if (id === 'bounty') n.gold += 30;
   logRun(n, `获得强化 · ${relic.name}`);
   return n;
@@ -656,7 +663,7 @@ export function shopBuy(run: Run, id: string): Run {
   n.gold -= item.cost;
   n.purchases.push(id);
   if (id === 'potion') n.hp = Math.min(n.maxHp, n.hp + 40);
-  if (id === 'soldiers') n.squad = Math.min(999, n.squad + 18);
+  if (id === 'soldiers') n.squad = safeTroops(n.squad + 18);
   if (id === 'weapon') n.weaponTier++;
   if (id === 'relic') {
     const candidate = rollRewards(n, true)[0];
@@ -681,7 +688,7 @@ export function eventAction(run: Run, action: 'blood' | 'gold' | 'leave'): Run {
   }
   if (action === 'gold') {
     n.gold -= 35;
-    n.squad = Math.min(999, n.squad + 22);
+    n.squad = safeTroops(n.squad + 22);
     logRun(n, '唤醒沉眠者 · 获得 22 名队员');
   }
   if (action === 'leave') {
@@ -698,16 +705,39 @@ export function weaponName(run: Run) {
       ? { knight: '破晓圣刃', ranger: '猎风战弓', mage: '星火权杖' }[
           run.classId
         ]
-      : { knight: '不灭誓约', ranger: '月神之弦', mage: '群星终焉' }[
+      : { knight: '不灭誓约', ranger: '蚀月猎弓', mage: '群星终焉' }[
           run.classId
         ];
+}
+export function safeTroops(n: number) {
+  return Math.max(1, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(n)));
+}
+export function troopMultiplier(squad: number) {
+  return 1 + Math.log2(1 + squad / 12);
+}
+export function firepower(run: Run, shield = 0) {
+  const s = stats(run, shield);
+  const multiplier = troopMultiplier(run.squad);
+  const volley = s.damage * multiplier;
+  return {
+    multiplier,
+    volley,
+    dps: volley * s.rate * (1 + s.crit * (s.critMult - 1)),
+  };
+}
+export function formatNumber(n: number) {
+  return n >= 100000000
+    ? `${(n / 100000000).toFixed(1)}亿`
+    : n >= 10000
+      ? `${(n / 10000).toFixed(1)}万`
+      : Math.round(n).toLocaleString('zh-CN');
 }
 export interface GateChoice {
   op: '+' | '×' | '-' | '÷';
   value: number;
 }
 export function gateLabel(g: GateChoice) {
-  return `${g.op}${g.value}`;
+  return `${g.op}${Number.isInteger(g.value) ? g.value : g.value.toFixed(2).replace(/0$/, '')}`;
 }
 export function applyGate(
   run: Run,
@@ -721,423 +751,17 @@ export function applyGate(
     run.squad = Math.floor(run.squad * (gate.value + s.gateMult));
   if (gate.op === '-') run.squad -= gate.value;
   if (gate.op === '÷') run.squad = Math.floor(run.squad / gate.value);
-  run.squad = Math.max(1, Math.min(999, run.squad + s.summon));
-  if (gate.op === '+' || gate.op === '×') shield += 8 * (run.relics.aegis || 0);
+  run.squad = safeTroops(run.squad + s.summon);
+  if (gate.op === '+' || gate.op === '×') shield += 6 * (run.relics.aegis || 0);
   run.gates++;
   logRun(run, `${gateLabel(gate)} 之门 · 队伍 ${old} → ${run.squad}`);
   return { shield: Math.min(250, shield), delta: run.squad - old };
-}
-export interface Entity {
-  id: number;
-  kind: 'gate' | 'chest' | 'enemy' | 'hazard';
-  lane: Lane | 0;
-  start: number;
-  arrival: number;
-  hp: number;
-  maxHp: number;
-  done: boolean;
-  gate?: [GateChoice, GateChoice];
-  boss?: boolean;
-  name?: string;
-  burnUntil: number;
-  lastAttack: number;
-}
-export interface Effect {
-  x: number;
-  y: number;
-  text: string;
-  color: string;
-  life: number;
-  type: 'text' | 'shot' | 'burst';
-  targetX?: number;
-  targetY?: number;
-}
-export interface Battle {
-  player: Run;
-  time: number;
-  lane: Lane;
-  visualLane: number;
-  entities: Entity[];
-  effects: Effect[];
-  shield: number;
-  cooldown: number;
-  buffUntil: number;
-  shootTimer: number;
-  shots: number;
-  random: () => number;
-  state: 'running' | 'won' | 'lost';
-  flash: number;
-  skillFlash: number;
-  message: string;
-  messageUntil: number;
-  lastSound: string;
-  soundSeq: number;
-}
-export function createBattle(run: Run): Battle {
-  const p = structuredClone(run);
-  const random = rng(p.seed + p.floor * 719 + (p.node?.col || 0) * 13);
-  const elite = p.node?.kind === 'elite',
-    boss = p.node?.kind === 'boss';
-  const scale = (1 + p.floor * 0.35) * (elite ? 1.4 : 1);
-  const entities: Entity[] = [];
-  function put(
-    kind: Entity['kind'],
-    start: number,
-    lane: Lane | 0,
-    hp = 0,
-    name?: string,
-    bossFlag = false,
-  ) {
-    entities.push({
-      id: entities.length,
-      kind,
-      start,
-      arrival: start + 6,
-      lane,
-      hp,
-      maxHp: hp,
-      done: false,
-      name,
-      boss: bossFlag,
-      burnUntil: 0,
-      lastAttack: 0,
-    });
-    return entities.at(-1)!;
-  }
-  const choices: [GateChoice, GateChoice][] = [
-    [
-      { op: '+', value: 10 },
-      { op: '×', value: 2 },
-    ],
-    [
-      { op: '+', value: 14 },
-      { op: '×', value: 1.5 },
-    ],
-    [
-      { op: '-', value: 8 },
-      { op: '÷', value: 2 },
-    ],
-    [
-      { op: '+', value: 8 },
-      { op: '×', value: 2 },
-    ],
-    [
-      { op: '×', value: 1.5 },
-      { op: '+', value: 20 },
-    ],
-  ];
-  [0, 10, 20].forEach((t, i) => {
-    const e = put('gate', t, 0);
-    const pair =
-      i === 0 && p.floor === 0
-        ? choices[0]
-        : choices[Math.floor(random() * choices.length)];
-    e.gate = (random() > 0.5 && p.floor > 0 ? [pair[1], pair[0]] : pair).map(
-      (g) => ({ ...g }),
-    ) as [GateChoice, GateChoice];
-  });
-  put('chest', 4, random() > 0.5 ? 1 : -1, 55 * scale, '遗落宝箱');
-  put('enemy', 7, random() > 0.5 ? 1 : -1, 85 * scale, '骸骨卫兵');
-  put('hazard', 13, random() > 0.5 ? 1 : -1, 0, '荆棘陷阱');
-  put('chest', 16, random() > 0.5 ? 1 : -1, 80 * scale, '符文宝箱');
-  if (p.node?.kind === 'treasure')
-    put('chest', 11, random() > 0.5 ? 1 : -1, 65 * scale, '镀金宝箱');
-  else
-    put(
-      'enemy',
-      17,
-      random() > 0.5 ? 1 : -1,
-      110 * scale,
-      elite ? '黑甲禁卫' : '荒野劫掠者',
-    );
-  put(
-    'enemy',
-    25,
-    0,
-    (boss ? 410 : elite ? 235 : 175) * scale,
-    boss ? ACTS[Math.floor(p.floor / 4)].boss : elite ? '黑甲统领' : '拦路兽人',
-    true,
-  );
-  p.squad = Math.min(999, p.squad + (p.relics.ambush || 0) * 8);
-  return {
-    player: p,
-    time: 0,
-    lane: -1,
-    visualLane: -1,
-    entities,
-    effects: [],
-    shield: stats(p).shieldStart,
-    cooldown: 0,
-    buffUntil: 0,
-    shootTimer: 0,
-    shots: 0,
-    random,
-    state: 'running',
-    flash: 0,
-    skillFlash: 0,
-    message: '选择数值门 · 对准目标自动攻击',
-    messageUntil: 5,
-    lastSound: '',
-    soundSeq: 0,
-  };
-}
-export function progress(e: Entity, time: number) {
-  return Math.min(e.boss ? 0.84 : 1.2, (time - e.start) / 6);
-}
-function sound(b: Battle, name: string) {
-  b.lastSound = name;
-  b.soundSeq++;
-}
-function message(b: Battle, text: string, color = '#dfc280') {
-  b.message = text;
-  b.messageUntil = b.time + 2.4;
-  b.effects.push({
-    type: 'text',
-    x: b.lane * 0.24,
-    y: 0.79,
-    text,
-    color,
-    life: 1.5,
-  });
-}
-function hitEntity(
-  b: Battle,
-  e: Entity,
-  damage: number,
-  critical = false,
-  showDamage = true,
-) {
-  if (e.done || e.hp <= 0) return;
-  e.hp -= damage;
-  if (showDamage)
-    b.effects.push({
-      type: 'text',
-      x: e.lane * 0.25,
-      y: 0.28 + Math.max(0, progress(e, b.time)) * 0.5,
-      text: `${critical ? '✦ ' : ''}${Math.ceil(damage)}`,
-      color: critical ? '#ffe09b' : '#e4e8d1',
-      life: 0.7,
-    });
-  if (e.hp <= 0) {
-    e.done = true;
-    b.effects.push({
-      type: 'burst',
-      x: e.lane * 0.25,
-      y: 0.28 + progress(e, b.time) * 0.5,
-      text: '',
-      color: e.kind === 'chest' ? '#eac073' : '#cba199',
-      life: 0.65,
-    });
-    if (e.kind === 'chest') {
-      b.player.chests++;
-      b.player.weaponTier = Math.min(10, b.player.weaponTier + 1);
-      b.player.gold += 12;
-      message(b, `宝箱击破 · 武器 Lv.${b.player.weaponTier} · +12 金币`);
-      logRun(b.player, '击破宝箱 · 武器升级');
-      sound(b, 'chest');
-    } else {
-      b.player.kills++;
-      b.player.gold += 8;
-      b.player.hp = Math.min(
-        b.player.maxHp,
-        b.player.hp + (b.player.relics.vampire || 0) * 6,
-      );
-      sound(b, 'kill');
-      if (e.boss) message(b, `${e.name} 已击败`);
-    }
-  }
-}
-export function damagePlayer(b: Battle, amount: number) {
-  const reduced = Math.ceil(amount * (1 - stats(b.player, b.shield).armor));
-  const absorbed = Math.min(reduced, b.shield);
-  b.shield -= absorbed;
-  b.player.hp = Math.max(0, b.player.hp - (reduced - absorbed));
-  b.flash = 0.35;
-  sound(b, 'hurt');
-  message(
-    b,
-    absorbed === reduced
-      ? `护盾抵挡 ${reduced}`
-      : `受到 ${reduced - absorbed} 伤害`,
-    '#efaca0',
-  );
-  if (b.player.relics.thorns)
-    for (const e of b.entities)
-      if (e.kind === 'enemy' && e.start <= b.time && !e.done)
-        hitEntity(b, e, 40 * b.player.relics.thorns);
-  if (b.player.hp <= 0) {
-    b.state = 'lost';
-    b.player.phase = 'defeat';
-    logRun(b.player, '远征落幕，但余烬仍在。');
-  }
-}
-export function attackDamage(b: Battle) {
-  return (
-    stats(b.player, b.shield).damage *
-    Math.sqrt(Math.max(1, b.player.squad)) *
-    (b.buffUntil > b.time ? 1.5 : 1)
-  );
-}
-export function setBattleLane(b: Battle, lane: Lane) {
-  b.lane = lane;
-}
-
-export function activateSkill(b: Battle) {
-  if (b.state !== 'running' || b.cooldown > 0) return false;
-  b.cooldown = stats(b.player).cooldown;
-  b.skillFlash = 0.8;
-  sound(b, 'skill');
-  if (b.player.classId === 'knight') {
-    b.shield = Math.min(
-      250,
-      b.shield + 24 + (b.player.relics.paladin || 0) * 30,
-    );
-    b.buffUntil = b.time + 6;
-    message(b, '不破誓约 · 圣盾降临');
-  } else {
-    for (const e of b.entities)
-      if (
-        e.start <= b.time &&
-        !e.done &&
-        (e.kind === 'enemy' || e.kind === 'chest')
-      )
-        hitEntity(
-          b,
-          e,
-          attackDamage(b) * (b.player.classId === 'mage' ? 6 : 5),
-        );
-    if (b.player.classId === 'mage')
-      b.player.squad = Math.min(
-        999,
-        b.player.squad + 3 + (b.player.relics.archmage || 0) * 8,
-      );
-    message(
-      b,
-      b.player.classId === 'mage'
-        ? '秘火新星 · 星火燎原'
-        : '箭雨齐射 · 万箭穿心',
-    );
-  }
-  return true;
-}
-export function stepBattle(b: Battle, dt: number) {
-  if (b.state !== 'running') return;
-  dt = Math.min(0.05, Math.max(0, dt));
-  b.time += dt;
-  b.cooldown = Math.max(0, b.cooldown - dt);
-  b.flash = Math.max(0, b.flash - dt);
-  b.skillFlash = Math.max(0, b.skillFlash - dt);
-  b.visualLane += (b.lane - b.visualLane) * Math.min(1, dt * 12);
-  b.effects = b.effects.filter((e) => (e.life -= dt) > 0);
-  for (const e of b.entities) {
-    if (e.done || b.time < e.start) continue;
-    if (e.burnUntil > b.time && e.hp > 0)
-      hitEntity(b, e, 10 * (b.player.relics.ember || 0) * dt, false, false);
-    if (e.done) continue;
-    if (b.time >= e.arrival) {
-      if (e.kind === 'gate') {
-        const result = applyGate(
-          b.player,
-          e.gate![b.lane === -1 ? 0 : 1],
-          b.shield,
-        );
-        b.shield = result.shield;
-        message(
-          b,
-          `队伍 ${result.delta >= 0 ? '+' : ''}${result.delta}`,
-          result.delta >= 0 ? '#b8edb9' : '#f5ada2',
-        );
-        sound(b, 'gate');
-        e.done = true;
-      } else if (e.kind === 'hazard') {
-        if (e.lane === b.lane) {
-          damagePlayer(b, 15 + b.player.floor * 2);
-          b.player.squad = Math.max(1, b.player.squad - 5);
-        }
-        e.done = true;
-      } else if (e.kind === 'chest') {
-        e.done = true;
-        message(b, '错过宝箱 · 提前换道瞄准', '#bdbca5');
-      } else if (e.boss) {
-        if (b.time - e.lastAttack >= 3.2) {
-          e.lastAttack = b.time;
-          damagePlayer(b, 15 + b.player.floor * 2.8);
-        }
-      } else {
-        damagePlayer(b, (e.lane === b.lane ? 18 : 9) + b.player.floor * 1.5);
-        b.player.squad = Math.max(
-          1,
-          b.player.squad - (e.lane === b.lane ? 5 : 2),
-        );
-        e.done = true;
-      }
-    }
-    if (b.state !== 'running') return;
-  }
-  b.shootTimer -= dt;
-  if (b.shootTimer <= 0) {
-    const targets = b.entities
-      .filter(
-        (e) =>
-          !e.done &&
-          e.hp > 0 &&
-          b.time > e.start + 0.45 &&
-          (e.lane === b.lane || e.lane === 0),
-      )
-      .sort((a, c) => a.arrival - c.arrival);
-    if (targets.length) {
-      const target = targets[0];
-      const s = stats(b.player, b.shield);
-      const critical = b.random() < s.crit;
-      const damage = attackDamage(b) * (critical ? s.critMult : 1);
-      b.shots++;
-      sound(b, 'shoot');
-      hitEntity(b, target, damage, critical);
-      b.effects.push({
-        type: 'shot',
-        x: b.visualLane * 0.25,
-        y: 0.86,
-        text: '',
-        color: HEROES.find((h) => h.id === b.player.classId)!.color,
-        life: 0.18,
-        targetX: target.lane * 0.25,
-        targetY: 0.28 + progress(target, b.time) * 0.5,
-      });
-      if (!target.done && b.player.relics.ember) target.burnUntil = b.time + 3;
-      if (!target.done && b.player.relics.echo && b.shots % 3 === 0)
-        hitEntity(b, target, damage * 0.8 * b.player.relics.echo);
-      if (critical && b.player.relics.ricochet) {
-        const other = b.entities.find(
-          (e) => e !== target && !e.done && e.hp > 0 && e.start < b.time,
-        );
-        if (other) hitEntity(b, other, damage * 0.6 * b.player.relics.ricochet);
-      }
-    }
-    b.shootTimer = 1 / stats(b.player, b.shield).rate;
-  }
-  if (b.player.hp <= 0) {
-    b.state = 'lost';
-    b.player.phase = 'defeat';
-    return;
-  }
-  const final = b.entities.find((e) => e.boss)!;
-  if (final.done && b.time > 26) {
-    b.state = 'won';
-    b.player.gold +=
-      (b.player.node?.kind === 'elite'
-        ? 55
-        : b.player.node?.kind === 'boss'
-          ? 85
-          : 30) +
-      (b.player.relics.bounty || 0) * 20;
-    logRun(b.player, '战斗胜利 · 选择你的下一项强化');
-  }
 }
 export function restoreRun(text: string): Run | null {
   try {
     const r = JSON.parse(text) as Run;
     if (
-      r.version !== 1 ||
+      r.version !== 2 ||
       !HEROES.some((h) => h.id === r.classId) ||
       !['map', 'reward', 'rest', 'shop', 'event'].includes(r.phase) ||
       !Number.isInteger(r.seed) ||
@@ -1169,7 +793,7 @@ export function restoreRun(text: string): Run | null {
       r.hp > r.maxHp ||
       r.maxHp > 500 ||
       r.squad < 1 ||
-      r.squad > 999 ||
+      !Number.isSafeInteger(r.squad) ||
       r.weaponTier < 1 ||
       r.weaponTier > 10
     )

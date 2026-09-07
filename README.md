@@ -1,38 +1,52 @@
 # 灰烬之门 · Ashen Gates
 
-一个可玩的中世纪奇幻 Gate Runner × 肉鸽爬塔原型。使用 React、TypeScript 与 Canvas 2D；场景以 2.5D 透视绘制，单人本地规则，无需游戏服务器。
+Gate Runner × Roguelike，原创中世纪奇幻十二层远征。当前版本 **v0.2**。
 
-## 玩法
+- 真正俯视、全宽连续横移，支持键盘、鼠标与触屏。
+- 不同宽度的两门或三门选择，兵力没有 999 上限，面板解释兵力与火力。
+- 三职业完整立绘、25 项可叠加遗物、六条 build 方向。
+- 每幕 8 / 10 / 12 波，持续瞄准、打宝箱升武器、躲避预警、三位幕首领。
+- 分支地图、战后三选一、营火、商店、祭坛事件、本地存档。
 
-- 三职业：誓约骑士（圣盾反击）、灰林游侠（暴击连射）、秘火法师（奥术回响）。
-- 三幕十二层，带相邻连接限制的随机分岔路线；每第四层挑战首领。
-- 实时左右换道，通过加法、乘法、减法、除法门累积队伍。队伍伤害按人数平方根增长，人数上限 999。
-- 当前道路自动攻击；在期限内击碎宝箱，获得武器升级和金币。武器 10 级封顶。
-- 25 项可叠加强化，战后三选一。累计三层职业强化激活该职业的流派加成。
-- 精英战、宝库、营火、商店、献祭事件、胜利/死亡结算及重开。
-- 关卡间在当前浏览器自动存档，战斗中刷新回到最近的关卡间检查点。无云端存档或跨设备同步。
+![誓约骑士](public/art/knight.webp)
 
-## 操作
+## 运行
 
-方向键 / A D：换道。空格：职业技能。P / Esc：暂停。手机：点击左右场地或拖动换道，点击技能按钮。切换窗口自动暂停。
+需要 Node.js 24。
 
-## 开发
+```sh
+npm ci
+npm run dev
+npm run build
+npm start
+```
 
-Node.js 24+。`npm install`，`npm run dev`。
+默认生产构建输出 `dist/`，可直接部署 Vercel 或 Netlify，无服务端和环境变量需求。A/D 或左右方向键按住移动，空格释放技能，P/Esc 暂停；手机点击或拖动场地。
 
-`npm test` 运行战斗规则、经济、存档与三职业完整爬塔模拟。
-`npm run typecheck` 检查类型。
-`npm run lint` 检查本项目编写的源码；生成的 `components/ui` 和 `hooks` 保持上游原样，不在此检查范围。
-`npm run build` 生成 Sites/Cloudflare Worker 产物。
+## 设计与验证
 
-主要文件：`lib/game.ts`（可独立模拟的战斗及爬塔规则）、`lib/renderer.ts`（透视渲染）、`lib/storage.ts`（本地存档）、`components/battle-canvas.tsx`（帧循环及输入）、`components/game-panels.tsx`（职业/地图/构筑/房间界面）、`app/page.tsx`（流程编排）。
+- [完整游戏设计](docs/GAME_DESIGN.md)
+- [所有数值、遗物与难度曲线](docs/BALANCE.md)
+- [三位人物与六条构筑路线](docs/CHARACTERS.md)
+- [难度模拟与局限](docs/BALANCE_AUDIT.md)
+- [美术资产与后续 3D](docs/ART_ASSETS.md)
+- [部署与大陆访问说明](docs/DEPLOYMENT.md)
 
-## 美术资产
+```sh
+npm test
+npm run typecheck
+npm run lint
+npm run test:balance -- 64
+```
 
-`public/art/citadel.png` 为内置 imagegen 工具生成的原创 1536×1024 古堡环境图；已保存于项目内。最终提示词：
+完整远征模拟从零遗物、Lv1 武器开始，通过实际三选一逐步构筑，不预装毕业装备。模拟只能验证机制和数值方向，不代表人类玩家胜率。
 
-> Use case: stylized-concept. Asset type: Original raster environment art for a medieval fantasy DnD-style Gate Runner roguelike game, one 1536x1024 landscape illustration. A dramatic ruined black stone gothic citadel centered high in the background, with a narrow ancient stone bridge leading from the bottom center into the castle. Deep ravines on both sides of the bridge, distant pine forest, cold teal fog, moss on ancient masonry, sparse ember torches casting restrained warm amber light. Painterly, detailed premium indie game concept art, dark and moody but with readable architecture. Wide landscape, castle mass centered high; strong bridge perspective from bottom center towards the castle entrance. Center-bottom bridge area visually quiet and uncluttered for gameplay overlays. Cold atmospheric teal haze contrasting subtly with warm amber torchlight. Exactly one image. No text, logos, watermark, UI, characters, or decorative border.
+## 代码结构
 
-图标使用 lucide-react。关卡单位、门、宝箱和投射物由游戏渲染器实时绘制。世界观、名称和数值为本项目原创，不使用 D&D 或《杀戮尖塔》的专有美术、角色或规则内容。
+- `lib/game.ts`：职业、遗物、地图、房间、经济、存档校验。
+- `lib/combat.ts`：连续移动、敌人波次、门、预警、技能与战斗。
+- `lib/renderer.ts`：固定比例俯视 Canvas。
+- `app/page.tsx`、`components/game-panels.tsx`：完整远征流程与界面。
+- `scripts/balance-sim.mjs`：遵守移动速度的自动模拟器。
 
-当前版本是可迭代的玩法原型：三幕复用一种地形、角色为简化战棋单位。尚未加入更多职业、剧情分支、音轨或长期解锁。
+本版的 3D 风格立绘是 2D 图像，尚无真正 3D 模型或骨骼动画。存档只在当前浏览器；v0.1 的远征不兼容 v0.2。所有美术和游戏资源从本站加载，没有外部字体/CDN依赖。
