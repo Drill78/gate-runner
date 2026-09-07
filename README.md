@@ -1,4 +1,4 @@
-# 灰烬之门 · Ashen Gates
+# gate-runner · 灰烬之门 / Ashen Gates
 
 Gate Runner × Roguelike，原创中世纪奇幻十二层远征。当前版本 **v0.2**。
 
