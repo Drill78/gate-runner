@@ -27,6 +27,14 @@ export interface BattleSnapshot {
   arriving: boolean;
   pressure: BossPressure | null;
   ritual: Ritual | null;
+  encounter: {
+    name: string;
+    hp: number;
+    maxHp: number;
+    chapterBoss: boolean;
+    hasSecondPhase: boolean;
+    status: string;
+  } | null;
 }
 export function BattleCanvas({
   battle,
@@ -199,6 +207,11 @@ export function BattleCanvas({
       drawBattle(ctx, w, h, battle, reducedMotion);
       if (now - lastUI > 100) {
         lastUI = now;
+        const target = battle.entities.find(
+          (e) => e.boss && !e.done && e.start <= battle.time,
+        );
+        const chapterBoss = battle.player.node?.kind === 'boss';
+        const hasSecondPhase = !chapterBoss || battle.player.floor < 8;
         current.current.onSnapshot({
           run: { ...battle.player },
           shield: battle.shield,
@@ -213,6 +226,24 @@ export function BattleCanvas({
           arriving: introRemaining > 0,
           pressure: battle.pressure ? { ...battle.pressure } : null,
           ritual: battle.ritual ? { ...battle.ritual } : null,
+          encounter: target
+            ? {
+                name: target.name,
+                hp: Math.max(0, target.hp),
+                maxHp: target.maxHp,
+                chapterBoss,
+                hasSecondPhase,
+                status: battle.enrage
+                  ? '狂暴'
+                  : target.guardUntil > battle.time
+                    ? '正面举盾'
+                    : battle.ritual?.bossId === target.id
+                      ? '正在吟唱'
+                      : hasSecondPhase && target.hp < target.maxHp * 0.5
+                        ? '第二阶段'
+                        : '交战中',
+              }
+            : null,
         });
       }
       if (battle.state !== 'running' && !finished) {

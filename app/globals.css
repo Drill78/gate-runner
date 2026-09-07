@@ -2867,6 +2867,123 @@ body.expedition-active {
   font-size: 15px;
   color: #ffe2bd;
 }
+.encounter-health {
+  --enemy-health: #dfac66;
+  --enemy-health-dark: #a56935;
+  position: absolute;
+  z-index: 7;
+  top: calc(max(8px, env(safe-area-inset-top)) + 86px);
+  left: 14px;
+  right: 14px;
+  pointer-events: none;
+  color: #f9e9cc;
+  text-shadow:
+    0 1px 3px #090d0b,
+    0 0 6px #090d0b;
+}
+.encounter-health[data-kind='boss'] {
+  --enemy-health: #f28c79;
+  --enemy-health-dark: #b23932;
+}
+.encounter-health-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  min-height: 24px;
+}
+.encounter-health-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.encounter-health-title small {
+  font-size: 12px;
+  color: var(--enemy-health);
+  white-space: nowrap;
+}
+.encounter-health-title strong {
+  font-size: 18px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.encounter-health-status {
+  color: var(--enemy-health);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.encounter-health-track {
+  position: relative;
+  height: 22px;
+  overflow: hidden;
+  border: 1px solid var(--enemy-health);
+  border-radius: 3px;
+  background: #100f0ccc;
+  box-shadow: 0 2px 8px #0006;
+}
+.encounter-health-fill,
+.encounter-health-trail {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+}
+.encounter-health-fill {
+  background: linear-gradient(
+    0deg,
+    var(--enemy-health-dark),
+    var(--enemy-health)
+  );
+  transition: width 90ms linear;
+}
+.encounter-health-trail {
+  background: #f9dfb8;
+  transition: width 550ms ease-out;
+}
+.encounter-health-half {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid #fff7db70;
+}
+.encounter-health-numbers {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff6e7;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-shadow:
+    0 1px 2px #000,
+    0 0 3px #000;
+}
+@media (max-width: 374px) {
+  .encounter-health {
+    left: 10px;
+    right: 10px;
+  }
+  .encounter-health-title strong {
+    font-size: 16px;
+  }
+  .encounter-health-title {
+    gap: 5px;
+  }
+  .encounter-health-status {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .encounter-health-fill,
+  .encounter-health-trail {
+    transition: none;
+  }
+}
 .boss-arrival {
   position: absolute;
   inset: 0;
@@ -2988,7 +3105,7 @@ body.expedition-active {
 }
 .ritual-indicator {
   position: absolute;
-  top: calc(max(12px, env(safe-area-inset-top)) + 90px);
+  top: calc(max(12px, env(safe-area-inset-top)) + 158px);
   left: 50%;
   transform: translateX(-50%);
   width: 260px;

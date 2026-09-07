@@ -380,6 +380,57 @@ export default function Home() {
                 onEnd={onEnd}
                 onPause={onPause}
               />
+              {snapshot?.encounter && !snapshot.arriving ? (
+                <div
+                  className="encounter-health"
+                  data-kind={snapshot.encounter.chapterBoss ? 'boss' : 'elite'}
+                >
+                  <div className="encounter-health-heading">
+                    <span className="encounter-health-title">
+                      <small>
+                        {snapshot.encounter.chapterBoss
+                          ? '章节 BOSS'
+                          : '关底精英'}
+                      </small>
+                      <strong>{snapshot.encounter.name}</strong>
+                    </span>
+                    <span className="encounter-health-status">
+                      {snapshot.encounter.status}
+                    </span>
+                  </div>
+                  <meter
+                    className="sr-only"
+                    aria-label={`${snapshot.encounter.name}生命`}
+                    min={0}
+                    max={snapshot.encounter.maxHp}
+                    value={snapshot.encounter.hp}
+                  />
+                  <div className="encounter-health-track" aria-hidden="true">
+                    <span
+                      className="encounter-health-trail"
+                      style={{
+                        width: `${(100 * snapshot.encounter.hp) / snapshot.encounter.maxHp}%`,
+                      }}
+                    />
+                    <span
+                      className="encounter-health-fill"
+                      style={{
+                        width: `${(100 * snapshot.encounter.hp) / snapshot.encounter.maxHp}%`,
+                      }}
+                    />
+                    {snapshot.encounter.hasSecondPhase ? (
+                      <i className="encounter-health-half" />
+                    ) : null}
+                    <span className="encounter-health-numbers">
+                      {Math.ceil(snapshot.encounter.hp).toLocaleString('zh-CN')}{' '}
+                      /{' '}
+                      {Math.ceil(snapshot.encounter.maxHp).toLocaleString(
+                        'zh-CN',
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
               <div className="battle-edge-progress">
                 <span>
                   第 {run.floor + 1} 层 ·{' '}
@@ -504,7 +555,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          EARLY ACCESS <b>v0.4</b>
+          EARLY ACCESS <b>v0.4.1</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>

@@ -273,22 +273,6 @@ export function drawBattle(
       ctx.beginPath();
       ctx.arc(x, y, 42 * scale, 0, Math.PI * 2);
       ctx.stroke();
-      hpBar(e, x, y - 66 * scale, 148 * scale);
-      label(
-        e.name,
-        x,
-        y - 80 * scale,
-        Math.max(17, 18 * scale),
-        '#ffe0b6',
-        '700',
-      );
-      label(
-        `${Math.ceil(e.hp)} / ${Math.ceil(e.maxHp)}`,
-        x,
-        y + 55 * scale,
-        14,
-        '#ecc8a6',
-      );
     } else {
       soldier(
         x,
@@ -342,9 +326,8 @@ export function drawBattle(
         ctx.beginPath();
         ctx.ellipse(x, y + 12 * scale, 42 * scale, 23 * scale, 0, 0, Math.PI);
         ctx.stroke();
-        label('举盾 · 侧翼破防', x, y + 77 * scale, 13, '#ffdda3', '700');
-      } else if (e.hp < e.maxHp * 0.5)
-        label('Ⅱ · 狂怒形态', x, y + 75 * scale, 12, '#efab88');
+        label('侧翼破防', x, y + 55 * scale, 13, '#ffdda3', '700');
+      }
     }
     if (e.burnUntil > b.time) {
       ctx.fillStyle = '#ebaf6150';
