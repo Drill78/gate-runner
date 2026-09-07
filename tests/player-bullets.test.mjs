@@ -12,7 +12,8 @@ import { VIEW } from '../lib/view.ts';
 function arena(relics = {}, classId = 'ranger') {
   const run = createRun(classId, 887);
   run.phase = 'battle';
-  run.node = { id: '0-1', floor: 0, col: 1, kind: 'battle' };
+  run.node = run.nodes[0].find((node) => node.kind === 'battle');
+  assert.ok(run.node);
   run.relics = relics;
   const b = createBattle(run);
   const template = b.entities.find((e) => e.kind === 'enemy' && !e.boss);

@@ -1,11 +1,13 @@
-import { HEROES, gateLabel, formatNumber } from './game.ts';
+import { HEROES, ACT_LENGTH, gateLabel, formatNumber } from './game.ts';
 import {
   worldY,
   projectilePosition,
   type Battle,
   type Entity,
+  kingPhase,
 } from './combat.ts';
 import { VIEW, screenX, screenY } from './view.ts';
+import { ENCOUNTERS } from './bosses.ts';
 
 // Orthographic world: linear coordinates and distance-independent object sizes.
 export function drawBattle(
@@ -50,15 +52,54 @@ export function drawBattle(
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 3, y + 3, tile - 7, tile - 7);
     }
-  ctx.fillStyle = '#111c17';
-  ctx.fillRect(0, 0, w * 0.045, h);
-  ctx.fillRect(w * 0.955, 0, w * 0.045, h);
-  ctx.strokeStyle = '#a09f7660';
-  ctx.lineWidth = 2;
-  for (const x of [w * 0.045, w * 0.955]) {
+  // Narrow cut-stone rails stay outside the world lanes and behind all units.
+  const stoneHeight = tile * 0.62;
+  const wallScroll = scrollDistance % stoneHeight;
+  const wallOffset = Math.floor(scrollDistance / stoneHeight);
+  for (const side of [-1, 1]) {
+    const edge = X(side);
+    const left = side < 0 ? 0 : edge;
+    const wallWidth = side < 0 ? edge : w - edge;
+    ctx.save();
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, h);
+    ctx.rect(left, 0, wallWidth, h);
+    ctx.clip();
+    ctx.fillStyle = '#111b18';
+    ctx.fillRect(left, 0, wallWidth, h);
+    for (let row = -1; row < h / stoneHeight + 1; row++) {
+      const worldRow = row - wallOffset;
+      const y = row * stoneHeight + wallScroll;
+      ctx.fillStyle = worldRow % 3 === 0 ? '#3a4137' : '#303a32';
+      ctx.fillRect(left + 2, y + 1, wallWidth - 4, stoneHeight - 3);
+      ctx.strokeStyle = '#a6a38135';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(left + 3, y + 3);
+      ctx.lineTo(left + wallWidth - 3, y + 3);
+      ctx.lineTo(left + wallWidth - 3, y + stoneHeight - 3);
+      ctx.stroke();
+      if (worldRow % 4 === 0) {
+        const cx = left + wallWidth / 2;
+        const cy = y + stoneHeight / 2;
+        const radius = Math.min(3.5 * scale, wallWidth * 0.23);
+        ctx.strokeStyle = '#a7b99070';
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - radius * 2);
+        ctx.lineTo(cx + radius, cy);
+        ctx.lineTo(cx, cy + radius * 2);
+        ctx.lineTo(cx - radius, cy);
+        ctx.closePath();
+        ctx.moveTo(cx, cy - radius * 2.7);
+        ctx.lineTo(cx, cy + radius * 2.7);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+    ctx.strokeStyle = '#a09f7660';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(edge, 0);
+    ctx.lineTo(edge, h);
     ctx.stroke();
   }
   const fog = ctx.createLinearGradient(0, 0, 0, h);
@@ -227,12 +268,12 @@ export function drawBattle(
   }
   function gates(e: Entity) {
     const y = Y(worldY(e, b.time));
-    if (y < 40 || y > h) return;
+    const gh = 67 * scale;
+    if (y + gh / 2 < 0 || y - gh / 2 > h) return;
     for (const g of e.gate!) {
       const x = X(g.left),
         right = X(g.right),
-        gw = right - x,
-        gh = 67 * scale;
+        gw = right - x;
       const squared = g.op === '²';
       const pos = g.op === '+' || g.op === '×' || squared;
       const color = !pos
@@ -308,7 +349,7 @@ export function drawBattle(
       return;
     }
     if (e.kind === 'hazard') {
-      const hw = e.width * w * 0.455;
+      const hw = e.width * w * VIEW.horizontalScale;
       ctx.fillStyle = '#ab735027';
       ctx.fillRect(x - hw / 2, y - 18, hw, 37);
       ctx.strokeStyle = '#dbb280';
@@ -342,15 +383,152 @@ export function drawBattle(
       return;
     }
     if (e.boss) {
-      soldier(
-        x,
-        y,
-        e.name.includes('巫妖') ? '#9282ad' : '#9f7460',
-        0,
-        true,
-        true,
-      );
-      ctx.strokeStyle = '#f1c581';
+      const color =
+        ENCOUNTERS.find((p) => p.id === e.encounterId)?.color || '#bb9270';
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      if (e.encounterId === 'wyvern') {
+        const flap = reducedMotion ? 0 : Math.sin(b.time * 3) * 5;
+        for (const side of [-1, 1]) {
+          ctx.save();
+          ctx.scale(side, 1);
+          ctx.fillStyle = '#294c58';
+          ctx.strokeStyle = '#91c9d9';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(9, -12);
+          ctx.lineTo(61, -35 + flap);
+          ctx.lineTo(45, 10 + flap);
+          ctx.lineTo(31, -1);
+          ctx.lineTo(20, 21);
+          ctx.lineTo(9, 8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(12, -8);
+          ctx.lineTo(58, -31 + flap);
+          ctx.moveTo(12, -8);
+          ctx.lineTo(44, 6 + flap);
+          ctx.stroke();
+          ctx.restore();
+        }
+        ctx.strokeStyle = '#7296a5';
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.moveTo(0, -14);
+        ctx.quadraticCurveTo(15, -45, -9, -52);
+        ctx.stroke();
+        ctx.fillStyle = '#7ba3ae';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 15, 27, 0, 0, Math.PI * 2);
+        ctx.fill();
+        round(-9, 13, 18, 22, 6, '#9fc3c9', '#e4e9c8');
+        ctx.fillStyle = '#e0efff';
+        ctx.fillRect(-7, 23, 4, 3);
+        ctx.fillRect(3, 23, 4, 3);
+      } else if (e.encounterId === 'broodmother') {
+        ctx.strokeStyle = '#b088ab';
+        ctx.lineWidth = 4;
+        for (const side of [-1, 1])
+          for (let i = 0; i < 4; i++) {
+            const step = reducedMotion ? 0 : Math.sin(b.time * 4 + i) * 3;
+            ctx.beginPath();
+            ctx.moveTo(side * 13, -12 + i * 8);
+            ctx.lineTo(side * (34 + (i % 2) * 8), -30 + i * 17 + step);
+            ctx.lineTo(side * 49, -10 + i * 12 + step);
+            ctx.stroke();
+          }
+        ctx.fillStyle = '#574565';
+        ctx.beginPath();
+        ctx.ellipse(0, -11, 25, 29, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#9b73a0';
+        ctx.beginPath();
+        ctx.ellipse(0, 13, 17, 17, 0, 0, Math.PI * 2);
+        ctx.fill();
+        for (const eye of [-9, -3, 3, 9]) {
+          ctx.fillStyle = '#f5baea';
+          ctx.beginPath();
+          ctx.arc(eye, 22, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (e.encounterId === 'stonewarden') {
+        round(-21, -23, 42, 48, 7, '#626b63', '#c8c4a0');
+        round(-39, -17, 18, 38, 5, '#7a8176', '#c0b798');
+        round(21, -17, 18, 38, 5, '#7a8176', '#c0b798');
+        round(-13, -28, 26, 21, 4, '#92988a', '#d0ccb1');
+        ctx.strokeStyle = '#caeabc';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-9, -3);
+        ctx.lineTo(0, 9);
+        ctx.lineTo(9, -3);
+        ctx.moveTo(0, 9);
+        ctx.lineTo(0, 20);
+        ctx.stroke();
+        ctx.fillStyle = '#dafac9';
+        ctx.fillRect(-8, -20, 16, 3);
+      } else {
+        if (e.encounterId === 'oracle') {
+          ctx.strokeStyle = '#d6b3ee';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(
+            0,
+            -5,
+            46,
+            30,
+            reducedMotion ? 0 : b.time * 0.25,
+            0,
+            Math.PI * 2,
+          );
+          ctx.stroke();
+        }
+        if (e.encounterId === 'hexblade') {
+          ctx.strokeStyle = '#c193f5';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.moveTo(29, 20);
+          ctx.lineTo(43, -31);
+          ctx.stroke();
+        }
+        if (e.encounterId === 'king') {
+          const phase = kingPhase(e);
+          const rotation = reducedMotion ? 0 : b.time * (0.16 + phase * 0.07);
+          ctx.save();
+          ctx.rotate(rotation);
+          ctx.strokeStyle = phase === 3 ? '#fff0b2' : '#eba566';
+          ctx.lineWidth = 2;
+          ctx.shadowColor = '#ff8844';
+          ctx.shadowBlur = reducedMotion ? 0 : 12;
+          for (let i = 0; i < 9; i++) {
+            const angle = (i * Math.PI * 2) / 9;
+            const radius = 33 + phase * 3;
+            const outer = radius + 12 + (phase === 3 ? 7 : 0);
+            ctx.beginPath();
+            ctx.moveTo(
+              Math.cos(angle - 0.18) * radius,
+              Math.sin(angle - 0.18) * radius,
+            );
+            ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+            ctx.lineTo(
+              Math.cos(angle + 0.18) * radius,
+              Math.sin(angle + 0.18) * radius,
+            );
+            ctx.stroke();
+          }
+          ctx.restore();
+          round(-17, -29, 34, 13, 2, '#dfb86c', '#ffe8ad');
+        }
+        ctx.scale(1 / scale, 1 / scale);
+        soldier(0, 0, color, 0, true, true);
+      }
+      ctx.restore();
+      ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(x, y, 42 * scale, 0, Math.PI * 2);
@@ -371,7 +549,7 @@ export function drawBattle(
       captions.push({ entity: e, x, y });
     }
     if (e.boss) {
-      const act = Math.floor(b.player.floor / 4);
+      const act = Math.floor(b.player.floor / ACT_LENGTH);
       if (b.player.node?.kind === 'boss' && act === 1) {
         for (let i = 0; i < 5; i++) {
           const angle =
@@ -487,7 +665,7 @@ export function drawBattle(
       Math.min(1, 1 - (b.pressure.flashUntil - b.time) / 0.7),
     );
     const color = ['#c0ce8a', '#c9aff0', '#ffb185'][
-      Math.min(2, Math.floor(b.player.floor / 4))
+      Math.min(2, Math.floor(b.player.floor / ACT_LENGTH))
     ];
     const spread = reducedMotion ? 0.18 : pulse;
     ctx.save();
@@ -544,7 +722,7 @@ export function drawBattle(
     const dx = X(bullet.vx) - X(0),
       dy = Y(bullet.vy) - Y(0);
     const angle = Math.atan2(dy, dx);
-    const radius = Math.max(3, bullet.radius * w * 0.455);
+    const radius = Math.max(3, bullet.radius * w * VIEW.horizontalScale);
     const color =
       bullet.kind === 'blade'
         ? '#f4d58a'
@@ -653,7 +831,7 @@ export function drawBattle(
       ctx.restore();
       continue;
     }
-    const radius = Math.max(5, p.radius * w * 0.455);
+    const radius = Math.max(5, p.radius * w * VIEW.horizontalScale);
     if (p.resolved) {
       const fade = Math.max(0, 1 - (b.time - p.impactAt) / 0.45);
       ctx.globalAlpha = fade * 0.55;
@@ -779,6 +957,25 @@ export function drawBattle(
       '#ffd0a6',
       '700',
     );
+    if (threat.name === '陨火葬城') {
+      const fall = reducedMotion ? 0.5 : Math.max(0, 1 - countdown / 2.1);
+      const mx = (left + right) / 2;
+      const my = Y(-0.25) + (playerY - Y(-0.25) - 90) * fall;
+      ctx.save();
+      ctx.strokeStyle = '#ffc072';
+      ctx.lineWidth = 9 * scale;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.65;
+      ctx.beginPath();
+      ctx.moveTo(mx - 20 * scale, my - 60 * scale);
+      ctx.lineTo(mx, my);
+      ctx.stroke();
+      ctx.fillStyle = '#fff0b9';
+      ctx.beginPath();
+      ctx.arc(mx, my, 8 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
   if (b.ritual) {
     const cast = b.ritual,
@@ -789,7 +986,61 @@ export function drawBattle(
           (b.time - cast.startedAt) / (cast.resolveAt - cast.startedAt),
         ),
       );
-    ctx.strokeStyle = cast.interruptible ? '#d2b3ee' : '#ffc592';
+    const fieldLeft = X(-1),
+      fieldRight = X(1);
+    const safeLeft = Math.max(fieldLeft, X(cast.safeX - cast.safeWidth / 2)),
+      safeRight = Math.min(fieldRight, X(cast.safeX + cast.safeWidth / 2));
+    const zoneTop = 80,
+      zoneBottom = playerY + 42 * scale;
+    const inSafe = Math.abs(b.x - cast.safeX) <= cast.safeWidth / 2;
+    ctx.save();
+    // Split the danger fill so the safe corridor never receives its red tint.
+    ctx.fillStyle = '#c4453930';
+    ctx.fillRect(
+      fieldLeft,
+      zoneTop,
+      safeLeft - fieldLeft,
+      zoneBottom - zoneTop,
+    );
+    ctx.fillRect(
+      safeRight,
+      zoneTop,
+      fieldRight - safeRight,
+      zoneBottom - zoneTop,
+    );
+    ctx.fillStyle = '#47bc7845';
+    ctx.fillRect(safeLeft, zoneTop, safeRight - safeLeft, zoneBottom - zoneTop);
+    ctx.strokeStyle = '#a8f8bc';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 5]);
+    ctx.beginPath();
+    for (const x of [safeLeft, safeRight]) {
+      ctx.moveTo(x, zoneTop);
+      ctx.lineTo(x, zoneBottom);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    label(
+      '安全通道',
+      (safeLeft + safeRight) / 2,
+      playerY - 61 * scale,
+      14,
+      '#d4ffe1',
+      '700',
+    );
+    label(
+      '集火打断 / 移入绿区',
+      w / 2,
+      playerY - 104 * scale,
+      14,
+      '#e5f4d7',
+      '700',
+    );
+    ctx.strokeStyle = inSafe
+      ? '#a8f8bc'
+      : cast.interruptible
+        ? '#d2b3ee'
+        : '#ffc592';
     ctx.lineWidth = 2;
     ctx.globalAlpha = 0.2 + t * 0.5;
     ctx.beginPath();
@@ -803,7 +1054,7 @@ export function drawBattle(
       Math.PI * 2,
     );
     ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.restore();
   }
   const count = Math.min(24, b.player.squad),
     cols = Math.min(6, Math.ceil(Math.sqrt(count))),

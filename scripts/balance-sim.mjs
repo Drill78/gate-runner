@@ -7,11 +7,15 @@ const g = await import(pathToFileURL(root + '/game.ts').href);
 const c = await import(pathToFileURL(root + '/combat.ts').href);
 const { VIEW } = await import(pathToFileURL(root + '/view.ts').href);
 const {
+  ACT_LENGTH,
+  TOTAL_FLOORS,
+  MAX_LEVEL,
   createRun,
   availableNodes,
   enterNode,
   completeRoom,
   chooseReward,
+  skipReward,
   restAction,
   eventAction,
   shopBuy,
@@ -27,10 +31,12 @@ const {
   movePlayer,
   stepBattle,
   activateSkill,
+  chooseBattleUpgrade,
+  skipBattleUpgrade,
   projectilePosition,
 } = c;
 const engineHashes = Object.fromEntries(
-  ['game.ts', 'combat.ts', 'view.ts'].map((file) => [
+  ['game.ts', 'combat.ts', 'view.ts', 'bosses.ts'].map((file) => [
     file,
     createHash('sha256')
       .update(readFileSync(resolve(root, file)))
@@ -153,11 +159,51 @@ function predictTarget(b, target, observations, shotDelay, angle = 0) {
     flight,
   };
 }
+// Menus stop game time. Resolve the offered choices through public APIs, including
+// any levels earned on the winning frame, before handing the player to completeRoom.
+export function consumeBattleUpgrades(b, mode, history = []) {
+  let consumed = 0;
+  while (b.levelChoices.length && b.state !== 'lost') {
+    if (++consumed > MAX_LEVEL)
+      throw new Error('Upgrade queue did not terminate.');
+    const offered = [...b.levelChoices];
+    const before = b.player.talentPicks;
+    const selected =
+      mode === 'none'
+        ? null
+        : offered
+            .slice()
+            .sort(
+              (a, z) =>
+                scoreRelic(b.player, z, mode) - scoreRelic(b.player, a, mode),
+            )[0];
+    const accepted =
+      selected === null
+        ? skipBattleUpgrade(b)
+        : chooseBattleUpgrade(b, selected);
+    if (!accepted || b.player.talentPicks !== before + 1)
+      throw new Error(
+        `Engine rejected upgrade ${selected ?? 'skip'} at ${b.time}s.`,
+      );
+    history.push({
+      time: b.time,
+      level: g.experience(b.player).level,
+      offered,
+      selected,
+    });
+  }
+  return consumed;
+}
 // 150 ms observation/decision interval; only currently visible entities and announced attacks.
 // All motion goes through movePlayer and the real engine's speed clamp.
 export function pilot(
   b,
-  { reaction = 0.15, stationary = false, maxTime = 220 } = {},
+  {
+    reaction = 0.15,
+    stationary = false,
+    maxTime = 220,
+    mode = 'coherent',
+  } = {},
 ) {
   let nextDecision = 0,
     skills = 0,
@@ -170,6 +216,7 @@ export function pilot(
     threatHits = 0,
     ritualsStarted = 0,
     ritualsResolved = 0,
+    ritualsDodged = 0,
     ritualsInterrupted = 0,
     ritualsKilled = 0,
     flankShots = 0,
@@ -187,7 +234,9 @@ export function pilot(
   const gatesTaken = [];
   const seenSquareGates = new Set();
   const squareEvents = [];
+  const upgrades = [];
   while (b.state === 'running' && b.time < maxTime) {
+    if (consumeBattleUpgrades(b, mode, upgrades)) nextDecision = b.time;
     const observedRitual = b.ritual;
     if (observedRitual && !seenRituals.has(observedRitual.startedAt)) {
       seenRituals.add(observedRitual.startedAt);
@@ -245,11 +294,27 @@ export function pilot(
           p.impactAt > b.time &&
           p.impactAt - b.time < 2.0,
       );
+      const ritual = b.ritual;
+      const safeX = ritual
+        ? clamp(
+            b.x,
+            ritual.safeX - ritual.safeWidth / 2 + 0.04,
+            ritual.safeX + ritual.safeWidth / 2 - 0.04,
+          )
+        : b.x;
+      // Sustain fire while there is time to interrupt, then use the visible green
+      // area with one decision interval and 200 ms spare travel time.
+      const ritualDue =
+        ritual &&
+        ritual.resolveAt - b.time <
+          Math.abs(safeX - b.x) / speed + reaction + 0.2;
       let bestX = b.x,
         bestScore = -Infinity;
       const candidates = [
         b.x,
         gateX,
+        safeX,
+        ritual?.safeX ?? b.x,
         prediction?.x ?? b.x,
         clamp((prediction?.x || 0) - 0.24, -0.9, 0.9),
         clamp((prediction?.x || 0) + 0.24, -0.9, 0.9),
@@ -299,6 +364,12 @@ export function pilot(
                 )
             : -18;
         }
+        if (ritualDue) {
+          const delay = ritual.resolveAt - b.time;
+          const xx = future(b, x, delay, stationary);
+          if (Math.abs(xx - ritual.safeX) > ritual.safeWidth / 2 - 0.025)
+            score -= 110 / (0.4 + delay);
+        }
         for (const t of threats) {
           const delay = t.resolveAt - b.time;
           const xx = future(b, x, delay, stationary);
@@ -342,7 +413,8 @@ export function pilot(
         }
       }
     }
-    const oldHp = b.player.hp,
+    const oldTime = b.time,
+      oldHp = b.player.hp,
       oldShield = b.shield,
       oldSquad = b.player.squad,
       oldX = b.x,
@@ -368,6 +440,12 @@ export function pilot(
       (e) => !e.done && e.arrival >= b.time && e.arrival < b.time + 0.051,
     );
     stepBattle(b, 0.05);
+    if (b.time === oldTime && b.state === 'running') {
+      if (b.levelChoices.length) continue;
+      throw new Error(
+        `Battle stopped advancing without an upgrade menu at ${b.time}s.`,
+      );
+    }
     for (const e of b.entities) {
       if (
         !e.gate?.some((gate) => gate.op === '²') ||
@@ -414,6 +492,8 @@ export function pilot(
     if (oldRitual && !b.ritual) {
       if (!ritualEndedBySkill && oldRitual.resolveAt <= b.time + 0.000001) {
         ritualsResolved++;
+        if (Math.abs(b.x - oldRitual.safeX) <= oldRitual.safeWidth / 2)
+          ritualsDodged++;
       } else if (b.entities.find((e) => e.id === oldRitual.bossId)?.done)
         ritualsKilled++;
       else ritualsInterrupted++;
@@ -472,11 +552,15 @@ export function pilot(
                 (e) => e.kind === 'enemy' && !e.boss && e.done && e.hp > 0,
               )
             ? 'waves'
-            : oldRitual && oldRitual.resolveAt <= b.time && !b.ritual
+            : oldRitual &&
+                oldRitual.resolveAt <= b.time &&
+                !b.ritual &&
+                Math.abs(b.x - oldRitual.safeX) > oldRitual.safeWidth / 2
               ? 'ritual_or_same_frame_attack'
               : 'boss_attack';
     }
   }
+  consumeBattleUpgrades(b, mode, upgrades);
   return {
     state: b.state,
     time: b.time,
@@ -497,6 +581,7 @@ export function pilot(
     threatHits,
     ritualsStarted,
     ritualsResolved,
+    ritualsDodged,
     ritualsInterrupted,
     ritualsKilled,
     flankShots,
@@ -510,12 +595,15 @@ export function pilot(
     rootsTaken,
     gatesTaken,
     squareEvents,
+    upgrades,
+    talentPicks: b.player.talentPicks,
     squareGatesSeen: squareEvents.length,
     deathCause: b.state === 'running' ? 'timeout' : deathCause,
     bossAttacks: b.entities.find((e) => e.boss)?.attackIndex || 0,
   };
 }
 export function scoreRelic(run, id, mode) {
+  if (mode === 'none' || !RELIC_BY_ID[id]) return -Infinity;
   const list = priorities[run.classId];
   if (id === 'square_key') return 200;
   if (mode === 'economy' || mode === 'weak') {
@@ -537,11 +625,41 @@ export function scoreRelic(run, id, mode) {
   const rank = list.indexOf(id);
   let value = rank < 0 ? 10 : 100 - rank * 3;
   if (id === 'vitality' && run.hp < run.maxHp * 0.6) value += 60;
-  if (id === 'vampire' && !run.relics.vampire && run.floor < 9) value += 30;
+  if (id === 'vampire' && !run.relics.vampire && run.floor < ACT_LENGTH * 2)
+    value += 30;
   if (id === 'bash' && !run.relics.bash) value += 35;
   if (id === 'aegis' && !run.relics.aegis && run.relics.bash) value += 30;
   if (id === 'split' && !run.relics.split) value += 15;
   return value;
+}
+export function scoreReward(run, id, mode) {
+  if (id === 'supply-epic-cache')
+    return (
+      (mode === 'economy' ? 120 : 60) + Math.min(50, run.maxHp - run.hp) * 1.75
+    );
+  if (id === 'supply-epic-vigor')
+    return (
+      (run.maxHp < 500 ? 70 : 0) +
+      Math.min(50, run.maxHp + Math.min(8, 500 - run.maxHp) - run.hp) * 1.75
+    );
+  if (id === 'supply-epic-company')
+    return (mode === 'economy' ? 120 : 45) + 60 * Math.min(1, 100 / run.squad);
+  if (id === 'supply-potion') {
+    const restored = Math.min(40, run.maxHp - run.hp);
+    return restored <= 0
+      ? -Infinity
+      : run.hp < run.maxHp * 0.6
+        ? 155
+        : restored * 1.75;
+  }
+  if (id === 'supply-weapon')
+    return run.weaponTier >= 10 ? -Infinity : mode === 'economy' ? 30 : 80;
+  if (id === 'supply-company')
+    return run.squad >= Number.MAX_SAFE_INTEGER
+      ? -Infinity
+      : (mode === 'economy' ? 120 : 60) * Math.min(1, 50 / run.squad);
+  // The key is shop-only, including compatibility with obsolete saved rewards.
+  return id === 'square_key' ? -Infinity : scoreRelic(run, id, mode);
 }
 function visitShop(run, mode) {
   const purchases = [];
@@ -567,7 +685,8 @@ function visitShop(run, mode) {
       );
     return -Infinity;
   };
-  for (let i = 0; i < shopInventory(run).length; i++) {
+  const stockSlots = shopInventory(run).length;
+  for (let i = 0; i < stockSlots; i++) {
     const candidate = shopInventory(run)
       .filter((item) => canBuyShopItem(run, item.id) && score(item) > 1)
       .sort((a, z) => score(z) - score(a) || a.cost - z.cost)[0];
@@ -582,19 +701,27 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
   run.phase = 'map';
   const rooms = [];
   const decisions = [];
-  while (run.floor < 12 && run.phase !== 'defeat') {
+  while (run.floor < TOTAL_FLOORS && run.phase !== 'defeat') {
+    if (run.phase !== 'map')
+      throw new Error(`Unexpected route phase ${run.phase}.`);
+    if (decisions.length >= TOTAL_FLOORS)
+      throw new Error(`Route exceeded ${TOTAL_FLOORS} floors.`);
     const choices = availableNodes(run);
     // Fixed route policy, no future-room knowledge or reward previews.
-    const act = Math.floor(run.floor / 4);
+    const act = Math.floor(run.floor / ACT_LENGTH);
     const tookElite = decisions.some(
-      (d) => d.kind === 'elite' && Math.floor((d.floor - 1) / 4) === act,
+      (d) =>
+        d.kind === 'elite' && Math.floor((d.floor - 1) / ACT_LENGTH) === act,
     );
     const unopenedTrial = run.relics.square_key && !run.squareGateSeen;
     const node =
       (run.hp < run.maxHp * 0.6
         ? choices.find((n) => n.kind === 'rest')
         : null) ||
-      ((!tookElite || unopenedTrial) && run.hp >= run.maxHp * 0.8
+      (unopenedTrial && run.hp >= run.maxHp * 0.8
+        ? choices.find((n) => n.kind === 'elite' && n.enchanted)
+        : null) ||
+      (!tookElite && run.hp >= run.maxHp * 0.8
         ? choices.find((n) => n.kind === 'elite')
         : null) ||
       (run.gold >= 125 ? choices.find((n) => n.kind === 'shop') : null) ||
@@ -603,25 +730,34 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
       choices.find((n) => n.kind === 'battle') ||
       choices.find((n) => n.kind === 'shop') ||
       choices[0];
+    if (!node) throw new Error(`No legal node at floor ${run.floor}.`);
     const decision = {
       floor: run.floor + 1,
       nodeId: node.id,
       kind: node.kind,
-      choices: choices.map((n) => ({ id: n.id, kind: n.kind })),
+      enchanted: Boolean(node.enchanted),
+      choices: choices.map((n) => ({
+        id: n.id,
+        kind: n.kind,
+        enchanted: Boolean(n.enchanted),
+        next: n.next,
+      })),
       hpBefore: run.hp,
       squadBefore: run.squad,
       weaponBefore: run.weaponTier,
       relicsBefore: { ...run.relics },
       squareGateSeenBefore: Boolean(run.squareGateSeen),
+      pathLengthBefore: run.path.length,
     };
     decisions.push(decision);
     run = enterNode(run, node.id);
     if (run.phase === 'battle') {
       const b = createBattle(run);
-      const result = pilot(b, options);
+      const result = pilot(b, { ...options, mode });
       rooms.push({
         floor: run.floor + 1,
         kind: node.kind,
+        enchanted: Boolean(node.enchanted),
         entryHp: run.hp,
         entrySquad: run.squad,
         entryRelics: { ...run.relics },
@@ -647,24 +783,27 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
       );
     if (run.phase === 'reward') {
       decision.rewardChoices = [...run.reward];
-      if (mode === 'none') {
-        decision.rewardChosen = null;
-        run.phase = 'map';
-        run.reward = [];
-      } else {
-        const selected = run.reward
-          .slice()
-          .sort(
-            (a, z) => scoreRelic(run, z, mode) - scoreRelic(run, a, mode),
-          )[0];
-        run = chooseReward(run, selected);
-        decision.rewardChosen = selected;
-      }
+      const selected = run.reward
+        .filter((id) => scoreReward(run, id, mode) > 0)
+        .sort(
+          (a, z) => scoreReward(run, z, mode) - scoreReward(run, a, mode),
+        )[0];
+      const next = selected ? chooseReward(run, selected) : skipReward(run);
+      if (next === run || next.phase !== 'map')
+        throw new Error(`Engine rejected reward ${selected ?? 'skip'}.`);
+      run = next;
+      decision.rewardChosen = selected ?? null;
     }
     decision.hpAfter = run.hp;
     decision.squadAfter = run.squad;
     decision.relicsAfter = { ...run.relics };
+    decision.floorAfter = run.floor;
+    decision.pathLengthAfter = run.path.length;
+    if (mode === 'none' && Object.values(run.relics).some((count) => count > 0))
+      throw new Error('Zero-relic mode acquired a relic.');
   }
+  if (mode === 'none' && Object.values(run.relics).some((count) => count > 0))
+    throw new Error('Zero-relic mode acquired a relic.');
   return {
     classId,
     seed,
@@ -714,7 +853,24 @@ export function summarize(results) {
         projectileHits: rooms.reduce((n, r) => n + r.projectileHits, 0),
         ritualsStarted: rooms.reduce((n, r) => n + r.ritualsStarted, 0),
         ritualsResolved: rooms.reduce((n, r) => n + r.ritualsResolved, 0),
+        ritualsDodged: rooms.reduce((n, r) => n + r.ritualsDodged, 0),
         ritualsInterrupted: rooms.reduce((n, r) => n + r.ritualsInterrupted, 0),
+        upgradesChosen: rooms.reduce(
+          (n, r) => n + r.upgrades.filter((u) => u.selected !== null).length,
+          0,
+        ),
+        upgradesSkipped: rooms.reduce(
+          (n, r) => n + r.upgrades.filter((u) => u.selected === null).length,
+          0,
+        ),
+        suppliesChosen: runs.reduce(
+          (n, r) =>
+            n +
+            r.decisions.filter((d) => d.rewardChosen?.startsWith('supply-'))
+              .length,
+          0,
+        ),
+        enchantedEncounters: rooms.filter((r) => r.enchanted).length,
         pressurePulses: rooms.reduce((n, r) => n + r.pressurePulses, 0),
         pressureDeaths: runs.filter((r) => r.failure === 'pressure').length,
         waveDeaths: runs.filter((r) => r.failure === 'waves').length,
@@ -739,7 +895,10 @@ export function summarize(results) {
               .filter((id) => id.startsWith('relic-')).length,
           0,
         ),
-        bosses: [4, 8, 12].map((floor) => {
+        bosses: Array.from(
+          { length: TOTAL_FLOORS / ACT_LENGTH },
+          (_, index) => (index + 1) * ACT_LENGTH,
+        ).map((floor) => {
           const attempts = rooms.filter(
             (r) => r.kind === 'boss' && r.floor === floor && r.bossTime > 0,
           );
@@ -795,10 +954,15 @@ if (
     }
   }
   const out = {
-    audit: 'physical-projectiles-square-key-boss-1700',
+    audit: 'v0.6-fifteen-floors-explicit-routes-enchanted-elite',
     createdAt: new Date().toISOString(),
     engineHashes,
     balance: BALANCE,
+    route: {
+      actLength: ACT_LENGTH,
+      totalFloors: TOTAL_FLOORS,
+      maxLevel: MAX_LEVEL,
+    },
     view: VIEW,
     troopMultipliers: [12, 1000, 10000, 1000000, Number.MAX_SAFE_INTEGER].map(
       (squad) => ({ squad, multiplier: g.troopMultiplier(squad) }),
@@ -812,6 +976,17 @@ if (
     },
     priorities,
     priorityOverrides: { square_key: 200 },
+    policy: {
+      upgrades:
+        'Consume all offered levels through chooseBattleUpgrade; none uses skipBattleUpgrade.',
+      rewards:
+        'Score offered supplies and relics only; none accepts supplies and uses skipReward otherwise.',
+      shop: 'Actual current stock and real purchase API; none excludes relic and random-relic kinds; key costs the API price.',
+      route:
+        'Follow explicit next edges only; unused key and HP >= 80% prioritize an available enchanted elite. Every completed node advances one floor.',
+      ritual:
+        'Aim to interrupt, then move into the announced safeX/safeWidth before resolution.',
+    },
     summary: summarize(results),
     results,
   };

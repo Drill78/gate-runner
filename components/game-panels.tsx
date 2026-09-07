@@ -31,9 +31,13 @@ import {
 import { Progress } from '@/components/ui/progress';
 import {
   HEROES,
+  ACT_LENGTH,
+  TOTAL_FLOORS,
+  MAX_LEVEL,
   ACTS,
   RELICS,
   RELIC_BY_ID,
+  REWARD_BY_ID,
   NODE_INFO,
   shopInventory,
   shopItemAvailability,
@@ -50,6 +54,7 @@ import {
   type Relic,
   type ShopCategory,
 } from '@/lib/game';
+import { bossProfile } from '@/lib/bosses';
 export const CLASS_ICONS = {
   knight: Shield,
   ranger: BowArrow,
@@ -174,122 +179,120 @@ export function RoutePanel({
   run: Run;
   onEnter: (id: string) => void;
 }) {
-  const floor = run.phase === 'reward' ? run.floor - 1 : run.floor;
-  const actIndex = Math.min(2, Math.floor(floor / 4)),
-    act = ACTS[actIndex];
-  const rows = run.nodes.slice(actIndex * 4, actIndex * 4 + 4);
-  const available =
-    run.phase === 'map' ? availableNodes(run).map((n) => n.id) : [];
+  const actIndex = Math.min(
+    2,
+    Math.floor(
+      Math.max(0, run.phase === 'reward' ? run.floor - 1 : run.floor) /
+        ACT_LENGTH,
+    ),
+  );
+  const act = ACTS[actIndex];
   return (
     <aside className="route-panel panel">
       <div className="panel-heading">
         <span>远征路线</span>
-        <span className="muted">{act.roman} / Ⅲ</span>
+        <span>{act.roman} / Ⅲ</span>
       </div>
       <div className="act-label">
-        <small>ACT {actIndex + 1}</small>
         <h2>{act.name}</h2>
-        <p>{act.sub}</p>
+        <p>每层五关 · 沿连线前进</p>
       </div>
-      <div className="route-map">
-        <svg
-          className="map-connections"
-          viewBox="0 0 210 320"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          {rows
-            .slice(0, 3)
-            .flatMap((row, i) =>
-              row.flatMap((a) =>
-                rows[i + 1]
-                  .filter(
-                    (z) => z.kind === 'boss' || Math.abs(a.col - z.col) <= 1,
-                  )
-                  .map((z) => (
-                    <line
-                      key={`${a.id}-${z.id}`}
-                      x1={35 + a.col * 70}
-                      y1={280 - i * 80}
-                      x2={35 + z.col * 70}
-                      y2={200 - i * 80}
-                      className={
-                        run.path.includes(a.id) && run.path.includes(z.id)
-                          ? 'travelled'
-                          : ''
-                      }
-                    />
-                  )),
-              ),
-            )}
-        </svg>
-        {[...rows].reverse().map((row, index) => (
-          <div className="map-floor" key={row[0].floor}>
-            <span className="floor-number">
-              {String(row[0].floor + 1).padStart(2, '0')}
-            </span>
-            {[0, 1, 2].map((col) => {
-              const node = row.find((n) => n.col === col);
-              if (!node) return <span key={col} />;
-              const Icon = NODE_ICONS[node.kind];
-              const completed = run.path.includes(node.id);
-              const reachable = available.includes(node.id);
-              return (
-                <button
-                  key={col}
-                  className={`map-node ${node.kind === 'boss' ? 'boss' : ''} ${reachable ? 'active' : ''} ${completed ? 'completed' : ''} ${run.node?.id === node.id && run.phase === 'battle' ? 'fighting' : ''}`}
-                  disabled={!reachable}
-                  onClick={() => onEnter(node.id)}
-                  aria-label={`第 ${node.floor + 1} 层 ${NODE_INFO[node.kind].name}${completed ? '，已完成' : reachable ? '，可前往' : '，未开放'}`}
-                  title={`${node.kind === 'boss' ? act.boss : NODE_INFO[node.kind].name} · ${NODE_INFO[node.kind].desc}`}
-                >
-                  <Icon size={index === 0 ? 23 : 19} />
-                  {completed ? (
-                    <span className="map-check">
-                      <Check size={11} />
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <div className="map-legend">
-        <span>
-          <Swords size={12} />
-          战斗
-        </span>
-        <span>
-          <Skull size={12} />
-          精英
-        </span>
-        <span>
-          <Flame size={12} />
-          营火
-        </span>
-        <span>
-          <ShoppingBag size={12} />
-          商人
-        </span>
-      </div>
-      <div className="route-note">
-        <span className="diamond">◇</span>
-        <p>
-          {run.phase === 'setup'
-            ? '每条岔路，都是一种可能。'
-            : run.phase === 'map'
-              ? '选择发光的节点，继续前进。'
-              : '余烬仍在，你的旅途尚未结束。'}
-          <br />
-          {run.phase === 'setup'
-            ? '每次陨落，都能重新出发。'
-            : `已征服 ${run.floor} / 12 层`}
-        </p>
-      </div>
+      <RouteGraph run={run} onEnter={onEnter} />
+      <p className="route-note">
+        已征服 {run.floor} / {TOTAL_FLOORS} 关
+      </p>
     </aside>
   );
 }
+export function RouteGraph({
+  run,
+  onEnter,
+}: {
+  run: Run;
+  onEnter: (id: string) => void;
+}) {
+  const floor = run.phase === 'reward' ? Math.max(0, run.floor - 1) : run.floor;
+  const actIndex = Math.min(2, Math.floor(floor / ACT_LENGTH));
+  const rows = run.nodes.slice(
+    actIndex * ACT_LENGTH,
+    (actIndex + 1) * ACT_LENGTH,
+  );
+  const reachable = run.phase === 'map' ? availableNodes(run) : [];
+  return (
+    <div className="branch-map" aria-label="沿连线前进的五关路线图">
+      <svg viewBox="0 0 350 360" preserveAspectRatio="none" aria-hidden="true">
+        {rows.slice(0, -1).flatMap((row, depth) =>
+          row.flatMap((node) =>
+            node.next.map((id) => {
+              const target = rows[depth + 1].find((n) => n.id === id);
+              if (!target) return null;
+              return (
+                <line
+                  key={`${node.id}-${id}`}
+                  x1={35 + node.col * 70}
+                  y1={324 - depth * 72}
+                  x2={35 + target.col * 70}
+                  y2={252 - depth * 72}
+                  className={
+                    run.path.includes(node.id) && run.path.includes(id)
+                      ? 'travelled'
+                      : ''
+                  }
+                />
+              );
+            }),
+          ),
+        )}
+      </svg>
+      {rows.flatMap((row, depth) =>
+        row.map((node) => {
+          const active = reachable.find((n) => n.id === node.id);
+          const completed = run.path.includes(node.id);
+          const enchanted =
+            node.kind === 'elite' &&
+            Boolean(run.relics.square_key) &&
+            !run.squareGateSeen;
+          const Icon = NODE_ICONS[node.kind];
+          const name =
+            node.kind === 'boss'
+              ? bossProfile({ ...run, floor: node.floor, node }).name
+              : NODE_INFO[node.kind].name;
+          return (
+            <button
+              key={node.id}
+              className={`branch-node ${active ? 'active' : ''} ${completed ? 'completed' : ''} ${enchanted ? 'enchanted-node' : ''} ${node.kind === 'boss' ? 'boss' : ''}`}
+              style={{
+                left: `${(35 + node.col * 70) / 3.5}%`,
+                top: `${(324 - depth * 72) / 3.6}%`,
+              }}
+              disabled={!active}
+              onClick={() => onEnter(node.id)}
+              aria-label={`第${depth + 1}关，${enchanted ? '被黑雾侵染的' : ''}${name}${active ? '，可前往' : completed ? '，已完成' : '，不可直达'}`}
+              title={`${name} · ${NODE_INFO[node.kind].desc}`}
+            >
+              <Icon size={node.kind === 'boss' ? 24 : 19} />
+              <span>
+                {completed
+                  ? '已完成'
+                  : node.kind === 'boss'
+                    ? '首领'
+                    : {
+                        battle: '战斗',
+                        elite: enchanted ? '禁域精英' : '精英',
+                        treasure: '宝库',
+                        rest: '营火',
+                        shop: '商店',
+                        event: '事件',
+                      }[node.kind]}
+              </span>
+            </button>
+          );
+        }),
+      )}
+    </div>
+  );
+}
+
 export function BuildPanel({
   run,
   shield,
@@ -330,7 +333,9 @@ export function BuildPanel({
       <div className="experience-details">
         <strong>冒险等级 {xp.level}</strong>
         <span>
-          {xp.level === 12 ? '等级已满' : `${xp.current}/${xp.needed} XP`}
+          {xp.level === MAX_LEVEL
+            ? '等级已满'
+            : `${xp.current}/${xp.needed} XP`}
         </span>
         <Progress value={xp.progress} aria-label="冒险等级经验" />
         <p>击杀获得经验。每级攻击 +2%，生命上限 +2。</p>
@@ -494,11 +499,17 @@ export function RelicCard({
       <h3>{relic.name}</h3>
       <p>{relic.desc}</p>
       <div className="relic-card-bottom">
-        {relic.family === 'all'
-          ? '通用强化'
-          : HEROES.find((h) => h.id === relic.family)!.name}
+        {relic.id.startsWith('supply-')
+          ? '立即生效'
+          : relic.family === 'all'
+            ? '通用强化'
+            : HEROES.find((h) => h.id === relic.family)!.name}
         <span>
-          {owned ? `已有 ${owned} / ${relic.max}` : `最多 ${relic.max} 层`}
+          {relic.id.startsWith('supply-')
+            ? '战地补给'
+            : owned
+              ? `已有 ${owned} / ${relic.max}`
+              : `最多 ${relic.max} 层`}
         </span>
       </div>
       {onPick ? (
@@ -535,20 +546,21 @@ export function Codex({ run }: { run: Run }) {
         ))}
       </fieldset>
       <p className="codex-intro">
-        共 {RELICS.length} 项强化。通用弹幕词条可与任何职业搭配；职业强化累计 3
-        层激活流派。 相同强化可叠层，副弹、穿透、爆裂等效果见卡片说明。
-        禁术钥印仅在第四层起的精英或章节首领战后有机会出现：下一次精英先过 5
-        道必经红门，再争夺极窄平方门，本局限一次。
+        共 {RELICS.filter((r) => r.id !== 'square_key').length}{' '}
+        项强化。通用弹幕词条可与任何职业搭配；职业强化累计 3 层激活流派。
+        相同强化可叠层，副弹、穿透、爆裂等效果见卡片说明。
       </p>
       <div className="codex-grid">
-        {RELICS.filter((r) => r.family === filter).map((r) => (
-          <RelicCard
-            key={r.id}
-            relic={r}
-            owned={run.relics[r.id] || 0}
-            compact
-          />
-        ))}
+        {RELICS.filter((r) => r.family === filter && r.id !== 'square_key').map(
+          (r) => (
+            <RelicCard
+              key={r.id}
+              relic={r}
+              owned={run.relics[r.id] || 0}
+              compact
+            />
+          ),
+        )}
       </div>
     </div>
   );
@@ -573,7 +585,7 @@ export function RoomScreen({
   onRestart: () => void;
 }) {
   const phase = run.phase;
-  const act = ACTS[Math.min(2, Math.floor(run.floor / 4))];
+  const act = ACTS[Math.min(2, Math.floor(run.floor / ACT_LENGTH))];
   const [shopFilter, setShopFilter] = useState<ShopCategory | '全部'>('全部');
   return (
     <div className={`room-screen room-${phase}`}>
@@ -583,22 +595,17 @@ export function RoomScreen({
             <span className="eyebrow">CHOOSE YOUR PATH</span>
             <h2>下一道门，通向何处？</h2>
             <p>
-              第 {run.floor + 1} 层 · {act.name}
+              第 {run.floor + 1} 关 · {act.name}
             </p>
-            {run.relics.square_key && !run.squareGateSeen ? (
-              <p>
-                禁术钥印已就绪：下一次精英先过 5
-                道必经红门，再争夺极窄平方门。本局仅此一次。
-              </p>
-            ) : null}
           </div>
+          <RouteGraph run={run} onEnter={onEnter} />
           <div className="route-choices">
             {availableNodes(run).map((n) => {
               const Icon = NODE_ICONS[n.kind];
               return (
                 <button
                   key={n.id}
-                  className={`route-choice kind-${n.kind}`}
+                  className={`route-choice kind-${n.kind} ${n.enchanted ? 'enchanted-node' : ''}`}
                   onClick={() => onEnter(n.id)}
                 >
                   <span className="node-choice-icon">
@@ -608,10 +615,14 @@ export function RoomScreen({
                     <small>
                       {n.kind === 'boss'
                         ? 'ACT BOSS'
-                        : `路线 ${['左', '中', '右'][n.col]}`}
+                        : n.enchanted
+                          ? '黑雾侵染 · 极度危险'
+                          : `连线分支 ${n.col + 1}`}
                     </small>
                     <h3>
-                      {n.kind === 'boss' ? act.boss : NODE_INFO[n.kind].name}
+                      {n.kind === 'boss'
+                        ? bossProfile({ ...run, node: n }).name
+                        : NODE_INFO[n.kind].name}
                     </h3>
                     <p>{NODE_INFO[n.kind].desc}</p>
                   </div>
@@ -639,15 +650,18 @@ export function RoomScreen({
             {run.reward.map((id) => (
               <RelicCard
                 key={id}
-                relic={RELIC_BY_ID[id]}
+                relic={REWARD_BY_ID[id]}
                 owned={run.relics[id] || 0}
                 onPick={() => onReward(id)}
               />
             ))}
           </div>
           <p className="room-footnote">
-            强化持续整局 · 相同强化可叠加 · 职业强化 3 层激活流派
+            技能强化持续整局 · 补给立即生效 · 职业强化 3 层激活流派
           </p>
+          <button className="text-button" onClick={() => onReward('__skip')}>
+            跳过本次奖励
+          </button>
         </>
       ) : null}
       {phase === 'rest' ? (
@@ -711,12 +725,15 @@ export function RoomScreen({
             ))}
           </fieldset>
           <p className="room-footnote">
-            定向购买，补齐构筑。每件商品在本店限购一次。
+            每家商店随机陈列 5 件商品，另有特殊珍藏。每件限购一次。
           </p>
           <div className="shop-grid">
             {shopInventory(run)
               .filter(
-                (item) => shopFilter === '全部' || item.category === shopFilter,
+                (item) =>
+                  item.id === 'relic-square_key' ||
+                  shopFilter === '全部' ||
+                  item.category === shopFilter,
               )
               .map((item) => {
                 const sold = run.purchases.includes(item.id);
@@ -724,6 +741,14 @@ export function RoomScreen({
                 return (
                   <button
                     key={item.id}
+                    className={
+                      item.id === 'relic-square_key'
+                        ? 'shop-special'
+                        : item.kind === 'relic' &&
+                            RELIC_BY_ID[item.relicId].rarity === '传说'
+                          ? 'shop-legendary'
+                          : ''
+                    }
                     type="button"
                     disabled={!availability.available}
                     onClick={() => onBuy(item.id)}
@@ -736,9 +761,11 @@ export function RoomScreen({
                       <p>{item.desc}</p>
                       <small>
                         {availability.reason ||
-                          (item.kind === 'relic'
-                            ? `已有 ${run.relics[item.relicId] || 0} / ${RELIC_BY_ID[item.relicId].max} 层`
-                            : item.category)}
+                          (item.id === 'relic-square_key'
+                            ? '特殊珍藏'
+                            : item.kind === 'relic'
+                              ? `已有 ${run.relics[item.relicId] || 0} / ${RELIC_BY_ID[item.relicId].max} 层`
+                              : item.category)}
                       </small>
                     </div>
                     <span>
@@ -821,7 +848,7 @@ export function RoomScreen({
             </h2>
             <p>
               {phase === 'victory'
-                ? '十二层高塔已被征服。你的名字将被传唱。'
+                ? '十五关高塔已被征服。你的名字将被传唱。'
                 : '命运不会记住每一次陨落，却会记住再次出发的人。'}
             </p>
           </div>
@@ -829,9 +856,9 @@ export function RoomScreen({
             <div>
               <b>
                 {run.floor}
-                <small>/12</small>
+                <small>/{TOTAL_FLOORS}</small>
               </b>
-              <span>征服层数</span>
+              <span>征服关数</span>
             </div>
             <div>
               <b>{run.gates}</b>
@@ -873,9 +900,7 @@ export function Help() {
           持续左右移动，松开即停。触屏在场地任意位置点击或拖动。门有不同宽度，每组
           通常 2–3
           道；以队长中心经过的门结算一次。门隙不生效，红门减少兵力，最少保留 1
-          人，加减数值随兵力缩放。先取得禁术钥印，下一次精英才会开启试炼：连续通过
-          5 道全宽必经红门，再争夺极窄平方门 x²，旁边也有平方根 √x
-          和加法门可选。试炼本局仅开启一次，无论是否选中平方门；职业和遗物招募在运算后结算。
+          人，加减数值随兵力缩放。职业和遗物招募在运算后结算。
         </p>
       </section>
       <section>
@@ -883,30 +908,34 @@ export function Help() {
         <p>
           队伍自动向前发射飞行弹体，横移调整弹道；子弹不会锁定，打空会继续飞过敌人。
           穿透让子弹继续命中后方目标，散射与爆裂覆盖更大范围。兵装秘匣升级武器，补给宝箱提供金币和兵力。
-          击败敌人获得金币和经验，升级提高攻击与生命。漏掉敌人仍会受伤且没有奖励；红色预警或飞来弹幕需要及时躲避。
+          击败敌人获得金币和经验，升级提高攻击与生命，并暂停战斗让你三选一研习技能强化。漏掉敌人仍会受伤且没有奖励；红色预警或飞来弹幕需要及时躲避。
         </p>
       </section>
       <section>
         <h3>03 · 在关键时刻释放技能</h3>
         <p>
           按 <kbd>Space</kbd> 或点击场地右侧技能按钮，释放职业技能。技能通常冷却
-          12 秒。按 <kbd>P</kbd> / <kbd>Esc</kbd>{' '}
+          12
+          秒。也可在暂停菜单开启「双击人物释放技能」，连续轻点队长即可施放。按{' '}
+          <kbd>P</kbd> / <kbd>Esc</kbd>{' '}
           暂停；切到其他页面也会自动暂停。普通射击采用飞行弹幕，职业主动技能保留各自的护盾或全场打击效果。
         </p>
       </section>
       <section>
         <h3>04 · 构筑属于你的流派</h3>
         <p>
-          战后从三项强化中选一项，强化持续整局。累计 3
+          战后从三项奖励中选一项，可能获得技能强化、治疗、招募或武器升级。技能强化持续整局。累计
+          3
           层职业强化激活额外加成。穿透、散射、爆裂等通用弹幕词条可以和职业搭配。
-          选择精英获得更好奖励，也可以去营火治疗、商店按分类购买定向强化和补给。
+          精英战的三选一必含史诗或传说奖励；也可以去营火治疗、商店购买强化和补给。
+          传说强化符文以金色标识，出现较少，能带来关键的职业或弹幕能力。
         </p>
       </section>
       <section>
-        <h3>05 · 登上十二层高塔</h3>
+        <h3>05 · 登上十五关高塔</h3>
         <p>
-          三幕各 4 层，每幕战斗分别有 8 / 10 / 12
-          波敌军，越往上节奏越快。荆棘守望者投掷散斧，举盾时需要侧翼攻击；蚀月巫妖释放交错魔法弹幕；灰烬之王的吟唱可持续攻击打断。三位章节首领交战一段时间后开始周期性全屏伤害，拖得越久伤害越高，需要尽快击败；该伤害可被职业护盾与护甲减免，不损失兵力。首领登场
+          三层各 5 关，每幕战斗分别有 8 / 10 / 12
+          波敌军，越往上节奏越快。关底精英和章节首领的普通技能都可躲避。荆棘守望者投掷散斧，举盾时需要侧翼攻击；蚀月巫妖释放交错魔法弹幕；前两幕另有岚翼古龙与命运先知轮换登场。灰烬之王有三阶段火环、陨火和焚风，吟唱可持续攻击打断，也可移入绿色安全区躲避。只有每幕的章节首领在交战一段时间后开始周期性全屏伤害，拖得越久伤害越高，需要尽快击败；该伤害可被职业护盾与护甲减免，不损失兵力。首领登场
           22 秒后狂暴。生命归零则本局结束，所有职业始终可选。
         </p>
       </section>

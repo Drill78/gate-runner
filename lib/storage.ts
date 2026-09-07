@@ -1,8 +1,15 @@
-import { restoreRun, type Run } from './game.ts';
+import { restoreRun, TOTAL_FLOORS, type Run } from './game.ts';
+import {
+  emptyCollection,
+  parseCollection,
+  mergeCollection,
+} from './collection.ts';
 const RUN_KEY = 'ashen-gates-run-v2',
   BEST_KEY = 'ashen-gates-record-v1',
   SOUND_KEY = 'ashen-gates-sound-v1',
-  TUTORIAL_KEY = 'ashen-gates-tutorial-v1';
+  TUTORIAL_KEY = 'ashen-gates-tutorial-v1',
+  DOUBLE_TAP_KEY = 'ashen-gates-double-tap-v1',
+  COLLECTION_KEY = 'ashen-gates-collection-v1';
 const EVENT = 'ashen-gates-storage';
 let storageFailed = false;
 export function subscribeStorage(notify: () => void) {
@@ -20,6 +27,8 @@ export function storageSnapshot() {
       best: localStorage.getItem(BEST_KEY),
       muted: localStorage.getItem(SOUND_KEY) === 'off',
       tutorialSeen: localStorage.getItem(TUTORIAL_KEY) === 'seen',
+      doubleTapSkill: localStorage.getItem(DOUBLE_TAP_KEY) === 'on',
+      collection: localStorage.getItem(COLLECTION_KEY),
       available: !storageFailed,
     });
   } catch {
@@ -36,6 +45,8 @@ export function parseStorage(raw: string) {
       best: 0,
       muted: false,
       tutorialSeen: false,
+      doubleTapSkill: false,
+      collection: emptyCollection(),
       available: true,
     };
   try {
@@ -43,9 +54,14 @@ export function parseStorage(raw: string) {
       best = Number(value.best) || 0;
     return {
       saved: value.raw ? restoreRun(value.raw) : null,
-      best: Number.isInteger(best) && best >= 0 && best <= 12 ? best : 0,
+      best:
+        Number.isInteger(best) && best >= 0 && best <= TOTAL_FLOORS ? best : 0,
       muted: value.muted === true,
       tutorialSeen: value.tutorialSeen === true,
+      doubleTapSkill: value.doubleTapSkill === true,
+      collection: parseCollection(
+        typeof value.collection === 'string' ? value.collection : null,
+      ),
       available: value.available !== false,
     };
   } catch {
@@ -54,6 +70,8 @@ export function parseStorage(raw: string) {
       best: 0,
       muted: false,
       tutorialSeen: false,
+      doubleTapSkill: false,
+      collection: emptyCollection(),
       available: false,
     };
   }
@@ -67,7 +85,7 @@ export function persistRun(run: Run) {
     const old = Number(localStorage.getItem(BEST_KEY)) || 0;
     localStorage.setItem(
       BEST_KEY,
-      String(Math.min(12, Math.max(old, run.floor))),
+      String(Math.min(TOTAL_FLOORS, Math.max(old, run.floor))),
     );
     storageFailed = false;
   } catch {
@@ -89,6 +107,30 @@ export function persistTutorialSeen() {
     localStorage.setItem(TUTORIAL_KEY, 'seen');
   } catch {
     // The page also remembers dismissal for this visit when storage is disabled.
+  }
+  window.dispatchEvent(new Event(EVENT));
+}
+export function persistDoubleTapSkill(enabled: boolean) {
+  try {
+    localStorage.setItem(DOUBLE_TAP_KEY, enabled ? 'on' : 'off');
+  } catch {
+    storageFailed = true;
+  }
+  window.dispatchEvent(new Event(EVENT));
+}
+export function persistCollection(
+  run: Run,
+  encounterKills: Record<string, number>,
+) {
+  try {
+    const next = mergeCollection(
+      parseCollection(localStorage.getItem(COLLECTION_KEY)),
+      run,
+      encounterKills,
+    );
+    localStorage.setItem(COLLECTION_KEY, JSON.stringify(next));
+  } catch {
+    storageFailed = true;
   }
   window.dispatchEvent(new Event(EVENT));
 }

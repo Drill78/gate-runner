@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { type Run } from '@/lib/game';
+import { type Run, RELIC_BY_ID, experience } from '@/lib/game';
 import {
   type Battle,
   stepBattle,
@@ -9,10 +9,23 @@ import {
   type BossPressure,
   movePlayer,
   setMoveAxis,
+  chooseBattleUpgrade,
+  skipBattleUpgrade,
+  kingPhase,
 } from '@/lib/combat';
+import { pointerToWorldX, screenX, screenY, VIEW } from '@/lib/view';
+import { createHeroTapTracker } from '@/lib/controls';
+import { RelicCard } from '@/components/game-panels';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { drawBattle } from '@/lib/renderer';
 import { bossProfile } from '@/lib/bosses';
 import { BossArrival } from '@/components/boss-arrival';
+import { battleMusic, musicPlayer } from '@/lib/music';
 
 export interface BattleSnapshot {
   run: Run;
@@ -34,6 +47,7 @@ export interface BattleSnapshot {
     maxHp: number;
     chapterBoss: boolean;
     hasSecondPhase: boolean;
+    phaseThresholds: number[];
     status: string;
   } | null;
 }
@@ -41,6 +55,7 @@ export function BattleCanvas({
   battle,
   paused,
   muted,
+  doubleTapSkill,
   onSnapshot,
   onEnd,
   onPause,
@@ -48,19 +63,35 @@ export function BattleCanvas({
   battle: Battle;
   paused: boolean;
   muted: boolean;
+  doubleTapSkill: boolean;
   onSnapshot: (s: BattleSnapshot) => void;
   onEnd: (b: Battle) => void;
   onPause: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [arrival, setArrival] = useState(false);
+  const [levelChoices, setLevelChoices] = useState(battle.levelChoices);
   const skipArrival = useRef(false);
   const profile = bossProfile(battle.player);
-  const current = useRef({ paused, muted, onSnapshot, onEnd, onPause });
+  const current = useRef({
+    paused,
+    muted,
+    doubleTapSkill,
+    onSnapshot,
+    onEnd,
+    onPause,
+  });
   useEffect(() => {
-    current.current = { paused, muted, onSnapshot, onEnd, onPause };
+    current.current = {
+      paused,
+      muted,
+      doubleTapSkill,
+      onSnapshot,
+      onEnd,
+      onPause,
+    };
     if (paused) setMoveAxis(battle, 0);
-  }, [paused, muted, onSnapshot, onEnd, onPause, battle]);
+  }, [paused, muted, doubleTapSkill, onSnapshot, onEnd, onPause, battle]);
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
@@ -142,6 +173,7 @@ export function BattleCanvas({
       }
     };
     const held = new Set<string>();
+    const heroTaps = createHeroTapTracker();
     const updateAxis = () =>
       setMoveAxis(
         battle,
@@ -189,30 +221,84 @@ export function BattleCanvas({
       if (code === 'Space' && !e.repeat) activateSkill(battle);
     };
     const pointer = (e: PointerEvent) => {
-      if (current.current.paused || introRemaining > 0) return;
+      if (
+        !e.isPrimary ||
+        current.current.paused ||
+        introRemaining > 0 ||
+        battle.levelChoices.length
+      )
+        return;
       ensureAudio();
       if (e.type === 'pointerdown') element.setPointerCapture(e.pointerId);
       const rect = element.getBoundingClientRect();
-      movePlayer(battle, ((e.clientX - rect.left) / rect.width - 0.5) / 0.455);
+      const point = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        time: e.timeStamp,
+      };
+      if (current.current.doubleTapSkill) {
+        if (e.type === 'pointerdown')
+          heroTaps.down(
+            point,
+            Math.hypot(
+              point.x - screenX(battle.x, w),
+              point.y - screenY(VIEW.playerY, h),
+            ) <= 38,
+          );
+        else heroTaps.move(point);
+      } else heroTaps.reset();
+      movePlayer(battle, pointerToWorldX(e.clientX - rect.left, rect.width));
+    };
+    const pointerUp = (e: PointerEvent) => {
+      if (!e.isPrimary) return;
+      const rect = element.getBoundingClientRect();
+      if (
+        current.current.doubleTapSkill &&
+        !current.current.paused &&
+        !document.hidden &&
+        introRemaining <= 0 &&
+        !battle.levelChoices.length &&
+        heroTaps.up({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+          time: e.timeStamp,
+        })
+      )
+        activateSkill(battle);
     };
     const loop = (now: number) => {
       const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
       last = now;
+      if (
+        current.current.paused ||
+        document.hidden ||
+        introRemaining > 0 ||
+        battle.levelChoices.length
+      ) {
+        heroTaps.reset();
+        held.clear();
+      }
       if (!current.current.paused && !document.hidden && !finished) {
-        if (!introShown && battle.time + dt >= battle.finalStart) {
+        if (
+          !battle.levelChoices.length &&
+          !introShown &&
+          battle.time + dt >= battle.finalStart
+        ) {
           stepBattle(battle, Math.max(0, battle.finalStart - battle.time));
-          introShown = true;
-          battle.inputLocked = true;
-          introRemaining = battle.player.node?.kind === 'boss' ? 2.8 : 1.9;
-          skipArrival.current = false;
-          held.clear();
-          setMoveAxis(battle, 0);
-          setArrival(true);
-          play(
-            battle.player.node?.kind === 'boss'
-              ? 'boss-arrival'
-              : 'elite-arrival',
-          );
+          if (!battle.levelChoices.length) {
+            introShown = true;
+            battle.inputLocked = true;
+            introRemaining = 3;
+            skipArrival.current = false;
+            held.clear();
+            setMoveAxis(battle, 0);
+            setArrival(true);
+            play(
+              battle.player.node?.kind === 'boss'
+                ? 'boss-arrival'
+                : 'elite-arrival',
+            );
+          }
         }
         if (introRemaining > 0) {
           introRemaining = skipArrival.current
@@ -229,13 +315,25 @@ export function BattleCanvas({
         }
       }
       drawBattle(ctx, w, h, battle, reducedMotion);
+      musicPlayer.setState(
+        battleMusic(battle),
+        current.current.paused ||
+          document.hidden ||
+          !!battle.levelChoices.length ||
+          finished,
+        current.current.muted,
+      );
       if (now - lastUI > 100) {
         lastUI = now;
+        setLevelChoices((previous) =>
+          previous === battle.levelChoices ? previous : battle.levelChoices,
+        );
         const target = battle.entities.find(
           (e) => e.boss && !e.done && e.start <= battle.time,
         );
         const chapterBoss = battle.player.node?.kind === 'boss';
-        const hasSecondPhase = !chapterBoss || battle.player.floor < 8;
+        const hasSecondPhase = true;
+        const finalKing = target?.encounterId === 'king';
         current.current.onSnapshot({
           run: { ...battle.player },
           shield: battle.shield,
@@ -257,20 +355,27 @@ export function BattleCanvas({
                 maxHp: target.maxHp,
                 chapterBoss,
                 hasSecondPhase,
-                status: battle.enrage
-                  ? '狂暴'
-                  : target.guardUntil > battle.time
-                    ? '正面举盾'
-                    : battle.ritual?.bossId === target.id
-                      ? '正在吟唱'
-                      : hasSecondPhase && target.hp < target.maxHp * 0.5
-                        ? '第二阶段'
-                        : '交战中',
+                phaseThresholds: finalKing ? [70, 35] : [50],
+                status: finalKing
+                  ? `${['余烬王座', '王冠破碎', '终焉燃尽'][kingPhase(target) - 1]}${battle.enrage ? ' · 狂暴' : ''}`
+                  : battle.enrage
+                    ? '狂暴'
+                    : target.guardUntil > battle.time
+                      ? '正面举盾'
+                      : battle.ritual?.bossId === target.id
+                        ? '正在吟唱'
+                        : hasSecondPhase && target.hp < target.maxHp * 0.5
+                          ? '第二阶段'
+                          : '交战中',
               }
             : null,
         });
       }
-      if (battle.state !== 'running' && !finished) {
+      if (
+        battle.state !== 'running' &&
+        !finished &&
+        (battle.state === 'lost' || !battle.levelChoices.length)
+      ) {
         finished = true;
         current.current.onEnd(battle);
       }
@@ -284,6 +389,7 @@ export function BattleCanvas({
     };
     const blur = () => {
       held.clear();
+      heroTaps.reset();
       setMoveAxis(battle, 0);
     };
     window.addEventListener('keyup', keyup);
@@ -291,6 +397,8 @@ export function BattleCanvas({
     window.addEventListener('pointerdown', ensureAudio);
     element.addEventListener('pointerdown', pointer);
     element.addEventListener('pointermove', drag);
+    element.addEventListener('pointerup', pointerUp);
+    element.addEventListener('pointercancel', blur);
     function drag(e: PointerEvent) {
       if (e.buttons === 1) pointer(e);
     }
@@ -305,7 +413,10 @@ export function BattleCanvas({
       window.removeEventListener('pointerdown', ensureAudio);
       element.removeEventListener('pointerdown', pointer);
       element.removeEventListener('pointermove', drag);
+      element.removeEventListener('pointerup', pointerUp);
+      element.removeEventListener('pointercancel', blur);
       if (audio) void audio.close().catch(() => {});
+      musicPlayer.setState(null, true, current.current.muted);
     };
   }, [battle]);
   return (
@@ -329,6 +440,55 @@ export function BattleCanvas({
           }}
         />
       ) : null}
+      <Dialog
+        open={
+          levelChoices.length > 0 &&
+          !paused &&
+          !arrival &&
+          battle.state !== 'lost'
+        }
+      >
+        <DialogContent
+          className="game-dialog level-up-dialog"
+          showCloseButton={false}
+        >
+          <DialogTitle>
+            Lv.{battle.player.talentPicks + 2} · 选择技能强化
+          </DialogTitle>
+          <DialogDescription>
+            战斗已暂停。选择一项能力，立即加入本局构筑。
+            {experience(battle.player).level - 1 - battle.player.talentPicks > 1
+              ? ' 本次连续升级，选择后还有下一次研习。'
+              : ''}
+          </DialogDescription>
+          <div className="level-up-choices">
+            {levelChoices.map((id) => (
+              <RelicCard
+                key={id}
+                relic={RELIC_BY_ID[id]}
+                owned={battle.player.relics[id] || 0}
+                compact
+                onPick={() => {
+                  if (chooseBattleUpgrade(battle, id))
+                    setLevelChoices(battle.levelChoices);
+                }}
+              />
+            ))}
+          </div>
+          <p className="level-up-note">
+            技能、弹幕与职业能力可叠层 · 选完继续战斗
+          </p>
+          <button
+            className="text-button"
+            onClick={() => {
+              if (skipBattleUpgrade(battle))
+                setLevelChoices(battle.levelChoices);
+            }}
+          >
+            跳过本次研习
+          </button>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

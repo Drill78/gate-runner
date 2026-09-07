@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRun, applyGate, troopMultiplier } from '../lib/game.ts';
+import {
+  ACT_LENGTH,
+  createRun,
+  applyGate,
+  troopMultiplier,
+  availableNodes,
+  enterNode,
+} from '../lib/game.ts';
 import {
   createBattle,
   makeGate,
@@ -64,16 +71,27 @@ test('only an explicit secret trial generates square gates, with an extremely na
   );
 });
 
-test('a specific key unlocks one elite trial, behind five unavoidable red gates', () => {
+test('entering an enchanted original-map elite inserts five unavoidable red gates before the square choice', () => {
   const run = createRun('knight');
-  run.floor = 4;
-  run.phase = 'battle';
-  run.node = { id: '4-1', floor: 4, col: 1, kind: 'elite' };
+  run.floor = ACT_LENGTH;
+  run.phase = 'map';
+  const elite = availableNodes(run).find((node) => node.kind === 'elite');
+  assert.ok(elite);
   assert.ok(
-    createBattle(run).entities.every((e) => !e.trialStep && !e.trialFinal),
+    createBattle(enterNode(run, elite.id)).entities.every(
+      (e) => !e.trialStep && !e.trialFinal,
+    ),
   );
   run.relics.square_key = 1;
-  const b = createBattle(run);
+  assert.ok(
+    createBattle({ ...run, phase: 'battle', node: elite }).entities.every(
+      (e) => !e.trialFinal,
+    ),
+  );
+  const entered = enterNode(run, elite.id);
+  assert.equal(entered.node.enchanted, true);
+  assert.equal(entered.squareGateSeen, true);
+  const b = createBattle(entered);
   const red = b.entities.filter((e) => e.trialStep);
   const secret = b.entities.find((e) => e.trialFinal);
   const boss = b.entities.find((e) => e.boss);
@@ -90,10 +108,14 @@ test('a specific key unlocks one elite trial, behind five unavoidable red gates'
   assert.ok(red.at(-1).arrival < secret.arrival);
   assert.equal(b.player.squareGateSeen, true);
   assert.ok(
-    createBattle(b.player).entities.every((e) => !e.trialFinal),
-    'the trial cannot repeat this expedition',
+    createBattle(b.player).entities.some((e) => e.trialFinal),
+    'the entry has spent the key flag but reconstructing this battle retains its trial',
   );
-  const ordinary = { ...run, node: { ...run.node, kind: 'battle' } };
+  const ordinary = {
+    ...run,
+    phase: 'battle',
+    node: run.nodes[run.floor].find((node) => node.kind === 'battle'),
+  };
   assert.ok(createBattle(ordinary).entities.every((e) => !e.trialFinal));
 
   // Isolate the actual crossing sequence after all ordinary waves are resolved.
@@ -147,11 +169,13 @@ test('square and root apply their actual arithmetic, positive shield rules, and 
 });
 
 test('bosses stay in the upper third, retain attack patterns and receive the requested double base HP', () => {
-  assert.equal(BALANCE.bossBaseHp, 1700);
-  for (const floor of [3, 7, 11]) {
+  assert.equal(BALANCE.bossBaseHp, 3400);
+  assert.equal(BALANCE.bossGrowth, 1.26);
+  assert.equal(BALANCE.hpGrowth, 1.27);
+  for (const floor of [4, 9, 14]) {
     const run = createRun('ranger');
     run.floor = floor;
-    run.node = { id: `${floor}-0`, floor, col: 0, kind: 'boss' };
+    run.node = run.nodes[floor].find((node) => node.kind === 'boss');
     const b = createBattle(run),
       boss = b.entities.find((e) => e.boss);
     b.entities = [boss];

@@ -1,0 +1,289 @@
+.gate-entrance {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: #080e11;
+  color: #f7e5bd;
+  min-height: 320px;
+  isolation: isolate;
+}
+.entrance-settings {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  z-index: 6;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e0c67c66;
+  border-radius: 50%;
+  background: #101a20b3;
+  color: #f5deb0;
+}
+.gate-door-scene,
+.gate-sanctum,
+.gate-leaf,
+.gate-holy-light {
+  position: absolute;
+  inset: 0;
+}
+.gate-door-scene {
+  perspective: 1400px;
+}
+.gate-sanctum {
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    #fffdeb,
+    #efd59a 25%,
+    #6d725d 58%,
+    #10202a
+  );
+}
+.gate-leaf {
+  width: 50%;
+  background-image: url('/art/entry-gate.webp');
+  background-size: 200% 100%;
+  transition: transform 1.7s cubic-bezier(0.25, 0.1, 0.2, 1);
+  backface-visibility: hidden;
+}
+.gate-leaf--left {
+  right: auto;
+  background-position: left center;
+  transform-origin: left center;
+}
+.gate-leaf--right {
+  left: 50%;
+  background-position: right center;
+  transform-origin: right center;
+}
+.gate-entrance--opening .gate-leaf--left {
+  transform: translateX(-32%) rotateY(-76deg);
+}
+.gate-entrance--opening .gate-leaf--right {
+  transform: translateX(32%) rotateY(76deg);
+}
+.gate-holy-light {
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse at 50% 43%,
+    #fffff6 5%,
+    #fff1c2c9 35%,
+    #ffe0a130 66%,
+    transparent
+  );
+  mix-blend-mode: screen;
+}
+.gate-entrance--opening .gate-holy-light {
+  animation: gate-holy-burst 1.9s ease-in forwards;
+}
+@keyframes gate-holy-burst {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.04);
+  }
+  38% {
+    opacity: 0.95;
+    transform: scaleX(0.7);
+  }
+  80%,
+  100% {
+    opacity: 1;
+    transform: scale(1.8);
+  }
+}
+.entrance-brand {
+  position: absolute;
+  top: max(10vh, 65px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  text-shadow:
+    0 3px 22px #000,
+    0 2px 4px #000;
+  pointer-events: none;
+}
+.entrance-brand span,
+.entrance-class-heading > span {
+  font-size: 12px;
+  letter-spacing: 0.32em;
+  color: #e9d09d;
+}
+.entrance-brand h1 {
+  margin: 13px 0;
+  font-size: clamp(38px, 9vw, 68px);
+  letter-spacing: 0.17em;
+  font-family: 'Noto Serif SC', Georgia, serif;
+}
+.entrance-brand p {
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+.entrance-door-controls {
+  position: absolute;
+  bottom: max(7vh, 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 16px;
+  width: min(340px, 84vw);
+  text-align: center;
+}
+.entrance-door-controls > span {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #dfcfaa;
+  text-shadow: 0 2px 5px #000;
+}
+.entrance-start {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  color: #1e201b;
+  background: linear-gradient(110deg, #cdaa65, #f8e3a9 50%, #d2b170);
+  border: 1px solid #ffecca;
+  border-radius: 4px;
+  box-shadow: 0 0 25px #dfc18144;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.entrance-start:disabled {
+  opacity: 0.6;
+}
+.entrance-continue,
+.entrance-back {
+  border: 0;
+  background: none;
+  color: #e8d6b3;
+  font-size: 13px;
+  min-height: 34px;
+  text-shadow: 0 2px 5px #000;
+}
+.entrance-class-art {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 35%,
+    color-mix(in srgb, var(--class-color) 25%, #101a20),
+    #080f14 72%
+  );
+}
+.entrance-class-art img {
+  width: 100%;
+  height: 76%;
+  object-fit: contain;
+  object-position: center 22%;
+  filter: drop-shadow(0 0 28px #d2bd8033);
+}
+.entrance-class-art:after {
+  content: '';
+  position: absolute;
+  inset: 45% 0 0;
+  background: linear-gradient(transparent, #0c141bf5 43%, #0c141b);
+}
+.entrance-class-heading {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 35%;
+  text-align: center;
+  text-shadow: 0 2px 15px #000;
+}
+.entrance-class-heading h1 {
+  font-size: clamp(29px, 7vw, 45px);
+  margin: 8px 0;
+}
+.entrance-class-heading p {
+  font-size: 13px;
+  color: #c8c7b3;
+}
+.entrance-class-controls {
+  position: absolute;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(430px, 90vw);
+  display: grid;
+  gap: 10px;
+}
+.entrance-class-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+.entrance-class-tabs button {
+  min-height: 62px;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  background: #1d292bbb;
+  color: #bfc5b4;
+  border: 1px solid #66756755;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.entrance-class-tabs button.selected {
+  color: #f5d990;
+  border-color: #e9cb7b;
+  background: #75603a44;
+}
+.entrance-skill {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  min-height: 38px;
+  line-height: 1.65;
+}
+.entrance-skill strong {
+  color: #e3c48a;
+  margin-right: 8px;
+}
+.entrance-skill span {
+  color: #bac2b5;
+}
+@media (min-width: 750px) {
+  .gate-door-scene {
+    width: min(620px, 100%);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+  .entrance-class-art img {
+    height: 85%;
+  }
+}
+@media (max-height: 650px) {
+  .entrance-class-heading {
+    bottom: 43%;
+  }
+  .entrance-class-controls {
+    gap: 5px;
+  }
+  .entrance-class-tabs button {
+    min-height: 51px;
+  }
+  .entrance-start {
+    min-height: 46px;
+  }
+  .entrance-class-heading > span {
+    display: none;
+  }
+  .entrance-brand {
+    top: 50px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gate-leaf {
+    transition: none;
+  }
+  .gate-entrance--opening .gate-holy-light {
+    animation: none;
+    opacity: 0.5;
+  }
+}

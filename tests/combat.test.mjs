@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createRun,
+  ACT_LENGTH,
   firepower,
   applyGate,
   addRelic,
@@ -31,12 +32,11 @@ function battle(classId = 'knight', floor = 0) {
   const run = createRun(classId, 734);
   run.floor = floor;
   run.phase = 'battle';
-  run.node = {
-    id: `${floor}-1`,
-    floor,
-    col: 1,
-    kind: floor % 4 === 3 ? 'boss' : 'battle',
-  };
+  run.node = run.nodes[floor].find(
+    (node) =>
+      node.kind === (floor % ACT_LENGTH === ACT_LENGTH - 1 ? 'boss' : 'battle'),
+  );
+  assert.ok(run.node);
   return createBattle(run);
 }
 function advance(b, seconds) {
@@ -126,7 +126,11 @@ test('army size has diminishing firepower returns without the old 999 cap', () =
 });
 
 test('each act increases wave count, travel speed, and enemy durability', () => {
-  const rooms = [battle('knight', 0), battle('knight', 4), battle('knight', 8)];
+  const rooms = [
+    battle('knight', 0),
+    battle('knight', 5),
+    battle('knight', 10),
+  ];
   assert.deepEqual(
     rooms.map((b) => b.totalWaves),
     [8, 10, 12],
@@ -229,16 +233,16 @@ test('active skills respect cooldown and class effects, including the tuned knig
 });
 
 test('chapter bosses expose their unique warned patterns and eventually enrage', () => {
-  for (const floor of [3, 7, 11]) {
+  for (const floor of [4, 9, 14]) {
     const b = battle('ranger', floor),
       boss = b.entities.find((e) => e.boss);
     isolate(b, boss);
     b.time = boss.start + 4.3;
     b.x = 0.9;
     stepBattle(b, 0.01);
-    if (floor === 3) assert.ok(b.projectiles.some((p) => p.kind === 'axe'));
-    if (floor === 7) assert.ok(b.projectiles.some((p) => p.kind === 'star'));
-    if (floor === 11) assert.ok(b.projectiles.some((p) => p.kind === 'ember'));
+    if (floor === 4) assert.ok(b.projectiles.some((p) => p.kind === 'axe'));
+    if (floor === 9) assert.ok(b.projectiles.some((p) => p.kind === 'star'));
+    if (floor === 14) assert.ok(b.projectiles.some((p) => p.kind === 'ember'));
     b.pressure = null;
     b.time = b.finalStart + BALANCE.enrageAfter + 0.1;
     b.threats = [];
@@ -253,12 +257,13 @@ test('expanded orthographic view exposes upcoming targets without entering firin
   const far = screenY(worldY(e, e.start - 1), 844),
     near = screenY(worldY(e, e.start), 844);
   assert.ok(far > 0 && far < near);
-  assert.ok(screenY(VIEW.playerY, 844) > 844 * 0.8);
+  assert.ok(screenY(VIEW.playerY, 844) > 844 * 0.77);
+  assert.ok(screenY(VIEW.playerY, 844) < 844 * 0.79);
   assert.ok(
     screenY(VIEW.playerY, 844) + 45 < 844 - 65,
     'lower army position leaves the bottom experience and status strip clear',
   );
-  assert.equal(VIEW.previewSeconds, 1.25);
+  assert.equal(VIEW.previewSeconds, 1.5);
   isolate(b, e);
   b.time = e.start - 1;
   b.x = e.x;
@@ -287,7 +292,7 @@ test('v0.2 checkpoints migrate without losing the expedition; invalid XP is reje
   const old = { ...r, version: 2 };
   delete old.xp;
   const restored = restoreRun(JSON.stringify(old));
-  assert.equal(restored.version, 3);
+  assert.equal(restored.version, 4);
   assert.equal(restored.xp, 0);
   assert.equal(restored.seed, r.seed);
   assert.equal(restoreRun(JSON.stringify({ ...r, xp: -1 })), null);
@@ -350,7 +355,7 @@ test('same projectile volley cannot multiply damage; swept crossings still resol
 });
 
 test('chapter bosses begin mechanics during their first second in range', () => {
-  for (const floor of [3, 7, 11]) {
+  for (const floor of [4, 9, 14]) {
     const b = battle('ranger', floor),
       boss = b.entities.find((e) => e.boss);
     isolate(b, boss);
@@ -362,7 +367,7 @@ test('chapter bosses begin mechanics during their first second in range', () => 
 });
 
 test('focus fire interrupts the king chant without resetting its independent pressure clock', () => {
-  const b = battle('mage', 11),
+  const b = battle('mage', 14),
     e = b.entities.find((e) => e.boss);
   isolate(b, e);
   b.time = e.start + 0.5;
@@ -376,6 +381,8 @@ test('focus fire interrupts the king chant without resetting its independent pre
     interruptible: true,
     breakMax: 10,
     breakRemaining: 10,
+    safeX: 0.58,
+    safeWidth: 0.48,
   };
   activateSkill(b);
   assert.equal(b.ritual, null);
@@ -384,7 +391,7 @@ test('focus fire interrupts the king chant without resetting its independent pre
 
 test('the watcher frontal shield rewards firing from a flank', () => {
   const fireFrom = (x) => {
-    const b = battle('ranger', 3),
+    const b = battle('ranger', 4),
       e = b.entities.find((e) => e.boss);
     isolate(b, e);
     b.time = e.start + 2;
@@ -406,11 +413,11 @@ test('the watcher frontal shield rewards firing from a flank', () => {
 
 // Pressure is a separate, time-based DPS check, independent of the normal attack rotation.
 test('boss pressure grants its full grace period then repeats and escalates without troop loss', () => {
-  for (const floor of [3, 7, 11])
+  for (const floor of [4, 9, 14])
     for (const x of [-0.9, 0, 0.9]) {
       const b = battle('ranger', floor),
         boss = b.entities.find((e) => e.boss),
-        act = Math.floor(floor / 4);
+        act = Math.floor(floor / ACT_LENGTH);
       isolate(b, boss);
       boss.lastAttack = Infinity;
       b.shootTimer = Infinity;
@@ -438,7 +445,7 @@ test('boss pressure grants its full grace period then repeats and escalates with
     }
 });
 test('class shields and armor still mitigate pressure; killing before the deadline cancels it', () => {
-  const b = battle('knight', 11),
+  const b = battle('knight', 14),
     boss = b.entities.find((e) => e.boss);
   isolate(b, boss);
   boss.lastAttack = Infinity;
@@ -448,8 +455,11 @@ test('class shields and armor still mitigate pressure; killing before the deadli
   const hp = b.player.hp,
     shield = b.shield;
   stepBattle(b, 0.02);
-  assert.equal(b.player.hp, hp - Math.max(0, Math.ceil(20 * 0.88) - shield));
-  const kill = battle('ranger', 11),
+  assert.equal(
+    b.player.hp,
+    hp - Math.max(0, Math.ceil(BALANCE.pressureDamage[2] * 0.88) - shield),
+  );
+  const kill = battle('ranger', 14),
     target = kill.entities.find((e) => e.boss);
   isolate(kill, target);
   target.lastAttack = Infinity;
@@ -486,7 +496,7 @@ test('first gatekeeper pressures the player with five axes and a second half-hea
   b.x = 0.9;
   b.time = boss.start;
   advance(b, 1.01);
-  assert.equal(boss.maxHp, 430);
+  assert.equal(boss.maxHp, 1290);
   assert.equal(b.projectiles.length, 5);
   boss.hp = boss.maxHp * 0.49;
   boss.attackIndex = 2;
@@ -498,7 +508,7 @@ test('first gatekeeper pressures the player with five axes and a second half-hea
 });
 test('later boss scaling is stronger without inflating first-floor common enemies or chests', () => {
   const first = battle(),
-    later = battle('knight', 11);
+    later = battle('knight', 14);
   assert.equal(BALANCE.enemyActMultiplier[0], 1);
   assert.ok(BALANCE.bossActMultiplier[2] > BALANCE.bossActMultiplier[1]);
   assert.ok(later.entities.find((e) => e.boss).maxHp > 45000);
@@ -506,7 +516,7 @@ test('later boss scaling is stronger without inflating first-floor common enemie
 });
 
 test('arrival locks all combat inputs and timers even before the UI snapshot updates', () => {
-  const b = battle('knight', 11);
+  const b = battle('knight', 14);
   b.inputLocked = true;
   const time = b.time,
     shield = b.shield,

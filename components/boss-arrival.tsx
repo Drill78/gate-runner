@@ -64,7 +64,7 @@ export function BossArrival({
       style={
         {
           '--ag-cutin-color': profile.color,
-          '--ag-cutin-duration': chapterBoss ? '2800ms' : '1900ms',
+          '--ag-cutin-duration': '3000ms',
         } as CSSProperties
       }
       onClick={() => {
@@ -126,6 +126,7 @@ export function BossArrival({
             draggable={false}
           />
         </span>
+        <span className="ag-cutin__frame" aria-hidden="true" />
         <span className="ag-cutin__banner" aria-hidden="true">
           <span>{chapterBoss ? '灾厄降临' : '强敌突入'}</span>
           <small>{chapterBoss ? 'CHAPTER BOSS' : 'FINAL ENCOUNTER'}</small>

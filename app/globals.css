@@ -3457,3 +3457,261 @@ body.expedition-active {
     top: 26%;
   }
 }
+
+/* Skill selection remains readable as three rows on portrait phones. */
+.game-dialog.level-up-dialog[data-slot='dialog-content'] {
+  width: min(620px, calc(100vw - 24px));
+  max-width: 620px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 22px;
+  border-color: #bea66d88;
+}
+.level-up-choices {
+  display: grid;
+  gap: 10px;
+}
+.level-up-choices .relic-card {
+  min-height: 0;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 5px 12px;
+  text-align: left;
+}
+.level-up-choices .relic-card-top {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.level-up-choices .relic-large-icon {
+  grid-row: 2 / 4;
+  width: 38px;
+  height: 38px;
+  margin: 4px 0;
+}
+.level-up-choices .relic-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.level-up-choices .relic-card p {
+  margin: 0;
+  min-height: 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.level-up-choices .relic-card-bottom {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  padding-top: 6px;
+}
+.level-up-choices .choose-relic {
+  display: none;
+}
+.level-up-note {
+  font-size: 12px;
+  color: #adaf9a;
+  margin: 0;
+  text-align: center;
+}
+.control-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 0;
+  border-block: 1px solid #c8b98733;
+  font-size: 15px;
+}
+.control-option small {
+  display: block;
+  font-size: 12px;
+  color: #a9ae9b;
+  margin-top: 5px;
+}
+.control-option [data-slot='switch'] {
+  min-width: 38px;
+  min-height: 22px;
+}
+.rarity-传说 {
+  --relic-color: #ffe197;
+}
+.relic-card.rarity-传说,
+.relic-mini.rarity-传说 {
+  color: #ffe197;
+  border-color: #e8bb57a0;
+  background: linear-gradient(130deg, #443116, #211f17 55%, #382810);
+  box-shadow:
+    inset 0 0 20px #b77b1722,
+    0 0 12px #d2a04014;
+}
+.relic-card.rarity-传说 .relic-large-icon {
+  color: #ffe29c;
+  background: #c6922928;
+  border-color: #d6ac55;
+}
+.shop-grid .shop-special {
+  border-color: #b49cc57a;
+  background: linear-gradient(125deg, #302637, #201e25);
+}
+.shop-grid .shop-legendary {
+  border-color: #e8bb5780;
+}
+.route-choice.kind-superelite {
+  border-color: #c498e5;
+  background: linear-gradient(125deg, #3d233d, #241e2c);
+}
+.route-choice.kind-superelite .node-choice-icon {
+  color: #e5b5f2;
+  border-color: #bb84d8;
+}
+@media (max-height: 600px) {
+  .game-dialog.level-up-dialog[data-slot='dialog-content'] {
+    padding: 16px;
+    gap: 10px;
+  }
+  .level-up-choices .relic-card {
+    padding: 10px 12px;
+  }
+}
+.is-setup > .masthead,
+.is-setup > .page-intro,
+.is-setup > .game-layout {
+  display: none;
+}
+.branch-map {
+  position: relative;
+  width: min(100%, 380px);
+  aspect-ratio: 350 / 360;
+  margin: 14px auto 24px;
+}
+.branch-map > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.branch-map line {
+  stroke: #73826b60;
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+.branch-map line.travelled {
+  stroke: #e9c780;
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+.branch-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #8c977259;
+  border-radius: 50%;
+  background: #1c2822;
+  color: #b4bea8;
+  isolation: isolate;
+}
+.branch-node > span {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  font-size: 10px;
+  color: #aab89f;
+  text-shadow: 0 2px 3px #07110a;
+}
+.branch-node.active {
+  color: #ffe1a0;
+  border-color: #e1c480;
+  background: #443e28;
+  box-shadow: 0 0 16px #dfc57942;
+}
+.branch-node.active > span {
+  color: #f5dca5;
+}
+.branch-node.completed {
+  color: #a6caac;
+  background: #304b39;
+  border-color: #87af8f;
+}
+.branch-node:disabled {
+  opacity: 0.58;
+  cursor: default;
+}
+.branch-node.completed:disabled {
+  opacity: 1;
+}
+.branch-node.boss {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  border-color: #a46e5b;
+  color: #e9b696;
+}
+.enchanted-node {
+  position: relative;
+  isolation: isolate;
+  border-color: #93799e !important;
+  box-shadow:
+    0 0 0 3px #07030b,
+    0 0 20px #180922 !important;
+}
+.branch-node.enchanted-node {
+  position: absolute;
+}
+.enchanted-node:before,
+.enchanted-node:after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 4px solid transparent;
+  border-top-color: #020105;
+  border-left-color: #24122c;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: forbidden-orbit 2.8s linear infinite;
+  filter: drop-shadow(0 0 4px #040108);
+  z-index: -1;
+}
+.enchanted-node:after {
+  inset: -9px;
+  opacity: 0.75;
+  animation-duration: 4.2s;
+  animation-direction: reverse;
+  border-width: 3px;
+}
+@keyframes forbidden-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.room-map .room-heading {
+  margin-bottom: 10px;
+}
+.room-map .route-choices {
+  gap: 9px;
+}
+.room-map .route-choice {
+  min-height: 78px;
+}
+.game-dialog.collection-dialog[data-slot='dialog-content'] {
+  width: min(780px, calc(100vw - 24px));
+  max-width: 780px;
+  max-height: calc(100dvh - 30px);
+  overflow-y: auto;
+}
+.settings-note {
+  font-size: 12px;
+  color: #a9b49e;
+  line-height: 1.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .enchanted-node:before,
+  .enchanted-node:after {
+    animation: none;
+  }
+}

@@ -6,7 +6,7 @@
   "installCommand": "npm ci",
   "rewrites": [
     {
-      "source": "/((?!assets/|art/|favicon.svg).*)",
+      "source": "/((?!assets/|art/|audio/|favicon.svg).*)",
       "destination": "/index.html"
     }
   ],
@@ -19,6 +19,10 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/audio/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
     },
     {
       "source": "/art/(.*)",

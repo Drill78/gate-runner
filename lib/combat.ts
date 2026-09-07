@@ -1,6 +1,6 @@
 import {
   HEROES,
-  ACTS,
+  ACT_LENGTH,
   stats,
   firepower,
   applyGate,
@@ -9,36 +9,45 @@ import {
   safeTroops,
   grantExperience,
   experience,
+  rollLevelChoices,
+  chooseLevelUpgrade,
   formatNumber,
   type Run,
   type GateChoice,
 } from './game.ts';
 import { VIEW } from './view.ts';
+import { bossProfile } from './bosses.ts';
 
 export const BALANCE = {
   moveSpeed: 2.2,
-  pointerMaxSpeed: 4.8,
+  pointerMaxSpeed: 12,
   minX: -0.9,
   maxX: 0.9,
   aimWidth: 0.205,
   travel: [3.9, 3.5, 3.1],
   spacing: [3.15, 2.95, 2.75],
   waves: [8, 10, 12],
-  hpGrowth: 1.34,
-  bossGrowth: 1.34,
+  hpGrowth: 1.27,
+  bossGrowth: 1.26,
   enemyBaseHp: 110,
-  bossBaseHp: 1700,
-  commanderBaseHp: 430,
-  eliteCommanderBaseHp: 550,
+  bossBaseHp: 3400,
+  commanderBaseHp: 1290,
+  eliteCommanderBaseHp: 1650,
+  laterEnemyHpMultiplier: 1.15,
+  superEliteHpMultiplier: 1.75,
+  superEliteCommanderHp: 3300,
   enemyActMultiplier: [1, 1.05, 1.12],
   commanderActMultiplier: [1, 1.1, 1.2],
   bossActMultiplier: [1.25, 1.65, 2.15],
+  finalBossHpMultiplier: 1.6,
+  finalBossDamageMultiplier: 1.2,
+  finalBossAttackIntervals: [4, 3.5, 3],
   commanderAttackInterval: 3.2,
   chapterAttackInterval: 4.4,
   pressureGrace: [22, 17, 17],
-  pressureInterval: [8, 7, 6.5],
-  pressureDamage: [10, 16, 20],
-  pressureRamp: [3, 4, 5],
+  pressureInterval: [8, 7, 6],
+  pressureDamage: [10, 16, 24],
+  pressureRamp: [3, 4, 6],
   enrageAfter: 22,
 } as const;
 
@@ -63,6 +72,8 @@ export interface Entity {
   trialFraction?: number;
   trialFinal?: boolean;
   boss?: boolean;
+  encounterId?: string;
+  phase?: number;
   variant:
     | 'soldier'
     | 'guard'
@@ -129,6 +140,8 @@ export interface Ritual {
   interruptible: boolean;
   breakMax: number;
   breakRemaining: number;
+  safeX: number;
+  safeWidth: number;
 }
 export interface Effect {
   x: number;
@@ -152,6 +165,8 @@ export interface BossPressure {
 }
 export interface Battle {
   player: Run;
+  levelChoices: string[];
+  encounterKills: Record<string, number>;
   time: number;
   inputLocked: boolean;
   x: number;
@@ -267,7 +282,10 @@ export function makeGate(
   const choices = three
     ? [
         pair[0],
-        { op: '×' as const, value: 1.36 + Math.floor(floor / 4) * 0.04 },
+        {
+          op: '×' as const,
+          value: 1.36 + Math.floor(floor / ACT_LENGTH) * 0.04,
+        },
         pair[1],
       ]
     : pair;
@@ -296,20 +314,23 @@ export function scaleGateNumbers(
 }
 export function createBattle(run: Run): Battle {
   const player = structuredClone(run),
-    act = Math.floor(player.floor / 4),
+    act = Math.floor(player.floor / ACT_LENGTH),
     random = seededRandom(
       player.seed + player.floor * 719 + (player.node?.col || 0) * 103,
     );
   const travel = BALANCE.travel[act],
     spacing = BALANCE.spacing[act],
-    waves = BALANCE.waves[act];
-  const elite = player.node?.kind === 'elite',
+    waves = BALANCE.waves[act] + (player.node?.enchanted ? 2 : 0);
+  const superElite = Boolean(player.node?.enchanted),
+    elite = player.node?.kind === 'elite' || superElite,
     bossRoom = player.node?.kind === 'boss',
     treasure = player.node?.kind === 'treasure';
   const difficulty =
     Math.pow(BALANCE.hpGrowth, player.floor) *
     (elite ? 1.24 : 1) *
+    (superElite ? BALANCE.superEliteHpMultiplier : 1) *
     (treasure ? 0.85 : 1);
+  const profile = bossProfile(player);
   const entities: Entity[] = [];
   function put(
     kind: Entity['kind'],
@@ -376,6 +397,7 @@ export function createBattle(run: Run): Battle {
       x,
       BALANCE.enemyBaseHp *
         difficulty *
+        (player.floor > 0 ? BALANCE.laterEnemyHpMultiplier : 1) *
         BALANCE.enemyActMultiplier[act] *
         (variant === 'guard' ? 1.45 : variant === 'archer' ? 0.82 : 1) *
         (1 + random() * 0.16),
@@ -406,14 +428,17 @@ export function createBattle(run: Run): Battle {
         'enemy',
         t + 1.9,
         -x,
-        65 * difficulty * BALANCE.enemyActMultiplier[act],
+        65 *
+          difficulty *
+          BALANCE.enemyActMultiplier[act] *
+          (player.floor > 0 ? BALANCE.laterEnemyHpMultiplier : 1),
         'soldier',
         '精英斥候',
         i + 1,
       );
   }
   let finalStart = waves * spacing + 1;
-  if (elite && player.relics.square_key && !player.squareGateSeen) {
+  if (superElite && player.relics.square_key) {
     player.squareGateSeen = true;
     // The ritual begins after the ordinary waves have left. Its fixed sequence
     // can then be forecast once without changing any number in front of a player.
@@ -459,24 +484,31 @@ export function createBattle(run: Run): Battle {
     0,
     (bossRoom
       ? BALANCE.bossBaseHp
-      : elite
-        ? BALANCE.eliteCommanderBaseHp
-        : BALANCE.commanderBaseHp) *
+      : superElite
+        ? BALANCE.superEliteCommanderHp
+        : elite
+          ? BALANCE.eliteCommanderBaseHp
+          : BALANCE.commanderBaseHp) *
       Math.pow(BALANCE.bossGrowth, player.floor) *
       (bossRoom
         ? BALANCE.bossActMultiplier[act]
-        : BALANCE.commanderActMultiplier[act]),
+        : BALANCE.commanderActMultiplier[act]) *
+      (profile.id === 'king' ? BALANCE.finalBossHpMultiplier : 1),
     'boss',
-    bossRoom ? ACTS[act].boss : elite ? '黑甲统领' : '荒野刽子手',
+    profile.name,
     waves,
     true,
   );
-  final.volleyDamage = bossRoom
-    ? 17 + player.floor * 1.6
-    : 12 + player.floor * 1.4;
+  final.encounterId = profile.id;
+  final.phase = 1;
+  final.volleyDamage =
+    (bossRoom ? 17 + player.floor * 1.6 : 12 + player.floor * 1.4) *
+    (profile.id === 'king' ? BALANCE.finalBossDamageMultiplier : 1);
   player.squad = safeTroops(player.squad + (player.relics.ambush || 0) * 8);
   return {
     player,
+    levelChoices: rollLevelChoices(player),
+    encounterKills: {},
     time: 0,
     inputLocked: false,
     x: 0,
@@ -491,7 +523,12 @@ export function createBattle(run: Run): Battle {
     ritual: null,
     pressure: bossRoom
       ? {
-          name: ['荆棘蚀血', '蚀月凋零', '王权震荡'][act],
+          name:
+            profile.id === 'wyvern'
+              ? '风暴侵蚀'
+              : profile.id === 'oracle'
+                ? '命运收束'
+                : ['荆棘蚀血', '蚀月凋零', '王权震荡'][act],
           bossId: final.id,
           nextAt: finalStart + BALANCE.pressureGrace[act],
           interval: BALANCE.pressureInterval[act],
@@ -525,23 +562,52 @@ export function createBattle(run: Run): Battle {
   };
 }
 export function progress(e: Entity, time: number) {
-  return Math.min(
-    e.boss ? 0.12 : 1.12,
-    (time - e.start) / (e.arrival - e.start),
-  );
+  return Math.min(e.boss ? 0 : 1.12, (time - e.start) / (e.arrival - e.start));
 }
 export function worldY(e: Entity, time: number) {
   return -0.1 + progress(e, time) * 0.9;
 }
 export function movePlayer(b: Battle, x: number) {
-  if (b.inputLocked) return;
+  if (b.inputLocked || b.levelChoices.length || !Number.isFinite(x)) return;
   b.targetX = Math.max(BALANCE.minX, Math.min(BALANCE.maxX, x));
   b.inputAxis = 0;
 }
 export function setMoveAxis(b: Battle, axis: number) {
-  if (b.inputLocked && axis !== 0) return;
+  if ((b.inputLocked || b.levelChoices.length) && axis !== 0) return;
   b.inputAxis = Math.sign(axis);
   b.targetX = null;
+}
+function prepareLevelChoice(b: Battle) {
+  if (
+    b.state === 'lost' ||
+    b.levelChoices.length ||
+    b.player.talentPicks >= experience(b.player).level - 1
+  )
+    return;
+  b.levelChoices = rollLevelChoices(b.player);
+  if (b.levelChoices.length) {
+    b.inputAxis = 0;
+    b.targetX = null;
+  } else if (b.player.talentPicks < experience(b.player).level - 1) {
+    // Fully completed builds must never leave combat waiting on an empty menu.
+    b.player.talentPicks = experience(b.player).level - 1;
+  }
+}
+export function chooseBattleUpgrade(b: Battle, id: string) {
+  if (b.state === 'lost' || !b.levelChoices.includes(id)) return false;
+  const next = chooseLevelUpgrade(b.player, id);
+  if (next === b.player) return false;
+  b.player = next;
+  b.levelChoices = [];
+  prepareLevelChoice(b);
+  return true;
+}
+export function skipBattleUpgrade(b: Battle) {
+  if (b.state === 'lost' || !b.levelChoices.length) return false;
+  b.player.talentPicks++;
+  b.levelChoices = [];
+  prepareLevelChoice(b);
+  return true;
 }
 export function gateAt(gates: GateSegment[], x: number) {
   return gates.find((g) => x >= g.left && x <= g.right);
@@ -611,6 +677,12 @@ function hitEntity(
     sound(b, 'chest');
   } else {
     b.player.kills++;
+    if (e.encounterId) {
+      b.encounterKills[e.encounterId] =
+        (b.encounterKills[e.encounterId] || 0) + 1;
+      b.player.encountersDefeated[e.encounterId] =
+        (b.player.encountersDefeated[e.encounterId] || 0) + 1;
+    }
     b.player.gold += 4;
     b.player.hp = Math.min(
       b.player.maxHp,
@@ -778,7 +850,7 @@ function segmentHit(
 function enemyXAt(b: Battle, e: Entity, time: number) {
   return e.boss &&
     b.player.node?.kind === 'boss' &&
-    Math.floor(b.player.floor / 4) === 1
+    Math.floor(b.player.floor / ACT_LENGTH) === 1
     ? Math.sin((time - e.start) * 0.8) * 0.18
     : e.x;
 }
@@ -895,7 +967,13 @@ function stepPlayerBullets(b: Battle, oldTime: number) {
   );
 }
 export function activateSkill(b: Battle) {
-  if (b.state !== 'running' || b.inputLocked || b.cooldown > 0) return false;
+  if (
+    b.state !== 'running' ||
+    b.inputLocked ||
+    b.levelChoices.length ||
+    b.cooldown > 0
+  )
+    return false;
   b.cooldown = stats(b.player).cooldown;
   b.skillFlash = 0.7;
   sound(b, 'skill');
@@ -925,6 +1003,7 @@ export function activateSkill(b: Battle) {
         : '箭雨齐射 · 全屏箭雨',
     );
   }
+  prepareLevelChoice(b);
   return true;
 }
 function warn(
@@ -953,7 +1032,7 @@ export function projectilePosition(p: Projectile, time: number) {
       Math.sin(t * Math.PI * 3 + p.phase) *
         p.sway *
         Math.sin(Math.min(1, t) * Math.PI),
-    y: p.fromY + (0.8 - p.fromY) * t,
+    y: p.fromY + (VIEW.playerY - p.fromY) * t,
   };
 }
 function volley(
@@ -984,31 +1063,99 @@ function volley(
       resolved: false,
     });
 }
+export function kingPhase(e: Entity): 1 | 2 | 3 {
+  return e.hp <= e.maxHp * 0.35 ? 3 : e.hp <= e.maxHp * 0.7 ? 2 : 1;
+}
 function ritual(b: Battle, e: Entity) {
+  const phase = kingPhase(e);
   const breakMax = e.maxHp * 0.055;
   b.ritual = {
-    name: '末日敕令',
+    name: phase === 3 ? '终末敕令' : '末日敕令',
     bossId: e.id,
     startedAt: b.time,
-    resolveAt: b.time + 3.2,
-    damage: e.volleyDamage * 0.85 * (b.enrage ? 1.75 : 1),
+    resolveAt: b.time + (phase === 3 ? 2.65 : 3.2),
+    damage: e.volleyDamage * (0.85 + (phase - 1) * 0.1) * (b.enrage ? 1.75 : 1),
     interruptible: true,
     breakMax,
     breakRemaining: breakMax,
+    safeX: [-0.58, 0, 0.58][e.attackIndex % 3],
+    safeWidth: phase === 3 ? 0.36 : 0.48,
   };
-  message(b, '末日敕令 · 集火或释放技能打断', '#ffd0a1');
+  message(b, `${b.ritual.name} · 集火打断或移入绿色安全区`, '#ffd0a1');
 }
 function enemyAttack(b: Battle, e: Entity) {
   if (!e.boss) {
     warn(b, b.x, 0.29, 1.05, e.volleyDamage, '弓手狙击');
     return;
   }
-  const act = Math.floor(b.player.floor / 4),
+  const act = Math.floor(b.player.floor / ACT_LENGTH),
     isActBoss = b.player.node?.kind === 'boss',
     index = e.attackIndex++;
   const damage = e.volleyDamage * (b.enrage ? 1.75 : 1),
     secondPhase = e.hp < e.maxHp * 0.5;
   if (!isActBoss) {
+    if (e.encounterId === 'hexblade') {
+      warn(b, b.x, 0.34, 1.1, damage * 0.75, '咒刃烙印');
+      warn(
+        b,
+        Math.max(-0.7, Math.min(0.7, -b.x)),
+        0.38,
+        1.8,
+        damage * 0.7,
+        '镜影追斩',
+      );
+      if (secondPhase)
+        volley(
+          b,
+          e,
+          'star',
+          [-0.65, -0.22, 0.22, 0.65],
+          0.5,
+          1.8,
+          damage * 0.45,
+        );
+      message(b, '咒刃双斩 · 先离开烙印，再避开镜影');
+      return;
+    }
+    if (e.encounterId === 'stonewarden') {
+      e.guardUntil = b.time + 2;
+      const gap = index % 2 ? -0.42 : 0.42;
+      warn(
+        b,
+        (-1 + gap - 0.24) / 2,
+        gap + 0.76,
+        1.4,
+        damage * 0.85,
+        '裂地震击',
+      );
+      warn(b, (1 + gap + 0.24) / 2, 0.76 - gap, 1.4, damage * 0.85, '裂地震击');
+      message(b, '石誓裂地 · 向未标红的空隙移动');
+      return;
+    }
+    if (e.encounterId === 'broodmother') {
+      volley(
+        b,
+        e,
+        'star',
+        [-0.78, -0.39, 0, 0.39, 0.78],
+        0.3,
+        1.65,
+        damage * 0.55,
+      );
+      if (secondPhase)
+        volley(
+          b,
+          e,
+          'star',
+          [-0.58, -0.19, 0.19, 0.58],
+          0.95,
+          1.65,
+          damage * 0.45,
+        );
+      warn(b, b.x, 0.32, 1.25, damage * 0.65, '蛛网缠地');
+      message(b, '蛛巢毒雨 · 脱离蛛网并穿过弹隙');
+      return;
+    }
     if (index % 2 === 0) {
       volley(
         b,
@@ -1025,7 +1172,37 @@ function enemyAttack(b: Battle, e: Entity) {
         b,
         secondPhase ? '暴怒追斧 · 留意第二轮' : '五向散斧 · 从弹隙穿过',
       );
-    } else warn(b, b.x, 0.42, 1.1, damage, '斩首重击');
+    } else {
+      if (e.encounterId === 'commander') e.guardUntil = b.time + 2.2;
+      warn(b, b.x, 0.42, 1.1, damage, '斩首重击');
+    }
+    return;
+  }
+  if (e.encounterId === 'wyvern') {
+    if (index % 2 === 0) {
+      warn(b, b.x, secondPhase ? 0.72 : 0.6, 1.45, damage, '风暴龙息');
+      volley(b, e, 'ember', [-0.76, -0.25, 0.25, 0.76], 0.5, 1.8, damage * 0.5);
+      message(b, '岚翼龙息 · 离开落点，从风刃间穿行');
+    } else {
+      for (const [i, x] of [-0.68, 0, 0.68].entries())
+        warn(b, x, 0.34, 1.05 + i * 0.35, damage * 0.7, '风暴踏击');
+      message(b, '风暴踏击 · 三道震波依次落下');
+    }
+    return;
+  }
+  if (e.encounterId === 'oracle') {
+    warn(b, b.x, 0.38, 1.2, damage * 0.7, '预言烙印');
+    volley(
+      b,
+      e,
+      'star',
+      index % 2 ? [-0.72, -0.24, 0.24, 0.72] : [-0.88, -0.44, 0, 0.44, 0.88],
+      0.55,
+      1.9,
+      damage * 0.55,
+    );
+    if (secondPhase) warn(b, -b.x, 0.32, 2.1, damage * 0.6, '命运回声');
+    message(b, '星盘预言 · 离开旧位置，留意延迟回声');
     return;
   }
   if (act === 0) {
@@ -1064,7 +1241,49 @@ function enemyAttack(b: Battle, e: Entity) {
       secondPhase ? '蚀月盛放 · 双重星雨' : '星环绽放 · 交错弹幕',
       '#d9c7ff',
     );
-  } else if (index % 2 === 0) {
+  } else if (index % 4 === 0) {
+    const phase = kingPhase(e);
+    const force = damage * (1 + (phase - 1) * 0.12);
+    volley(
+      b,
+      e,
+      'ember',
+      [-0.84, -0.56, -0.28, 0, 0.28, 0.56, 0.84],
+      0.35,
+      1.65,
+      force * 0.62,
+    );
+    if (phase >= 2)
+      volley(
+        b,
+        e,
+        'ember',
+        [-0.7, -0.42, -0.14, 0.14, 0.42, 0.7],
+        0.95,
+        1.65,
+        force * 0.54,
+      );
+    message(
+      b,
+      phase >= 2 ? '碎日王冠 · 第二轮火环即将降临' : '碎日王冠 · 穿过七重火环',
+      '#ffcf88',
+    );
+  } else if (index % 4 === 1) ritual(b, e);
+  else if (index % 4 === 2) {
+    const phase = kingPhase(e);
+    const order = phase === 3 ? [0, -0.7, 0.7] : [-0.7, 0, 0.7];
+    for (const [i, x] of order.entries())
+      warn(
+        b,
+        x,
+        phase === 3 ? 0.46 : 0.4,
+        1.05 + i * 0.48,
+        damage * (0.85 + phase * 0.06),
+        '陨火葬城',
+      );
+    message(b, '陨火葬城 · 三道陨火依次落下', '#ffb79a');
+  } else {
+    const phase = kingPhase(e);
     volley(
       b,
       e,
@@ -1072,7 +1291,7 @@ function enemyAttack(b: Battle, e: Entity) {
       [-0.65, -0.18, 0.3, 0.75],
       0.35,
       1.7,
-      damage * 0.5,
+      damage * (0.55 + phase * 0.04),
       -0.64,
     );
     volley(
@@ -1082,14 +1301,16 @@ function enemyAttack(b: Battle, e: Entity) {
       [-0.75, -0.3, 0.18, 0.65],
       0.8,
       1.7,
-      damage * 0.5,
+      damage * (0.55 + phase * 0.04),
       0.64,
     );
     message(b, '交叉焚风 · 留意两侧来弹', '#ffc899');
-  } else ritual(b, e);
+  }
 }
 export function stepBattle(b: Battle, dt: number) {
   if (b.state !== 'running' || b.inputLocked) return;
+  prepareLevelChoice(b);
+  if (b.levelChoices.length) return;
   dt = Math.min(0.05, Math.max(0, dt));
   const oldTime = b.time,
     oldX = b.x;
@@ -1120,6 +1341,7 @@ export function stepBattle(b: Battle, dt: number) {
       applyGate(forecast, gate, 0);
       e.gatePrepared = true;
     }
+    b.player.secretDiscovered = true;
     message(b, '禁术试炼 · 5道红门无法绕开', '#ffb3a4');
   }
   for (const e of b.entities) {
@@ -1131,14 +1353,17 @@ export function stepBattle(b: Battle, dt: number) {
   }
   b.wave = Math.min(
     b.totalWaves,
-    1 + Math.floor(b.time / BALANCE.spacing[Math.floor(b.player.floor / 4)]),
+    1 +
+      Math.floor(
+        b.time / BALANCE.spacing[Math.floor(b.player.floor / ACT_LENGTH)],
+      ),
   );
   b.enrage = b.time > b.finalStart + BALANCE.enrageAfter;
   if (b.ritual && b.time >= b.ritual.resolveAt) {
     const cast = b.ritual;
     b.ritual = null;
     const boss = b.entities.find((e) => e.id === cast.bossId);
-    if (boss && !boss.done) {
+    if (boss && !boss.done && Math.abs(b.x - cast.safeX) > cast.safeWidth / 2) {
       boss.lastAttack = b.time;
       damagePlayer(b, cast.damage, 0.08);
     }
@@ -1188,12 +1413,30 @@ export function stepBattle(b: Battle, dt: number) {
     if (
       e.boss &&
       b.player.node?.kind === 'boss' &&
-      Math.floor(b.player.floor / 4) === 1
+      Math.floor(b.player.floor / ACT_LENGTH) === 1
     )
       e.x = Math.sin((b.time - e.start) * 0.8) * 0.18;
     if (e.burnUntil > b.time && e.hp > 0)
       hitEntity(b, e, 14 * (b.player.relics.ember || 0) * dt, false, false);
     if (e.done) continue;
+    if (e.encounterId === 'king' && e.phase !== kingPhase(e)) {
+      e.phase = kingPhase(e);
+      message(
+        b,
+        e.phase === 2
+          ? '王冠破碎 · 灰烬之王进入第二阶段'
+          : '终焉燃尽 · 最后的王权',
+        '#ffcf88',
+      );
+      b.effects.push({
+        type: 'burst',
+        x: e.x,
+        y: worldY(e, b.time),
+        color: '#ffbc6a',
+        text: '',
+        life: 0.7,
+      });
+    }
     if (
       (e.boss || e.variant === 'archer') &&
       (e.boss || progress(e, b.time) > 0.2) &&
@@ -1201,7 +1444,9 @@ export function stepBattle(b: Battle, dt: number) {
       b.time - e.lastAttack >
         (e.boss
           ? b.player.node?.kind === 'boss'
-            ? BALANCE.chapterAttackInterval
+            ? e.encounterId === 'king'
+              ? BALANCE.finalBossAttackIntervals[kingPhase(e) - 1]
+              : BALANCE.chapterAttackInterval
             : BALANCE.commanderAttackInterval
           : 3.6)
     ) {
@@ -1263,11 +1508,13 @@ export function stepBattle(b: Battle, dt: number) {
   if (b.entities.find((e) => e.boss)!.done) {
     b.state = 'won';
     b.player.gold +=
-      (b.player.node?.kind === 'elite'
-        ? 55
-        : b.player.node?.kind === 'boss'
-          ? 80
-          : 28) +
+      (b.player.node?.enchanted
+        ? 90
+        : b.player.node?.kind === 'elite'
+          ? 55
+          : b.player.node?.kind === 'boss'
+            ? 80
+            : 28) +
       (b.player.relics.bounty || 0) * 20;
     logRun(b.player, '防线突破 · 选择强化');
     b.threats = [];
@@ -1276,4 +1523,5 @@ export function stepBattle(b: Battle, dt: number) {
     b.ritual = null;
     b.pressure = null;
   }
+  prepareLevelChoice(b);
 }

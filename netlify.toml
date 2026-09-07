@@ -16,6 +16,11 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
+  for = "/audio/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
   for = "/art/*"
   [headers.values]
     Cache-Control = "public, max-age=86400"

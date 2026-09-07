@@ -1,4 +1,7 @@
 export type ClassId = 'knight' | 'ranger' | 'mage';
+export const ACT_LENGTH = 5;
+export const TOTAL_FLOORS = ACT_LENGTH * 3;
+export const MAX_LEVEL = 15;
 export type Phase =
   | 'setup'
   | 'map'
@@ -111,7 +114,10 @@ export const NODE_INFO: Record<NodeKind, { name: string; desc: string }> = {
     name: '荒野遭遇',
     desc: '穿越数值门，击退敌军。战后获得一项强化。',
   },
-  elite: { name: '精英哨站', desc: '更强的敌人，更多金币；战后必含稀有强化。' },
+  elite: {
+    name: '精英哨站',
+    desc: '更强的敌人，更多金币；战后三选一必含史诗或传说。',
+  },
   treasure: {
     name: '遗落宝库',
     desc: '三只可击破的宝箱。瞄准它们，升级你的武器。',
@@ -126,7 +132,7 @@ export interface Relic {
   name: string;
   family: ClassId | 'all';
   tag: string;
-  rarity: '普通' | '稀有' | '史诗';
+  rarity: '普通' | '稀有' | '史诗' | '传说';
   desc: string;
   max: number;
   icon: string;
@@ -207,7 +213,7 @@ export const RELICS: Relic[] = [
     name: '双翼符印',
     family: 'all',
     tag: '散射',
-    rarity: '稀有',
+    rarity: '传说',
     desc: '每层增加左右一对斜向副弹，每枚造成主弹 50% 伤害。',
     max: 2,
     icon: 'copy',
@@ -274,11 +280,11 @@ export const RELICS: Relic[] = [
   },
   {
     id: 'square_key',
-    name: '禁术钥印',
+    name: '神秘钥匙',
     family: 'all',
-    tag: '禁术',
+    tag: '未知',
     rarity: '史诗',
-    desc: '下一次精英关开启禁术试炼：先通过5道必经削减门，再争夺极窄平方门。本局限一次。',
+    desc: '一枚来历不明的古老秘钥。握住它时，仿佛听见遥远的低语。',
     max: 1,
     icon: 'key',
   },
@@ -337,7 +343,7 @@ export const RELICS: Relic[] = [
     name: '不灭圣约',
     family: 'knight',
     tag: '圣盾',
-    rarity: '史诗',
+    rarity: '传说',
     desc: '主动技能冷却缩短 4 秒，技能护盾额外 +12。',
     max: 1,
     icon: 'crown',
@@ -397,7 +403,7 @@ export const RELICS: Relic[] = [
     name: '月神之弦',
     family: 'ranger',
     tag: '猎杀',
-    rarity: '史诗',
+    rarity: '传说',
     desc: '主动技能冷却缩短 4 秒；暴击率 +15 个百分点。',
     max: 1,
     icon: 'bow',
@@ -457,7 +463,7 @@ export const RELICS: Relic[] = [
     name: '群星之核',
     family: 'mage',
     tag: '奥术',
-    rarity: '史诗',
+    rarity: '传说',
     desc: '主动技能冷却缩短 4 秒；主动技能额外召唤 8 人。',
     max: 1,
     icon: 'star',
@@ -471,9 +477,11 @@ export interface RouteNode {
   floor: number;
   col: number;
   kind: NodeKind;
+  next: string[];
+  enchanted?: boolean;
 }
 export interface Run {
-  version: 3;
+  version: 4;
   phase: Phase;
   classId: ClassId;
   seed: number;
@@ -485,12 +493,15 @@ export interface Run {
   weaponTier: number;
   relics: Record<string, number>;
   squareGateSeen: boolean;
+  encountersDefeated: Record<string, number>;
+  secretDiscovered: boolean;
   nodes: RouteNode[][];
   path: string[];
   node: RouteNode | null;
   reward: string[];
   purchases: string[];
   xp: number;
+  talentPicks: number;
   kills: number;
   chests: number;
   gates: number;
@@ -507,37 +518,58 @@ export function rng(seed: number) {
 }
 export function createMap(seed: number): RouteNode[][] {
   const random = rng(seed);
-  return Array.from({ length: 12 }, (_, floor) => {
-    if (floor % 4 === 3)
-      return [{ id: `${floor}-1`, floor, col: 1, kind: 'boss' }];
-    const patterns: NodeKind[][] =
-      floor % 4 === 0
-        ? [
-            ['battle', 'elite', 'battle'],
-            ['battle', 'event', 'elite'],
-          ]
-        : floor % 4 === 1
-          ? [
-              ['battle', 'treasure', 'elite'],
-              ['treasure', 'battle', 'battle'],
-            ]
-          : [
-              ['rest', 'shop', 'event'],
-              ['event', 'rest', 'shop'],
-            ];
-    const kinds = patterns[Math.floor(random() * patterns.length)];
-    return kinds.map((kind, col) => ({
+  const columns = [[0, 2, 4], [0, 1, 3, 4], [0, 2, 4], [1, 3], [2]];
+  // Order-preserving edges can merge at a node but never cross between rows.
+  const links = [
+    [
+      [0, 1],
+      [1, 3],
+      [3, 4],
+    ],
+    [[0], [0, 2], [2, 4], [4]],
+    [[1], [1, 3], [3]],
+    [[2], [2]],
+    [[0, 2, 4]],
+  ];
+  const patterns: NodeKind[][][] = [
+    [
+      ['battle', 'event', 'elite'],
+      ['elite', 'battle', 'battle'],
+    ],
+    [
+      ['treasure', 'battle', 'event', 'shop'],
+      ['shop', 'event', 'battle', 'treasure'],
+    ],
+    [
+      ['elite', 'battle', 'treasure'],
+      ['treasure', 'battle', 'elite'],
+    ],
+    [
+      ['rest', 'event'],
+      ['event', 'rest'],
+    ],
+    [['boss']],
+  ];
+  return Array.from({ length: TOTAL_FLOORS }, (_, floor) => {
+    const depth = floor % ACT_LENGTH;
+    const choices = patterns[depth];
+    const kinds = choices[Math.floor(random() * choices.length)];
+    return columns[depth].map((col, index) => ({
       id: `${floor}-${col}`,
       floor,
       col,
-      kind,
+      kind: kinds[index],
+      next:
+        floor + 1 === TOTAL_FLOORS
+          ? []
+          : links[depth][index].map((nextCol) => `${floor + 1}-${nextCol}`),
     }));
   });
 }
 export function createRun(classId: ClassId, seed = 12345): Run {
   const h = HEROES.find((h) => h.id === classId)!;
   return {
-    version: 3,
+    version: 4,
     phase: 'setup',
     classId,
     seed,
@@ -549,12 +581,15 @@ export function createRun(classId: ClassId, seed = 12345): Run {
     weaponTier: 1,
     relics: {},
     squareGateSeen: false,
+    encountersDefeated: {},
+    secretDiscovered: false,
     nodes: createMap(seed),
     path: [],
     node: null,
     reward: [],
     purchases: [],
     xp: 0,
+    talentPicks: 0,
     kills: 0,
     chests: 0,
     gates: 0,
@@ -565,29 +600,38 @@ export function logRun(run: Run, message: string) {
   run.log = [message, ...run.log].slice(0, 8);
 }
 export function availableNodes(run: Run): RouteNode[] {
-  if (run.floor >= 12) return [];
+  if (run.floor >= TOTAL_FLOORS || run.floor < 0) return [];
   const lastId = run.path.at(-1);
   const last = run.nodes.flat().find((n) => n.id === lastId);
-  return run.nodes[run.floor].filter(
-    (n) =>
-      !last ||
-      last.kind === 'boss' ||
-      n.kind === 'boss' ||
-      Math.abs(n.col - last.col) <= 1,
-  );
+  return run.nodes[run.floor]
+    .filter((node) =>
+      last
+        ? last.floor === run.floor - 1 && last.next.includes(node.id)
+        : !lastId && run.floor % ACT_LENGTH === 0,
+    )
+    .map((node) => ({
+      ...node,
+      next: [...node.next],
+      ...(node.kind === 'elite' && run.relics.square_key && !run.squareGateSeen
+        ? { enchanted: true }
+        : {}),
+    }));
 }
 export function enterNode(run: Run, nodeId: string): Run {
   const node = availableNodes(run).find((n) => n.id === nodeId);
   if (run.phase !== 'map' || !node) return run;
   const next = structuredClone(run);
   next.node = node;
+  if (node.enchanted) {
+    next.squareGateSeen = true;
+  }
   next.purchases = [];
   next.phase = ['rest', 'shop', 'event'].includes(node.kind)
     ? (node.kind as Phase)
     : 'battle';
   logRun(
     next,
-    `第 ${node.floor + 1} 层 · ${node.kind === 'boss' ? ACTS[Math.floor(node.floor / 4)].boss : NODE_INFO[node.kind].name}`,
+    `第 ${node.floor + 1} 关 · ${node.kind === 'boss' ? '章节首领' : node.enchanted ? '禁术精英哨站' : NODE_INFO[node.kind].name}`,
   );
   return next;
 }
@@ -601,16 +645,16 @@ export function experience(run: Pick<Run, 'xp'>) {
   let level = 1,
     current = run.xp,
     needed = 30;
-  while (current >= needed && level < 12) {
+  while (current >= needed && level < MAX_LEVEL) {
     current -= needed;
     level++;
-    needed = 30 + (level - 1) * 14;
+    needed = 30 + (level - 1) * 14 + 6 * Math.max(0, level - 5) ** 2;
   }
   return {
     level,
     current,
     needed,
-    progress: level === 12 ? 100 : (current / needed) * 100,
+    progress: level === MAX_LEVEL ? 100 : (current / needed) * 100,
   };
 }
 export function grantExperience(run: Run, amount: number) {
@@ -671,7 +715,7 @@ export function availableRelics(run: Run): Relic[] {
       (run.relics[r.id] || 0) < r.max,
   );
 }
-export function rollRewards(run: Run, elite = false): string[] {
+export function rollRelicRewards(run: Run, elite = false): string[] {
   const random = rng(
     run.seed + run.floor * 233 + run.path.length * 19 + run.gold,
   );
@@ -686,23 +730,144 @@ export function rollRewards(run: Run, elite = false): string[] {
           : true,
     );
     const candidates = weighted.length ? weighted : pool;
-    const chosen = candidates[Math.floor(random() * candidates.length)];
+    const weights = { 普通: 1, 稀有: 0.7, 史诗: 0.35, 传说: 0.12 };
+    let roll =
+      random() * candidates.reduce((sum, r) => sum + weights[r.rarity], 0);
+    const chosen =
+      candidates.find((r) => (roll -= weights[r.rarity]) < 0) ||
+      candidates.at(-1)!;
     out.push(chosen.id);
     pool.splice(pool.indexOf(chosen), 1);
   }
-  if (
-    elite &&
-    run.phase === 'reward' &&
-    (run.node?.kind === 'elite' || run.node?.kind === 'boss') &&
-    run.floor >= 4 &&
-    !run.relics.square_key &&
-    !run.squareGateSeen &&
-    random() < 0.12
-  ) {
-    if (out.length >= 3) out[2] = 'square_key';
-    else out.push('square_key');
-  }
   return out;
+}
+export const SUPPLY_REWARDS: Relic[] = [
+  {
+    id: 'supply-potion',
+    name: '绯红药剂',
+    family: 'all',
+    tag: '战地补给',
+    rarity: '普通',
+    desc: '立即恢复 40 生命。',
+    max: 1,
+    icon: 'heart',
+  },
+  {
+    id: 'supply-company',
+    name: '整编佣兵团',
+    family: 'all',
+    tag: '战地补给',
+    rarity: '普通',
+    desc: '立即招募 50 名队员。',
+    max: 1,
+    icon: 'users',
+  },
+  {
+    id: 'supply-weapon',
+    name: '精工锻造',
+    family: 'all',
+    tag: '战地补给',
+    rarity: '稀有',
+    desc: '本局武器等级 +1。',
+    max: 1,
+    icon: 'sword',
+  },
+];
+// Repeatable consumables keep elite rewards useful when high-tier relics are full.
+// These never enter ordinary reward rolls, level menus, events or shop stock.
+export const ELITE_FALLBACK_REWARDS: Relic[] = [
+  {
+    id: 'supply-epic-cache',
+    name: '史诗军资',
+    family: 'all',
+    tag: '精英战利品',
+    rarity: '史诗',
+    desc: '获得 120 金币，立即恢复 50 生命。',
+    max: 1,
+    icon: 'coins',
+  },
+  {
+    id: 'supply-epic-vigor',
+    name: '不屈精粹',
+    family: 'all',
+    tag: '精英战利品',
+    rarity: '史诗',
+    desc: '最大生命 +8（上限 500），立即恢复 50 生命。',
+    max: 1,
+    icon: 'heart',
+  },
+  {
+    id: 'supply-epic-company',
+    name: '王庭援军',
+    family: 'all',
+    tag: '精英战利品',
+    rarity: '史诗',
+    desc: '获得 60 金币，立即招募 100 名队员。',
+    max: 1,
+    icon: 'users',
+  },
+];
+export const REWARD_BY_ID: Record<string, Relic> = {
+  ...RELIC_BY_ID,
+  ...Object.fromEntries(SUPPLY_REWARDS.map((r) => [r.id, r])),
+  ...Object.fromEntries(ELITE_FALLBACK_REWARDS.map((r) => [r.id, r])),
+};
+export function rollRewards(run: Run, elite = false): string[] {
+  const choices = rollRelicRewards(run, elite);
+  const supplies = SUPPLY_REWARDS.filter((r) =>
+    r.id === 'supply-potion'
+      ? run.hp < run.maxHp
+      : r.id === 'supply-weapon'
+        ? run.weaponTier < 10
+        : run.squad < Number.MAX_SAFE_INTEGER,
+  );
+  const random = rng(run.seed + run.floor * 439 + run.gold + 617);
+  if (supplies.length && (choices.length < 3 || random() < 0.45)) {
+    const supply = supplies[Math.floor(random() * supplies.length)].id;
+    if (choices.length >= 3) choices[2] = supply;
+    else choices.push(supply);
+  }
+  if (elite) {
+    const highTier = (id: string) =>
+      ['史诗', '传说'].includes(REWARD_BY_ID[id].rarity);
+    // Enforce after all ordinary supply replacement so the guarantee cannot be lost.
+    if (!choices.some(highTier)) {
+      const pool = availableRelics(run).filter((r) => highTier(r.id));
+      const select = rng(
+        run.seed + run.floor * 1459 + run.path.length * 61 + run.gold + 1237,
+      );
+      let roll =
+        select() *
+        pool.reduce((sum, r) => sum + (r.rarity === '传说' ? 0.12 : 0.35), 0);
+      const guaranteed =
+        pool.find((r) => (roll -= r.rarity === '传说' ? 0.12 : 0.35) < 0)?.id ||
+        pool.at(-1)?.id ||
+        'supply-epic-cache';
+      if (choices.length < 3) choices.push(guaranteed);
+      else choices[1] = guaranteed;
+    }
+    // Even an exhausted relic pool still presents three distinct, claimable items.
+    for (const item of [...supplies, ...ELITE_FALLBACK_REWARDS]) {
+      if (choices.length === 3) break;
+      if (!choices.includes(item.id)) choices.push(item.id);
+    }
+  }
+  return choices;
+}
+export function rollLevelChoices(run: Run): string[] {
+  if (run.talentPicks >= experience(run).level - 1) return [];
+  return rollRelicRewards({
+    ...run,
+    seed: run.seed + (run.talentPicks + 1) * 7919,
+  });
+}
+export function chooseLevelUpgrade(run: Run, id: string): Run {
+  if (!rollLevelChoices(run).includes(id)) return run;
+  const next = addRelic(run, id);
+  if (next === run) return run;
+  next.talentPicks++;
+  logRun(next, `升级研习 · ${RELIC_BY_ID[id].name}`);
+  return next;
 }
 export function addRelic(run: Run, id: string): Run {
   const relic = RELIC_BY_ID[id];
@@ -723,7 +888,7 @@ export function completeRoom(run: Run, reward = true): Run {
   if (!n.node || n.node.floor !== n.floor) return run;
   n.path.push(n.node.id);
   n.floor++;
-  if (n.floor === 12) {
+  if (n.floor === TOTAL_FLOORS) {
     n.phase = 'victory';
     logRun(n, '灰烬王座已被征服。');
     return n;
@@ -736,8 +901,32 @@ export function completeRoom(run: Run, reward = true): Run {
 }
 export function chooseReward(run: Run, id: string): Run {
   if (run.phase !== 'reward' || !run.reward.includes(id)) return run;
-  const n = addRelic(run, id);
+  // Previous saves may still contain the old key reward; it is now shop-only.
+  if (id === 'square_key') return run;
+  let n: Run;
+  if (id.startsWith('supply-') && REWARD_BY_ID[id]) {
+    n = structuredClone(run);
+    if (id === 'supply-potion') n.hp = Math.min(n.maxHp, n.hp + 40);
+    if (id === 'supply-company') n.squad = safeTroops(n.squad + 50);
+    if (id === 'supply-weapon') n.weaponTier = Math.min(10, n.weaponTier + 1);
+    if (id === 'supply-epic-cache') {
+      n.gold = Math.min(Number.MAX_SAFE_INTEGER, n.gold + 120);
+      n.hp = Math.min(n.maxHp, n.hp + 50);
+    }
+    if (id === 'supply-epic-vigor') {
+      n.maxHp = Math.min(500, n.maxHp + 8);
+      n.hp = Math.min(n.maxHp, n.hp + 50);
+    }
+    if (id === 'supply-epic-company') {
+      n.gold = Math.min(Number.MAX_SAFE_INTEGER, n.gold + 60);
+      n.squad = safeTroops(n.squad + 100);
+    }
+    logRun(n, `获得补给 · ${REWARD_BY_ID[id].name}`);
+  } else n = addRelic(run, id);
   return { ...n, phase: 'map', reward: [] };
+}
+export function skipReward(run: Run): Run {
+  return run.phase === 'reward' ? { ...run, phase: 'map', reward: [] } : run;
 }
 export function restAction(run: Run, action: 'heal' | 'forge'): Run {
   if (run.phase !== 'rest') return run;
@@ -856,14 +1045,32 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   relicWare('bash', 145, '职业'),
   relicWare('deadeye', 145, '职业'),
   relicWare('echo', 145, '职业'),
+  relicWare('square_key', 500, '补给'),
 ];
 
-export function shopInventory(run: Pick<Run, 'classId'>): ShopItem[] {
-  return SHOP_ITEMS.filter((item) => {
+export function shopInventory(
+  run: Pick<
+    Run,
+    'classId' | 'seed' | 'floor' | 'node' | 'relics' | 'squareGateSeen'
+  >,
+): ShopItem[] {
+  const pool = SHOP_ITEMS.filter((item) => {
+    if (item.id === 'relic-square_key') return false;
     if (item.kind !== 'relic') return true;
     const relic = RELIC_BY_ID[item.relicId];
     return relic && (relic.family === 'all' || relic.family === run.classId);
   });
+  const random = rng(
+    run.seed + run.floor * 3571 + (run.node?.col || 0) * 101 + 911,
+  );
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const stock = pool.slice(0, 5);
+  if (!run.relics.square_key && !run.squareGateSeen)
+    stock.push(SHOP_ITEMS.find((item) => item.id === 'relic-square_key')!);
+  return stock;
 }
 
 export function shopItemAvailability(
@@ -890,9 +1097,13 @@ export function shopItemAvailability(
       return unavailable('该职业无法使用');
     if ((run.relics[relic.id] || 0) >= relic.max)
       return unavailable('强化已满层');
+    if (relic.id === 'square_key' && run.squareGateSeen)
+      return unavailable('已售罄');
   }
   if (item.kind === 'random-relic' && availableRelics(run).length === 0)
     return unavailable('可用强化已全部满层');
+  if (!shopInventory(run).some((entry) => entry.id === id))
+    return unavailable('本店未陈列');
   if (run.gold < item.cost) return unavailable('金币不足');
   return { available: true, reason: '' };
 }
@@ -911,7 +1122,7 @@ export function shopBuy(run: Run, id: string): Run {
   if (item.kind === 'weapon') n.weaponTier++;
   if (item.kind === 'relic') n = addRelic(n, item.relicId);
   if (item.kind === 'random-relic') {
-    const candidate = rollRewards(n, true)[0];
+    const candidate = rollRelicRewards(n, true)[0];
     if (!candidate) return run;
     n = addRelic(n, candidate);
   }
@@ -929,7 +1140,7 @@ export function eventAction(run: Run, action: 'blood' | 'gold' | 'leave'): Run {
   let n = structuredClone(run);
   if (action === 'blood') {
     n.hp -= 18;
-    const choice = rollRewards(n, true)[0];
+    const choice = rollRelicRewards(n, true)[0];
     if (choice) n = addRelic(n, choice);
     logRun(n, '血誓祭坛 · 付出 18 生命，获得遗物');
   }
@@ -1015,30 +1226,86 @@ export function applyGate(
 export function restoreRun(text: string): Run | null {
   try {
     const raw = JSON.parse(text);
-    if (!raw || typeof raw !== 'object') return null;
-    // v0.2 checkpoints remain playable; prior kills grant no retroactive XP.
-    if (raw.version === 2) {
-      raw.version = 3;
-      raw.xp = 0;
-    }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const legacy = raw.version === 2 || raw.version === 3;
+    if (
+      (!legacy && raw.version !== 4) ||
+      !Number.isInteger(raw.floor) ||
+      raw.floor < 0 ||
+      raw.floor >= (legacy ? 12 : TOTAL_FLOORS) ||
+      !Array.isArray(raw.path) ||
+      (legacy && raw.path.length !== raw.floor)
+    )
+      return null;
+    const oldFloor = raw.floor;
+    if (raw.version === 2 && !Object.hasOwn(raw, 'xp')) raw.xp = 0;
     if (!Object.hasOwn(raw, 'squareGateSeen')) raw.squareGateSeen = false;
+    if (!Object.hasOwn(raw, 'encountersDefeated')) raw.encountersDefeated = {};
+    if (!Object.hasOwn(raw, 'secretDiscovered')) raw.secretDiscovered = false;
+    if (!Object.hasOwn(raw, 'talentPicks'))
+      raw.talentPicks = experience({ xp: Number(raw.xp) || 0 }).level - 1;
+    // The old three-column graph has no lossless mapping to explicit edges.
+    // Keep resources and earned talents, restart this act, and retain pending loot.
+    // An empty path at floor 5/10 is an explicit migrated act checkpoint.
+    if (legacy) {
+      if (
+        !['map', 'reward', 'rest', 'shop', 'event'].includes(raw.phase) ||
+        !Array.isArray(raw.reward) ||
+        !Array.isArray(raw.purchases)
+      )
+        return null;
+      raw.version = 4;
+      raw.floor = Math.floor(oldFloor / 4) * ACT_LENGTH;
+      raw.path = [];
+      raw.node = null;
+      raw.phase = raw.phase === 'reward' ? 'reward' : 'map';
+      if (raw.phase !== 'reward') raw.reward = [];
+      raw.purchases = [];
+    }
     const r = raw as Run;
     if (
-      r.version !== 3 ||
+      r.version !== 4 ||
       typeof r.squareGateSeen !== 'boolean' ||
+      typeof r.secretDiscovered !== 'boolean' ||
+      !r.encountersDefeated ||
+      typeof r.encountersDefeated !== 'object' ||
+      Array.isArray(r.encountersDefeated) ||
       !HEROES.some((h) => h.id === r.classId) ||
       !['map', 'reward', 'rest', 'shop', 'event'].includes(r.phase) ||
-      !Number.isInteger(r.seed) ||
+      !Number.isSafeInteger(r.seed) ||
       !Number.isInteger(r.floor) ||
       r.floor < 0 ||
-      r.floor >= 12 ||
+      r.floor >= TOTAL_FLOORS ||
       !Array.isArray(r.path) ||
-      r.path.length !== r.floor ||
+      r.path.length > r.floor ||
+      (r.floor - r.path.length) % ACT_LENGTH !== 0 ||
       !Array.isArray(r.log) ||
+      r.log.length > 50 ||
+      r.log.some((entry) => typeof entry !== 'string' || entry.length > 300) ||
       !Array.isArray(r.purchases) ||
+      r.purchases.length > SHOP_ITEMS.length ||
+      new Set(r.purchases).size !== r.purchases.length ||
+      r.purchases.some((id) => !SHOP_ITEMS.some((item) => item.id === id)) ||
       !Array.isArray(r.reward) ||
+      r.reward.length > 3 ||
+      new Set(r.reward).size !== r.reward.length ||
       !r.relics ||
-      typeof r.relics !== 'object'
+      typeof r.relics !== 'object' ||
+      Array.isArray(r.relics)
+    )
+      return null;
+    const encounters = Object.entries(r.encountersDefeated);
+    if (
+      encounters.length > 128 ||
+      encounters.some(
+        ([id, count]) =>
+          !id.length ||
+          id.length > 80 ||
+          ['__proto__', 'constructor', 'prototype'].includes(id) ||
+          !Number.isSafeInteger(count) ||
+          count < 0 ||
+          count > 1000000,
+      )
     )
       return null;
     for (const key of [
@@ -1055,19 +1322,29 @@ export function restoreRun(text: string): Run | null {
       if (!Number.isFinite(r[key]) || r[key] < 0) return null;
     if (
       !Number.isSafeInteger(r.xp) ||
+      !Number.isInteger(r.talentPicks) ||
+      r.talentPicks < 0 ||
+      // Migrated builds keep cards earned under the previous, faster XP curve.
+      r.talentPicks > MAX_LEVEL - 1 ||
       r.hp <= 0 ||
       r.hp > r.maxHp ||
       r.maxHp > 500 ||
       r.squad < 1 ||
       !Number.isSafeInteger(r.squad) ||
       r.weaponTier < 1 ||
-      r.weaponTier > 10
+      r.weaponTier > 10 ||
+      !Number.isInteger(r.weaponTier) ||
+      !['gold', 'kills', 'chests', 'gates'].every((key) =>
+        Number.isSafeInteger(r[key as 'gold' | 'kills' | 'chests' | 'gates']),
+      )
     )
       return null;
     if (
       Object.entries(r.relics).some(
         ([id, count]) =>
           !RELIC_BY_ID[id] ||
+          (RELIC_BY_ID[id].family !== 'all' &&
+            RELIC_BY_ID[id].family !== r.classId) ||
           !Number.isInteger(count) ||
           count < 1 ||
           count > RELIC_BY_ID[id].max,
@@ -1075,19 +1352,49 @@ export function restoreRun(text: string): Run | null {
     )
       return null;
     r.nodes = createMap(r.seed);
-    if (r.path.some((id, i) => !r.nodes[i].some((n) => n.id === id)))
-      return null;
+    const checkpoint = r.floor - r.path.length;
+    let previous: RouteNode | undefined;
+    for (const [index, id] of r.path.entries()) {
+      const node = r.nodes[checkpoint + index].find((n) => n.id === id);
+      if (!node || (previous && !previous.next.includes(node.id))) return null;
+      previous = node;
+    }
     if (r.node) {
       const known = r.nodes.flat().find((n) => n.id === r.node!.id);
       if (!known) return null;
-      r.node = known;
+      if (
+        r.node.enchanted !== undefined &&
+        typeof r.node.enchanted !== 'boolean'
+      )
+        return null;
+      if (
+        r.node.enchanted &&
+        (known.kind !== 'elite' || !r.squareGateSeen || !r.relics.square_key)
+      )
+        return null;
+      r.node = { ...known, ...(r.node.enchanted ? { enchanted: true } : {}) };
     }
     if (
       ['rest', 'shop', 'event'].includes(r.phase) &&
-      (!r.node || r.node.floor !== r.floor || r.node.kind !== r.phase)
+      (!r.node ||
+        r.node.floor !== r.floor ||
+        r.node.kind !== r.phase ||
+        !availableNodes(r).some((node) => node.id === r.node!.id))
     )
       return null;
-    if (r.reward.some((id) => !RELIC_BY_ID[id])) return null;
+    if (
+      ['map', 'reward'].includes(r.phase) &&
+      r.node &&
+      r.node.id !== r.path.at(-1)
+    )
+      return null;
+    if (r.reward.some((id) => !Object.hasOwn(REWARD_BY_ID, id))) return null;
+    if (r.reward.includes('square_key')) r.reward = rollRewards(r, true);
+    if (legacy)
+      logRun(
+        r,
+        `旧存档已迁移 · 原第 ${oldFloor + 1} 层回到第 ${Math.floor(r.floor / ACT_LENGTH) + 1} 幕起点；构筑、金币、经验与待领战利品保留。`,
+      );
     return r;
   } catch {
     return null;

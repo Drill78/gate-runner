@@ -23,6 +23,8 @@ import {
   Coins,
   Heart,
   Menu,
+  Settings,
+  Trophy,
 } from 'lucide-react';
 import {
   Dialog,
@@ -38,8 +40,11 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { BattleCanvas, type BattleSnapshot } from '@/components/battle-canvas';
 import { GameTutorial } from '@/components/game-tutorial';
+import { GateEntrance } from '@/components/gate-entrance';
+import { CollectionPanel } from '@/components/collection-panel';
 import {
   RoutePanel,
   ClassPicker,
@@ -51,11 +56,15 @@ import {
 } from '@/components/game-panels';
 import {
   HEROES,
+  ACT_LENGTH,
+  TOTAL_FLOORS,
+  MAX_LEVEL,
   ACTS,
   createRun,
   enterNode,
   completeRoom,
   chooseReward,
+  skipReward,
   restAction,
   shopBuy,
   eventAction,
@@ -67,6 +76,7 @@ import {
 
 import { createBattle, activateSkill, type Battle } from '@/lib/combat';
 import { VIEW } from '@/lib/view';
+import { musicPlayer } from '@/lib/music';
 
 import {
   subscribeStorage,
@@ -76,6 +86,8 @@ import {
   persistRun,
   persistSound,
   persistTutorialSeen,
+  persistDoubleTapSkill,
+  persistCollection,
 } from '@/lib/storage';
 
 export default function Home() {
@@ -92,12 +104,14 @@ export default function Home() {
     best,
     muted,
     tutorialSeen,
+    doubleTapSkill,
+    collection,
     available: saveAvailable,
   } = useMemo(() => parseStorage(stored), [stored]);
   const [paused, setPaused] = useState(false);
-  const [overlay, setOverlay] = useState<'help' | 'codex' | 'route' | null>(
-    null,
-  );
+  const [overlay, setOverlay] = useState<
+    'help' | 'codex' | 'route' | 'settings' | 'collection' | null
+  >(null);
   const [characterOpen, setCharacterOpen] = useState(false);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
   const activeOverlay =
@@ -105,7 +119,7 @@ export default function Home() {
     (Boolean(stored) &&
     !tutorialSeen &&
     !tutorialDismissed &&
-    run.phase === 'setup'
+    run.phase !== 'setup'
       ? 'help'
       : null);
   const game = run.phase === 'battle' && snapshot ? snapshot.run : run;
@@ -113,7 +127,10 @@ export default function Home() {
   const ClassIcon = CLASS_ICONS[game.classId];
   const actIndex = Math.min(
     2,
-    Math.floor((run.phase === 'reward' ? run.floor - 1 : run.floor) / 4),
+    Math.floor(
+      Math.max(0, run.phase === 'reward' ? run.floor - 1 : run.floor) /
+        ACT_LENGTH,
+    ),
   );
   const act = ACTS[Math.max(0, actIndex)];
   const inBattle = run.phase === 'battle' && battle !== null;
@@ -129,6 +146,19 @@ export default function Home() {
     persistRun(run);
   }, [run]);
   useEffect(() => {
+    const unlock = () => musicPlayer.unlock();
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      musicPlayer.setState(null, true, false);
+    };
+  }, []);
+  useEffect(() => {
+    if (!inBattle) musicPlayer.setState(null, true, muted);
+  }, [inBattle, muted]);
+  useEffect(() => {
     const visibility = () => {
       if (document.hidden && run.phase === 'battle') setPaused(true);
     };
@@ -140,6 +170,7 @@ export default function Home() {
       result.state === 'won'
         ? completeRoom(result.player)
         : { ...result.player, phase: 'defeat' as const };
+    persistCollection(next, result.encounterKills);
     setRun(next);
     setBattle(null);
     setSnapshot(null);
@@ -185,8 +216,24 @@ export default function Home() {
 
   return (
     <main
-      className={`game-shell ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
+      className={`game-shell ${run.phase === 'setup' ? 'is-setup' : ''} ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
     >
+      {run.phase === 'setup' ? (
+        <GateEntrance
+          selected={run.classId}
+          onSelect={selectClass}
+          onStart={start}
+          onContinue={
+            saved
+              ? () => {
+                  setRun(saved);
+                  setSnapshot(null);
+                }
+              : undefined
+          }
+          onSettings={() => setOverlay('settings')}
+        />
+      ) : null}
       <header className="masthead">
         <div className="brand">
           <span className="brand-mark">
@@ -249,10 +296,12 @@ export default function Home() {
           <Flame size={15} />
           {run.phase === 'setup'
             ? best
-              ? `最远 ${best} 层`
+              ? `最远 ${best} 关`
               : '新的远征'
             : `${hero.name}的远征`}
-          <i />第 {String(Math.min(12, run.floor + 1)).padStart(2, '0')} / 12 层
+          <i />第{' '}
+          {String(Math.min(TOTAL_FLOORS, run.floor + 1)).padStart(2, '0')} /{' '}
+          {TOTAL_FLOORS} 关
         </div>
       </section>
       <div className="game-layout">
@@ -332,7 +381,8 @@ export default function Home() {
                   </button>
                 ) : (
                   <span className="edge-floor">
-                    第 {Math.min(12, run.floor + 1)} / 12 层
+                    第 {Math.min(TOTAL_FLOORS, run.floor + 1)} / {TOTAL_FLOORS}{' '}
+                    关
                   </span>
                 )}
               </div>
@@ -353,9 +403,9 @@ export default function Home() {
                 <div className="hero-intro-tags">{hero.tags}</div>
               </div>
               <div className="journey-stamp">
-                <span>Ⅻ</span>
+                <span>ⅩⅤ</span>
                 <p>
-                  十二层高塔
+                  十五关高塔
                   <br />
                   一次命运远征
                 </p>
@@ -374,7 +424,7 @@ export default function Home() {
                       setSnapshot(null);
                     }}
                   >
-                    继续远征 · 第 {saved.floor + 1} 层<ArrowRight size={18} />
+                    继续远征 · 第 {saved.floor + 1} 关<ArrowRight size={18} />
                   </button>
                 ) : null}
                 <button
@@ -396,6 +446,7 @@ export default function Home() {
             <>
               <BattleCanvas
                 battle={battle}
+                doubleTapSkill={doubleTapSkill}
                 paused={blocked}
                 muted={muted}
                 onSnapshot={onSnapshot}
@@ -440,9 +491,13 @@ export default function Home() {
                         width: `${(100 * snapshot.encounter.hp) / snapshot.encounter.maxHp}%`,
                       }}
                     />
-                    {snapshot.encounter.hasSecondPhase ? (
-                      <i className="encounter-health-half" />
-                    ) : null}
+                    {snapshot.encounter.phaseThresholds.map((threshold) => (
+                      <i
+                        key={threshold}
+                        className="encounter-health-half"
+                        style={{ left: `${threshold}%` }}
+                      />
+                    ))}
                     <span className="encounter-health-numbers">
                       {Math.ceil(snapshot.encounter.hp).toLocaleString('zh-CN')}{' '}
                       /{' '}
@@ -455,7 +510,7 @@ export default function Home() {
               ) : null}
               <div className="battle-edge-progress">
                 <span>
-                  第 {run.floor + 1} 层 ·{' '}
+                  第 {run.floor + 1} 关 ·{' '}
                   {snapshot?.enrage
                     ? '狂暴'
                     : `${snapshot?.wave || 1}/${battle.totalWaves} 波`}
@@ -479,7 +534,7 @@ export default function Home() {
                 <span>
                   Lv.{xp.level}{' '}
                   <small>
-                    {xp.level === 12
+                    {xp.level === MAX_LEVEL
                       ? 'MAX'
                       : `${xp.current} / ${xp.needed} XP`}
                   </small>
@@ -500,7 +555,7 @@ export default function Home() {
                   </strong>
                   <span>
                     {snapshot.ritual.interruptible
-                      ? '持续攻击或释放技能打断'
+                      ? '集火打断 / 移入绿色安全区'
                       : '全屏冲击 · 尽快击败首领'}
                   </span>
                   {snapshot.ritual.interruptible ? (
@@ -518,7 +573,7 @@ export default function Home() {
                 className="hero-notice"
                 aria-live="polite"
                 style={{
-                  left: `clamp(min(145px, 46%), ${50 + (snapshot?.x || 0) * 45.5}%, max(calc(100% - 145px), 54%))`,
+                  left: `clamp(min(145px, 46%), ${50 + (snapshot?.x || 0) * VIEW.horizontalScale * 100}%, max(calc(100% - 145px), 54%))`,
                   top: `calc(${playerScreenRatio * 100}% - ${VIEW.controlSpace * playerScreenRatio + 103}px)`,
                 }}
               >
@@ -559,7 +614,11 @@ export default function Home() {
             <RoomScreen
               run={run}
               onEnter={go}
-              onReward={(id) => setRun((r) => chooseReward(r, id))}
+              onReward={(id) =>
+                setRun((r) =>
+                  id === '__skip' ? skipReward(r) : chooseReward(r, id),
+                )
+              }
               onRest={(action) => setRun((r) => restAction(r, action))}
               onBuy={(id) => setRun((r) => shopBuy(r, id))}
               onLeaveShop={() => setRun((r) => completeRoom(r, false))}
@@ -582,7 +641,7 @@ export default function Home() {
         <span>
           {run.phase === 'setup' ? (
             <>
-              三个职业 <i /> 十二层高塔 <i /> 你的独特构筑
+              三个职业 <i /> 十五关高塔 <i /> 你的独特构筑
             </>
           ) : (
             game.log[0]
@@ -643,21 +702,65 @@ export default function Home() {
         }}
       >
         <DialogContent
-          className={`game-dialog ${activeOverlay === 'codex' ? 'codex-dialog' : activeOverlay === 'help' ? 'tutorial-dialog' : ''}`}
+          className={`game-dialog ${activeOverlay === 'collection' ? 'collection-dialog' : activeOverlay === 'codex' ? 'codex-dialog' : activeOverlay === 'help' ? 'tutorial-dialog' : ''}`}
         >
           <DialogTitle>
-            {activeOverlay === 'codex'
-              ? '秘宝与构筑'
-              : activeOverlay === 'route'
-                ? '远征路线'
-                : '冒险入门'}
+            {activeOverlay === 'settings'
+              ? '设置'
+              : activeOverlay === 'collection'
+                ? '远征收藏'
+                : activeOverlay === 'codex'
+                  ? '秘宝与构筑'
+                  : activeOverlay === 'route'
+                    ? '远征路线'
+                    : '冒险入门'}
           </DialogTitle>
           <DialogDescription>
             {activeOverlay === 'codex'
               ? '以每一次选择，铸成独一无二的英雄。'
               : '穿过数值门，收集强化，在灰烬中登上高塔。'}
           </DialogDescription>
-          {activeOverlay === 'codex' ? (
+          {activeOverlay === 'settings' ? (
+            <>
+              <label className="control-option" htmlFor="settings-double-tap">
+                <span>
+                  双击人物释放技能<small>连续轻点队长，拖动不会施放</small>
+                </span>
+                <Switch
+                  id="settings-double-tap"
+                  checked={doubleTapSkill}
+                  onCheckedChange={persistDoubleTapSkill}
+                />
+              </label>
+              <label className="control-option" htmlFor="settings-audio">
+                <span>音乐与音效</span>
+                <Switch
+                  id="settings-audio"
+                  checked={!muted}
+                  onCheckedChange={(enabled) => persistSound(!enabled)}
+                />
+              </label>
+              <button
+                className="secondary-button"
+                onClick={() => setOverlay('collection')}
+              >
+                <Trophy size={18} />
+                图鉴与成就
+              </button>
+              <button
+                className="secondary-button"
+                onClick={() => setOverlay('codex')}
+              >
+                <BookOpen size={18} />
+                强化符文图鉴
+              </button>
+              <p className="settings-note">
+                收藏记录自动保存在当前浏览器，新开远征不会清空。
+              </p>
+            </>
+          ) : activeOverlay === 'collection' ? (
+            <CollectionPanel progress={collection} />
+          ) : activeOverlay === 'codex' ? (
             <Codex run={game} />
           ) : activeOverlay === 'route' ? (
             <RoutePanel
@@ -685,6 +788,24 @@ export default function Home() {
         <DialogContent className="game-dialog pause-dialog">
           <DialogTitle>远征已暂停</DialogTitle>
           <DialogDescription>深呼吸。高塔会等你回来。</DialogDescription>
+          <label className="control-option" htmlFor="double-tap-skill">
+            <span>
+              双击人物释放技能<small>开启后，连续轻点队长即可施放</small>
+            </span>
+            <Switch
+              id="double-tap-skill"
+              checked={doubleTapSkill}
+              onCheckedChange={persistDoubleTapSkill}
+              aria-label="双击人物释放技能"
+            />
+          </label>
+          <button
+            className="secondary-button"
+            onClick={() => setOverlay('settings')}
+          >
+            <Settings size={18} />
+            设置、图鉴与成就
+          </button>
           <button className="primary-button" onClick={() => setPaused(false)}>
             <Play size={18} />
             继续战斗

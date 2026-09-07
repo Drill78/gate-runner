@@ -1,0 +1,7 @@
+classId,seed,mode,win,completedFloors,failedStage,level,hp,squad,failure,finalBossSeconds,finalPressurePulses
+knight,734,coherent,true,15,,9,136,28449,,19.5,1
+knight,1743,coherent,true,15,,11,180,18612506,,10.6,0
+ranger,734,coherent,false,4,5,4,0,80,boss_attack,,
+ranger,1743,coherent,false,14,15,10,0,2384624,pressure,35.05,4
+mage,734,coherent,true,15,,10,85,1651347,,29.8,3
+mage,1743,coherent,true,15,,11,100,32051126,,25.75,2

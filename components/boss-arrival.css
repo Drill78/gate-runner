@@ -1,7 +1,7 @@
 .ag-cutin {
   --ag-cutin-color: #e0bf90;
   --ag-cutin-play-state: running;
-  --ag-cutin-hit-scale: 1.075;
+  --ag-cutin-closeup-scale: 1.95;
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -22,7 +22,7 @@
 }
 
 .ag-cutin--chapter {
-  --ag-cutin-hit-scale: 1.15;
+  --ag-cutin-closeup-scale: 2.2;
 }
 
 .ag-cutin[data-paused='true'] {
@@ -154,10 +154,12 @@
 
 .ag-cutin__portrait-wrap {
   position: absolute;
-  top: 12%;
+  z-index: 1;
+  top: 10%;
   left: 2%;
   width: 96%;
-  height: 72%;
+  height: 55%;
+  transform-origin: 50% 18%;
   animation: ag-cutin-portrait var(--ag-cutin-duration) linear both;
 }
 
@@ -169,8 +171,39 @@
   mix-blend-mode: lighten;
 }
 
+.ag-cutin__frame {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+}
+
+.ag-cutin__frame::before,
+.ag-cutin__frame::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #080b0b;
+  animation: ag-cutin-frame var(--ag-cutin-duration) linear both;
+}
+
+.ag-cutin__frame::before {
+  --ag-frame-shift: -105%;
+  top: 0;
+  height: 13%;
+  border-bottom: 1px solid #e4d1a33d;
+}
+
+.ag-cutin__frame::after {
+  --ag-frame-shift: 105%;
+  bottom: 0;
+  height: 26%;
+  border-top: 1px solid #e4d1a33d;
+}
+
 .ag-cutin__banner {
   position: absolute;
+  z-index: 3;
   top: 2%;
   left: -2%;
   display: flex;
@@ -202,6 +235,7 @@
 
 .ag-cutin__copy {
   position: absolute;
+  z-index: 3;
   left: 0;
   right: 0;
   bottom: max(80px, calc(env(safe-area-inset-bottom) + 65px));
@@ -212,13 +246,14 @@
   padding: 34px 18px 12px;
   background: linear-gradient(180deg, transparent, #050908ed 29%, #050908fa);
   text-shadow: 0 2px 5px #000;
+  animation: ag-cutin-copy-bed 300ms 850ms ease-out both;
 }
 
 .ag-cutin__title {
   color: var(--ag-cutin-color);
   font-size: 12px;
   letter-spacing: 0.2em;
-  animation: ag-cutin-copy 220ms 310ms ease-out both;
+  animation: ag-cutin-copy 220ms 1050ms ease-out both;
 }
 
 .ag-cutin__name {
@@ -233,14 +268,14 @@
     3px 3px 0 #090c0a,
     -1px -1px 0 #090c0a,
     5px 5px 0 color-mix(in srgb, var(--ag-cutin-color), transparent 55%);
-  animation: ag-cutin-name 420ms 190ms cubic-bezier(0.1, 0.85, 0.18, 1) both;
+  animation: ag-cutin-name 350ms 930ms cubic-bezier(0.1, 0.85, 0.18, 1) both;
 }
 
 .ag-cutin__quote {
   color: var(--ag-cutin-color);
   font-size: 14px;
   line-height: 1.5;
-  animation: ag-cutin-copy 240ms 360ms ease-out both;
+  animation: ag-cutin-copy 240ms 1160ms ease-out both;
 }
 
 .ag-cutin__hint,
@@ -249,7 +284,7 @@
   color: #dedcca;
   font-size: 12px;
   line-height: 1.55;
-  animation: ag-cutin-copy 240ms 410ms ease-out both;
+  animation: ag-cutin-copy 240ms 1280ms ease-out both;
 }
 
 .ag-cutin__pressure {
@@ -289,7 +324,7 @@
   animation: ag-cutin-time var(--ag-cutin-duration) linear both;
 }
 
-/* A single impact and a held composition; no loops or full-screen flashes. */
+/* Three seconds: close-up impact, one pullback, then a readable held portrait. */
 @keyframes ag-cutin-slash {
   from {
     transform: translateX(-110%) rotate(-17deg);
@@ -359,20 +394,44 @@
 
 @keyframes ag-cutin-portrait {
   0% {
-    transform: translateX(105%) rotate(8deg) scale(var(--ag-cutin-hit-scale));
+    transform: translateX(80%) rotate(6deg) scale(var(--ag-cutin-closeup-scale));
     opacity: 0;
   }
-  4% {
+  5% {
     opacity: 1;
   }
   9% {
-    transform: translateX(-3%) rotate(-1deg) scale(1.025);
+    transform: translateX(-2%) rotate(-1deg)
+      scale(var(--ag-cutin-closeup-scale));
     opacity: 1;
   }
-  14%,
+  13%,
+  24% {
+    transform: translateX(0) rotate(0) scale(var(--ag-cutin-closeup-scale));
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.15, 1);
+  }
+  42% {
+    transform: translateX(0) rotate(0) scale(0.985);
+    opacity: 1;
+  }
+  48%,
   100% {
     transform: translateX(0) rotate(0) scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes ag-cutin-frame {
+  0%,
+  24% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  43%,
+  100% {
+    transform: translateY(var(--ag-frame-shift));
+    opacity: 0;
   }
 }
 
@@ -407,6 +466,15 @@
   }
 }
 
+@keyframes ag-cutin-copy-bed {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes ag-cutin-time {
   from {
     transform: scaleX(1);
@@ -434,8 +502,8 @@
     font-size: 27px;
   }
   .ag-cutin__portrait-wrap {
-    top: 14%;
-    height: 76%;
+    top: 10%;
+    height: 53%;
   }
   .ag-cutin__copy {
     gap: 5px;
@@ -456,8 +524,8 @@
 @media (max-height: 440px) {
   .ag-cutin__portrait-wrap {
     top: 2%;
-    left: 40%;
-    width: 60%;
+    left: 48%;
+    width: 52%;
     height: 95%;
   }
   .ag-cutin__banner {
@@ -466,7 +534,7 @@
     max-width: 45%;
   }
   .ag-cutin__copy {
-    right: 25%;
+    right: 48%;
     gap: 3px;
     bottom: 55px;
   }
@@ -482,11 +550,14 @@
 @media (prefers-reduced-motion: reduce) {
   .ag-cutin *,
   .ag-cutin::before,
-  .ag-cutin::after {
+  .ag-cutin::after,
+  .ag-cutin *::before,
+  .ag-cutin *::after {
     animation: none !important;
   }
   .ag-cutin__speed,
-  .ag-cutin__burst {
+  .ag-cutin__burst,
+  .ag-cutin__frame {
     display: none;
   }
   .ag-cutin__time {
