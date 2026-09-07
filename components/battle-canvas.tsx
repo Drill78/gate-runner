@@ -1,16 +1,17 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { type Run } from '@/lib/game';
 import {
   type Battle,
   stepBattle,
   activateSkill,
-  brace,
   type Ritual,
+  type BossPressure,
   movePlayer,
   setMoveAxis,
 } from '@/lib/combat';
 import { drawBattle } from '@/lib/renderer';
+import { bossProfile } from '@/lib/bosses';
 
 export interface BattleSnapshot {
   run: Run;
@@ -23,8 +24,8 @@ export interface BattleSnapshot {
   totalWaves: number;
   duration: number;
   enrage: boolean;
-  guarding: boolean;
-  guardCooldown: number;
+  arriving: boolean;
+  pressure: BossPressure | null;
   ritual: Ritual | null;
 }
 export function BattleCanvas({
@@ -43,6 +44,9 @@ export function BattleCanvas({
   onPause: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const [arrival, setArrival] = useState(false);
+  const skipArrival = useRef(false);
+  const profile = bossProfile(battle.player);
   const current = useRef({ paused, muted, onSnapshot, onEnd, onPause });
   useEffect(() => {
     current.current = { paused, muted, onSnapshot, onEnd, onPause };
@@ -59,7 +63,11 @@ export function BattleCanvas({
       finished = false,
       w = 600,
       h = 640,
-      lastSound = 0;
+      lastSound = 0,
+      introRemaining = 0,
+      introShown = false;
+    const portrait = new Image();
+    portrait.src = bossProfile(battle.player).portrait;
     let audio: AudioContext | null = null;
     const reducedMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
@@ -95,7 +103,6 @@ export function BattleCanvas({
         shoot: 190,
         kill: 320,
         level: 980,
-        guard: 400,
       };
       try {
         const o = audio.createOscillator(),
@@ -137,8 +144,6 @@ export function BattleCanvas({
           'KeyA',
           'KeyD',
           'Space',
-          'ShiftLeft',
-          'ShiftRight',
           'KeyP',
           'Escape',
         ].includes(code)
@@ -148,18 +153,16 @@ export function BattleCanvas({
         if (!e.repeat) current.current.onPause();
         return;
       }
-      if (current.current.paused) return;
+      if (current.current.paused || introRemaining > 0) return;
       ensureAudio();
       if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(code)) {
         held.add(code);
         updateAxis();
       }
       if (code === 'Space' && !e.repeat) activateSkill(battle);
-      if ((code === 'ShiftLeft' || code === 'ShiftRight') && !e.repeat)
-        brace(battle);
     };
     const pointer = (e: PointerEvent) => {
-      if (current.current.paused) return;
+      if (current.current.paused || introRemaining > 0) return;
       ensureAudio();
       if (e.type === 'pointerdown') element.setPointerCapture(e.pointerId);
       const rect = element.getBoundingClientRect();
@@ -169,7 +172,25 @@ export function BattleCanvas({
       const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
       last = now;
       if (!current.current.paused && !document.hidden && !finished) {
-        stepBattle(battle, dt);
+        if (!introShown && battle.time + dt >= battle.finalStart) {
+          stepBattle(battle, Math.max(0, battle.finalStart - battle.time));
+          introShown = true;
+          battle.inputLocked = true;
+          introRemaining = battle.player.node?.kind === 'boss' ? 2.8 : 1.9;
+          skipArrival.current = false;
+          held.clear();
+          setMoveAxis(battle, 0);
+          setArrival(true);
+        }
+        if (introRemaining > 0) {
+          introRemaining = skipArrival.current
+            ? 0
+            : Math.max(0, introRemaining - dt);
+          if (introRemaining === 0) {
+            battle.inputLocked = false;
+            setArrival(false);
+          }
+        } else stepBattle(battle, dt);
         if (battle.soundSeq !== lastSound) {
           lastSound = battle.soundSeq;
           play(battle.lastSound);
@@ -189,8 +210,8 @@ export function BattleCanvas({
           totalWaves: battle.totalWaves,
           duration: battle.duration,
           enrage: battle.enrage,
-          guarding: battle.guardUntil > battle.time,
-          guardCooldown: battle.guardCooldown,
+          arriving: introRemaining > 0,
+          pressure: battle.pressure ? { ...battle.pressure } : null,
           ritual: battle.ritual ? { ...battle.ritual } : null,
         });
       }
@@ -204,7 +225,7 @@ export function BattleCanvas({
     const keyup = (e: KeyboardEvent) => {
       if (!['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) return;
       held.delete(e.code);
-      if (!current.current.paused) updateAxis();
+      if (!current.current.paused && introRemaining <= 0) updateAxis();
     };
     const blur = () => {
       held.clear();
@@ -220,6 +241,7 @@ export function BattleCanvas({
     }
     frame = requestAnimationFrame(loop);
     return () => {
+      battle.inputLocked = false;
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener('keydown', key);
@@ -232,10 +254,47 @@ export function BattleCanvas({
     };
   }, [battle]);
   return (
-    <canvas
-      ref={canvas}
-      className="battle-canvas"
-      aria-label="俯视战斗场地：按住方向键或 A D 连续左右移动，空格释放技能。触屏点击任意位置或拖动移动。"
-    />
+    <>
+      <canvas
+        ref={canvas}
+        className="battle-canvas"
+        aria-label="俯视战斗场地：按住方向键或 A D 连续左右移动，空格释放技能。触屏点击任意位置或拖动移动。"
+      />
+      {arrival ? (
+        <button
+          className="boss-arrival"
+          style={{ '--boss-color': profile.color } as CSSProperties}
+          onClick={() => {
+            skipArrival.current = true;
+          }}
+          aria-label={`${profile.name}登场，点击跳过展示并应战`}
+        >
+          <img
+            className="boss-arrival-portrait"
+            src={profile.portrait}
+            alt={profile.name}
+          />
+          <div className="boss-arrival-shade" />
+          <div className="boss-arrival-copy">
+            <span className="boss-arrival-eyebrow">
+              {battle.player.node?.kind === 'boss'
+                ? 'CHAPTER BOSS'
+                : 'GATE KEEPER'}
+            </span>
+            <p>{profile.title}</p>
+            <h2>{profile.name}</h2>
+            <blockquote>「{profile.quote}」</blockquote>
+            <span className="boss-arrival-hint">{profile.hint}</span>
+            {battle.pressure ? (
+              <small>
+                交战 {battle.pressure.nextAt - battle.finalStart}{' '}
+                秒后，周期性受到全屏伤害
+              </small>
+            ) : null}
+            <em>点击应战 · 展示期间战斗暂停</em>
+          </div>
+        </button>
+      ) : null}
+    </>
   );
 }

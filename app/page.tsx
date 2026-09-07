@@ -63,7 +63,7 @@ import {
   type Run,
 } from '@/lib/game';
 
-import { createBattle, activateSkill, brace, type Battle } from '@/lib/combat';
+import { createBattle, activateSkill, type Battle } from '@/lib/combat';
 
 import {
   subscribeStorage,
@@ -158,7 +158,7 @@ export default function Home() {
   };
   const toggleSound = () => persistSound(!muted);
   const skill = () => {
-    if (battle && !blocked) activateSkill(battle);
+    if (battle && !blocked && !snapshot?.arriving) activateSkill(battle);
   };
 
   return (
@@ -387,7 +387,20 @@ export default function Home() {
                     ? '狂暴'
                     : `${snapshot?.wave || 1}/${battle.totalWaves} 波`}
                 </span>
-                <span>兵力 {formatNumber(game.squad)}</span>
+                <span className="boss-pressure-timer">
+                  {snapshot?.pressure && snapshot.time >= battle.finalStart ? (
+                    <>
+                      {snapshot.pressure.name} ·{' '}
+                      <b>
+                        {Math.max(
+                          0,
+                          snapshot.pressure.nextAt - snapshot.time,
+                        ).toFixed(1)}
+                        s
+                      </b>
+                    </>
+                  ) : null}
+                </span>
               </div>
               <div className="battle-xp">
                 <span>
@@ -414,8 +427,8 @@ export default function Home() {
                   </strong>
                   <span>
                     {snapshot.ritual.interruptible
-                      ? '持续攻击打断 · 或格挡承受'
-                      : '全屏震荡 · 最后一刻格挡'}
+                      ? '持续攻击或释放技能打断'
+                      : '全屏冲击 · 尽快击败首领'}
                   </span>
                   {snapshot.ritual.interruptible ? (
                     <Progress
@@ -432,27 +445,15 @@ export default function Home() {
                 {snapshot?.ritual ? '' : snapshot?.message}
               </output>
               <div className="battle-controls">
-                <button
-                  className={`guard-button ${snapshot?.guarding ? 'guarding' : ''}`}
-                  onClick={() => {
-                    if (battle && !blocked) brace(battle);
-                  }}
-                  disabled={blocked || (snapshot?.guardCooldown || 0) > 0}
-                  aria-label="短时格挡，减伤百分之七十五"
-                >
-                  <Shield size={23} />
-                  <strong>
-                    {(snapshot?.guardCooldown || 0) > 0
-                      ? `${Math.ceil(snapshot!.guardCooldown)}s`
-                      : '格挡'}
-                  </strong>
-                  <small>SHIFT · 减伤</small>
-                </button>
                 <span className="drag-hint">拖动移动</span>
                 <button
                   className="skill-button"
                   onClick={skill}
-                  disabled={blocked || (snapshot?.cooldown || 0) > 0}
+                  disabled={
+                    blocked ||
+                    snapshot?.arriving ||
+                    (snapshot?.cooldown || 0) > 0
+                  }
                   aria-label={hero.skill}
                   title={hero.skillDesc}
                 >
@@ -503,7 +504,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          EARLY ACCESS <b>v0.3</b>
+          EARLY ACCESS <b>v0.4</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>

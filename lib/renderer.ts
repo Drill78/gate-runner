@@ -1,4 +1,4 @@
-import { HEROES, gateLabel } from './game.ts';
+import { HEROES, gateLabel, formatNumber } from './game.ts';
 import {
   worldY,
   projectilePosition,
@@ -496,23 +496,6 @@ export function drawBattle(
   ctx.beginPath();
   ctx.arc(playerX, playerY, 18 * scale, Math.PI * 1.1, Math.PI * 1.9);
   ctx.stroke();
-  if (b.guardUntil > b.time) {
-    ctx.fillStyle = '#b0e0ff20';
-    ctx.strokeStyle = '#d3f3ff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(
-      playerX,
-      playerY + 4,
-      37 * scale,
-      24 * scale,
-      0,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-    ctx.stroke();
-  }
   if (b.shield > 0) {
     ctx.strokeStyle = '#dac17c99';
     ctx.lineWidth = 2;
@@ -527,6 +510,35 @@ export function drawBattle(
       Math.PI * 2,
     );
     ctx.stroke();
+  }
+  // The army count travels with the commander so growth is readable at a glance.
+  label(
+    formatNumber(b.player.squad),
+    playerX,
+    playerY - 35 * scale,
+    32,
+    '#fff0bd',
+    '800',
+  );
+  if (b.pressure && b.pressure.flashUntil > b.time) {
+    const pulse = 1 - (b.pressure.flashUntil - b.time) / 0.7;
+    ctx.strokeStyle = ['#c0ce8a', '#c9aff0', '#ffb185'][
+      Math.floor(b.player.floor / 4)
+    ];
+    ctx.globalAlpha = 1 - pulse;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.ellipse(
+      playerX,
+      playerY,
+      30 + pulse * w,
+      15 + pulse * h * 0.6,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
   for (const e of b.effects) {
     ctx.globalAlpha = Math.min(1, e.life * 3);

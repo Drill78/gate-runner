@@ -14,7 +14,8 @@ import {
 } from './game.ts';
 
 export const BALANCE = {
-  moveSpeed: 1.45,
+  moveSpeed: 2.2,
+  pointerMaxSpeed: 4.8,
   minX: -0.9,
   maxX: 0.9,
   aimWidth: 0.205,
@@ -25,6 +26,17 @@ export const BALANCE = {
   bossGrowth: 1.34,
   enemyBaseHp: 110,
   bossBaseHp: 850,
+  commanderBaseHp: 430,
+  eliteCommanderBaseHp: 550,
+  enemyActMultiplier: [1, 1.05, 1.12],
+  commanderActMultiplier: [1, 1.1, 1.2],
+  bossActMultiplier: [1.25, 1.65, 2.15],
+  commanderAttackInterval: 3.2,
+  chapterAttackInterval: 4.4,
+  pressureGrace: [22, 17, 17],
+  pressureInterval: [8, 7, 6.5],
+  pressureDamage: [10, 16, 20],
+  pressureRamp: [3, 4, 5],
   enrageAfter: 22,
 } as const;
 
@@ -105,9 +117,20 @@ export interface Effect {
   targetX?: number;
   targetY?: number;
 }
+export interface BossPressure {
+  name: string;
+  bossId: number;
+  nextAt: number;
+  interval: number;
+  baseDamage: number;
+  ramp: number;
+  pulses: number;
+  flashUntil: number;
+}
 export interface Battle {
   player: Run;
   time: number;
+  inputLocked: boolean;
   x: number;
   inputAxis: number;
   targetX: number | null;
@@ -116,8 +139,7 @@ export interface Battle {
   threats: Threat[];
   projectiles: Projectile[];
   ritual: Ritual | null;
-  guardCooldown: number;
-  guardUntil: number;
+  pressure: BossPressure | null;
   projectileSeq: number;
   hitVolleys: Set<number>;
   shield: number;
@@ -253,7 +275,11 @@ export function createBattle(run: Run): Battle {
       name,
       burnUntil: 0,
       lastAttack: boss
-        ? start - 3.5
+        ? start -
+          (bossRoom
+            ? BALANCE.chapterAttackInterval
+            : BALANCE.commanderAttackInterval) +
+          0.9
         : variant === 'archer'
           ? start - 2.7
           : start + 1.5,
@@ -280,6 +306,7 @@ export function createBattle(run: Run): Battle {
       x,
       BALANCE.enemyBaseHp *
         difficulty *
+        BALANCE.enemyActMultiplier[act] *
         (variant === 'guard' ? 1.45 : variant === 'archer' ? 0.82 : 1) *
         (1 + random() * 0.16),
       variant,
@@ -305,15 +332,30 @@ export function createBattle(run: Run): Battle {
     if (i % 4 === 3)
       put('hazard', t - 0.25, -x, 0, 'hazard', '荆棘地带', i + 1);
     if (elite && i % 3 === 2)
-      put('enemy', t + 1.9, -x, 65 * difficulty, 'soldier', '精英斥候', i + 1);
+      put(
+        'enemy',
+        t + 1.9,
+        -x,
+        65 * difficulty * BALANCE.enemyActMultiplier[act],
+        'soldier',
+        '精英斥候',
+        i + 1,
+      );
   }
   const finalStart = waves * spacing + 1;
   const final = put(
     'enemy',
     finalStart,
     0,
-    (bossRoom ? BALANCE.bossBaseHp : elite ? 425 : 310) *
-      Math.pow(BALANCE.bossGrowth, player.floor),
+    (bossRoom
+      ? BALANCE.bossBaseHp
+      : elite
+        ? BALANCE.eliteCommanderBaseHp
+        : BALANCE.commanderBaseHp) *
+      Math.pow(BALANCE.bossGrowth, player.floor) *
+      (bossRoom
+        ? BALANCE.bossActMultiplier[act]
+        : BALANCE.commanderActMultiplier[act]),
     'boss',
     bossRoom ? ACTS[act].boss : elite ? '黑甲统领' : '荒野刽子手',
     waves,
@@ -326,6 +368,7 @@ export function createBattle(run: Run): Battle {
   return {
     player,
     time: 0,
+    inputLocked: false,
     x: 0,
     inputAxis: 0,
     targetX: null,
@@ -334,8 +377,18 @@ export function createBattle(run: Run): Battle {
     threats: [],
     projectiles: [],
     ritual: null,
-    guardCooldown: 0,
-    guardUntil: 0,
+    pressure: bossRoom
+      ? {
+          name: ['荆棘蚀血', '蚀月凋零', '王权震荡'][act],
+          bossId: final.id,
+          nextAt: finalStart + BALANCE.pressureGrace[act],
+          interval: BALANCE.pressureInterval[act],
+          baseDamage: BALANCE.pressureDamage[act],
+          ramp: BALANCE.pressureRamp[act],
+          pulses: 0,
+          flashUntil: 0,
+        }
+      : null,
     projectileSeq: 0,
     hitVolleys: new Set(),
     shield: stats(player).shieldStart,
@@ -369,10 +422,12 @@ export function worldY(e: Entity, time: number) {
   return -0.1 + progress(e, time) * 0.9;
 }
 export function movePlayer(b: Battle, x: number) {
+  if (b.inputLocked) return;
   b.targetX = Math.max(BALANCE.minX, Math.min(BALANCE.maxX, x));
   b.inputAxis = 0;
 }
 export function setMoveAxis(b: Battle, axis: number) {
+  if (b.inputLocked && axis !== 0) return;
   b.inputAxis = Math.sign(axis);
   b.targetX = null;
 }
@@ -478,15 +533,12 @@ function hitEntity(
 }
 export function damagePlayer(b: Battle, amount: number, troopLoss = 0.08) {
   if (b.state !== 'running') return;
-  const guarding = b.guardUntil > b.time;
-  const reduced = Math.ceil(
-    amount * (guarding ? 0.25 : 1) * (1 - stats(b.player, b.shield).armor),
-  );
+  const reduced = Math.ceil(amount * (1 - stats(b.player, b.shield).armor));
   const absorbed = Math.min(reduced, b.shield);
   b.shield -= absorbed;
   b.player.hp = Math.max(0, b.player.hp - reduced + absorbed);
   const lost =
-    absorbed === reduced || guarding
+    absorbed === reduced
       ? 0
       : Math.min(b.player.squad - 1, Math.ceil(b.player.squad * troopLoss));
   b.player.squad = safeTroops(b.player.squad - lost);
@@ -494,11 +546,9 @@ export function damagePlayer(b: Battle, amount: number, troopLoss = 0.08) {
   sound(b, 'hurt');
   message(
     b,
-    guarding
-      ? `格挡成功 · 承受 ${Math.max(0, reduced - absorbed)}`
-      : absorbed === reduced
-        ? `护盾格挡 ${reduced}`
-        : `生命 −${reduced - absorbed} · 兵力 −${lost}`,
+    absorbed === reduced
+      ? `护盾吸收 ${reduced}`
+      : `生命 −${reduced - absorbed} · 兵力 −${lost}`,
     '#ffb3a4',
   );
   if (b.player.hp <= 0) {
@@ -518,7 +568,7 @@ export function attackDamage(b: Battle) {
   );
 }
 export function activateSkill(b: Battle) {
-  if (b.state !== 'running' || b.cooldown > 0) return false;
+  if (b.state !== 'running' || b.inputLocked || b.cooldown > 0) return false;
   b.cooldown = stats(b.player).cooldown;
   b.skillFlash = 0.7;
   sound(b, 'skill');
@@ -567,14 +617,6 @@ function warn(
     name,
   });
 }
-export function brace(b: Battle) {
-  if (b.state !== 'running' || b.guardCooldown > 0) return false;
-  b.guardUntil = b.time + 1.05;
-  b.guardCooldown = 6;
-  message(b, '稳住阵线 · 减伤 75%', '#b9e1ec');
-  sound(b, 'guard');
-  return true;
-}
 export function projectilePosition(p: Projectile, time: number) {
   const t = Math.max(0, (time - p.spawnAt) / (p.impactAt - p.spawnAt));
   return {
@@ -615,26 +657,19 @@ function volley(
       resolved: false,
     });
 }
-function ritual(b: Battle, e: Entity, interruptible: boolean) {
-  const breakMax = interruptible ? e.maxHp * 0.055 : 0;
+function ritual(b: Battle, e: Entity) {
+  const breakMax = e.maxHp * 0.055;
   b.ritual = {
-    name: interruptible ? '末日敕令' : '王权震荡',
+    name: '末日敕令',
     bossId: e.id,
     startedAt: b.time,
-    resolveAt: b.time + (interruptible ? 3.2 : 2.1),
-    damage:
-      e.volleyDamage * (interruptible ? 0.85 : 0.55) * (b.enrage ? 1.75 : 1),
-    interruptible,
+    resolveAt: b.time + 3.2,
+    damage: e.volleyDamage * 0.85 * (b.enrage ? 1.75 : 1),
+    interruptible: true,
     breakMax,
     breakRemaining: breakMax,
   };
-  message(
-    b,
-    interruptible
-      ? '末日敕令 · 集火打断，或在最后一刻格挡'
-      : '王权震荡 · 无法走位躲避，准备格挡',
-    '#ffd0a1',
-  );
+  message(b, '末日敕令 · 集火或释放技能打断', '#ffd0a1');
 }
 function enemyAttack(b: Battle, e: Entity) {
   if (!e.boss) {
@@ -647,9 +682,23 @@ function enemyAttack(b: Battle, e: Entity) {
   const damage = e.volleyDamage * (b.enrage ? 1.75 : 1),
     secondPhase = e.hp < e.maxHp * 0.5;
   if (!isActBoss) {
-    if (index % 2 === 0)
-      volley(b, e, 'axe', [-0.6, 0, 0.6], 0.3, 1.6, damage * 0.75);
-    else warn(b, b.x, 0.42, 1.1, damage, '斩首重击');
+    if (index % 2 === 0) {
+      volley(
+        b,
+        e,
+        'axe',
+        [-0.72, -0.36, 0, 0.36, 0.72],
+        0.3,
+        1.6,
+        damage * 0.75,
+      );
+      if (secondPhase)
+        volley(b, e, 'axe', [-0.54, 0, 0.54], 1.05, 1.6, damage * 0.6);
+      message(
+        b,
+        secondPhase ? '暴怒追斧 · 留意第二轮' : '五向散斧 · 从弹隙穿过',
+      );
+    } else warn(b, b.x, 0.42, 1.1, damage, '斩首重击');
     return;
   }
   if (act === 0) {
@@ -688,7 +737,7 @@ function enemyAttack(b: Battle, e: Entity) {
       secondPhase ? '蚀月盛放 · 双重星雨' : '星环绽放 · 交错弹幕',
       '#d9c7ff',
     );
-  } else if ((index + 2) % 3 === 0) {
+  } else if (index % 2 === 0) {
     volley(
       b,
       e,
@@ -710,10 +759,10 @@ function enemyAttack(b: Battle, e: Entity) {
       0.64,
     );
     message(b, '交叉焚风 · 留意两侧来弹', '#ffc899');
-  } else ritual(b, e, (index + 2) % 3 === 1);
+  } else ritual(b, e);
 }
 export function stepBattle(b: Battle, dt: number) {
-  if (b.state !== 'running') return;
+  if (b.state !== 'running' || b.inputLocked) return;
   dt = Math.min(0.05, Math.max(0, dt));
   const oldTime = b.time,
     oldX = b.x;
@@ -722,13 +771,9 @@ export function stepBattle(b: Battle, dt: number) {
     b.targetX === null
       ? b.inputAxis * BALANCE.moveSpeed * dt
       : Math.sign(b.targetX - b.x) *
-        Math.min(Math.abs(b.targetX - b.x), BALANCE.moveSpeed * dt);
-  b.x = Math.max(
-    BALANCE.minX,
-    Math.min(BALANCE.maxX, b.x + dx * (b.guardUntil > b.time ? 0.6 : 1)),
-  );
+        Math.min(Math.abs(b.targetX - b.x), BALANCE.pointerMaxSpeed * dt);
+  b.x = Math.max(BALANCE.minX, Math.min(BALANCE.maxX, b.x + dx));
   b.cooldown = Math.max(0, b.cooldown - dt);
-  b.guardCooldown = Math.max(0, b.guardCooldown - dt);
   b.flash = Math.max(0, b.flash - dt);
   b.skillFlash = Math.max(0, b.skillFlash - dt);
   b.effects = b.effects.filter((e) => (e.life -= dt) > 0);
@@ -795,7 +840,12 @@ export function stepBattle(b: Battle, dt: number) {
       (e.boss || e.variant === 'archer') &&
       progress(e, b.time) > 0.2 &&
       !b.ritual &&
-      b.time - e.lastAttack > (e.boss ? 4.4 : 3.6)
+      b.time - e.lastAttack >
+        (e.boss
+          ? b.player.node?.kind === 'boss'
+            ? BALANCE.chapterAttackInterval
+            : BALANCE.commanderAttackInterval
+          : 3.6)
     ) {
       e.lastAttack = b.time;
       enemyAttack(b, e);
@@ -833,7 +883,7 @@ export function stepBattle(b: Battle, dt: number) {
     if (b.state !== 'running') return;
   }
   b.shootTimer -= dt;
-  if (b.shootTimer <= 0 && b.guardUntil <= b.time) {
+  if (b.shootTimer <= 0) {
     const targets = b.entities
       .filter(
         (e) =>
@@ -878,6 +928,21 @@ export function stepBattle(b: Battle, dt: number) {
     b.player.phase = 'defeat';
     return;
   }
+  // Resolve pressure after attacks: a kill at the deadline prevents the pulse.
+  const pressure = b.pressure;
+  if (
+    pressure &&
+    b.time >= pressure.nextAt &&
+    !b.entities[pressure.bossId].done
+  ) {
+    const damage = pressure.baseDamage + pressure.pulses * pressure.ramp;
+    pressure.pulses++;
+    pressure.nextAt += pressure.interval;
+    pressure.flashUntil = b.time + 0.7;
+    damagePlayer(b, damage, 0);
+    if (b.state !== 'running') return;
+    message(b, `${pressure.name} · 第 ${pressure.pulses} 次冲击`, '#ffc5ab');
+  }
   if (b.entities.find((e) => e.boss)!.done) {
     b.state = 'won';
     b.player.gold +=
@@ -891,5 +956,6 @@ export function stepBattle(b: Battle, dt: number) {
     b.threats = [];
     b.projectiles = [];
     b.ritual = null;
+    b.pressure = null;
   }
 }

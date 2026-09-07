@@ -22,7 +22,6 @@ const {
   movePlayer,
   stepBattle,
   activateSkill,
-  brace,
   projectilePosition,
 } = c;
 export const priorities = {
@@ -88,17 +87,17 @@ function value(run, gate) {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function future(b, target, t) {
   t = Math.max(0, t);
-  const guarded = Math.min(t, Math.max(0, b.guardUntil - b.time));
-  const distance = BALANCE.moveSpeed * (t - guarded * 0.4);
+  const speed =
+    b.targetX !== null ? BALANCE.pointerMaxSpeed : BALANCE.moveSpeed;
   return (
-    b.x + Math.sign(target - b.x) * Math.min(Math.abs(target - b.x), distance)
+    b.x + Math.sign(target - b.x) * Math.min(Math.abs(target - b.x), t * speed)
   );
 }
 // 150 ms observation/decision interval; only currently visible entities and announced attacks.
 // All motion goes through movePlayer and the real engine's speed clamp.
 export function pilot(
   b,
-  { reaction = 0.15, stationary = false, maxTime = 220, defense = true } = {},
+  { reaction = 0.15, stationary = false, maxTime = 220 } = {},
 ) {
   let nextDecision = 0,
     skills = 0,
@@ -107,16 +106,16 @@ export function pilot(
     missedChests = 0,
     gateMisses = 0,
     distance = 0,
-    braces = 0,
     projectileHits = 0,
     threatHits = 0,
     ritualsStarted = 0,
     ritualsResolved = 0,
-    ritualsGuarded = 0,
     ritualsInterrupted = 0,
     ritualsKilled = 0,
-    guardedTroopLoss = 0,
-    flankShots = 0;
+    flankShots = 0,
+    pressurePulses = 0,
+    pressureHpLoss = 0,
+    pressureShieldLoss = 0;
   const seenRituals = new Set();
   while (b.state === 'running' && b.time < maxTime) {
     if (b.time >= nextDecision) {
@@ -136,10 +135,11 @@ export function pilot(
       const gateX = bestGate
         ? clamp(b.x, bestGate.left + 0.045, bestGate.right - 0.045)
         : b.x;
+      const speed =
+        b.targetX !== null ? BALANCE.pointerMaxSpeed : BALANCE.moveSpeed;
       const gateDue =
         gate &&
-        gate.arrival - b.time <
-          Math.abs(gateX - b.x) / BALANCE.moveSpeed + reaction + 0.19;
+        gate.arrival - b.time < Math.abs(gateX - b.x) / speed + reaction + 0.19;
       const hazards = visible.filter(
         (e) => e.kind === 'hazard' && e.arrival - b.time < 1.0,
       );
@@ -168,7 +168,7 @@ export function pilot(
           const aim = BALANCE.aimWidth + target.width / 2 - 0.015;
           const attackDelay = Math.max(
             0,
-            (Math.abs(x - target.x) - aim) / BALANCE.moveSpeed,
+            (Math.abs(x - target.x) - aim) / speed,
           );
           const endX = future(b, x, 0.3);
           score +=
@@ -181,7 +181,7 @@ export function pilot(
           if (ritualBoss && Math.abs(endX - target.x) < aim) score += 7;
         }
         if (gateDue) {
-          const gx = future(b, x, gate.arrival - b.time - 0.03);
+          const gx = future(b, x, gate.arrival - b.time);
           const selected = gate.gate.find(
             (s) => gx >= s.left + 0.008 && gx <= s.right - 0.008,
           );
@@ -193,20 +193,20 @@ export function pilot(
         }
         for (const t of threats) {
           const delay = t.resolveAt - b.time;
-          const xx = future(b, x, delay - 0.035);
+          const xx = future(b, x, delay);
           if (Math.abs(xx - t.x) < t.width / 2 + 0.075)
             score -= 70 / (0.4 + delay);
         }
         for (const p of projectiles) {
           const delay = p.impactAt - b.time,
             landing = projectilePosition(p, p.impactAt);
-          const xx = future(b, x, delay - 0.035);
+          const xx = future(b, x, delay);
           if (Math.abs(xx - landing.x) < p.radius + 0.07)
             score -= 75 / (0.4 + delay);
         }
         for (const h of hazards) {
           const delay = h.arrival - b.time;
-          const xx = future(b, x, delay - 0.035);
+          const xx = future(b, x, delay);
           if (Math.abs(xx - h.x) < h.width / 2 + 0.075)
             score -= 65 / (0.4 + delay);
         }
@@ -216,28 +216,6 @@ export function pilot(
         }
       }
       if (!stationary) movePlayer(b, bestX);
-      const castDue = b.ritual && b.ritual.resolveAt - b.time <= 0.3;
-      const actualTarget = stationary ? b.x : bestX;
-      const hitDue =
-        projectiles.some(
-          (p) =>
-            p.impactAt - b.time <= 0.25 &&
-            Math.abs(future(b, actualTarget, p.impactAt - b.time) - p.toX) <
-              p.radius + 0.05,
-        ) ||
-        threats.some(
-          (t) =>
-            t.resolveAt - b.time <= 0.25 &&
-            Math.abs(future(b, actualTarget, t.resolveAt - b.time) - t.x) <
-              t.width / 2 + 0.045,
-        );
-      if (
-        defense &&
-        b.guardCooldown === 0 &&
-        (castDue || (!b.ritual && hitDue))
-      ) {
-        if (brace(b)) braces++;
-      }
       if (b.cooldown === 0 && targets.length) {
         // Saving a burst while only a tiny target remains is a realistic, visible-state decision.
         if (
@@ -251,12 +229,13 @@ export function pilot(
       }
     }
     const oldHp = b.player.hp,
+      oldShield = b.shield,
       oldX = b.x,
-      oldSquad = b.player.squad,
       oldShots = b.shots,
       oldGates = b.player.gates,
       oldRitual = b.ritual,
-      oldHitVolleys = new Set(b.hitVolleys || []);
+      oldHitVolleys = new Set(b.hitVolleys || []),
+      oldPulses = b.pressure?.pulses || 0;
     if (oldRitual && !seenRituals.has(oldRitual.startedAt)) {
       seenRituals.add(oldRitual.startedAt);
       ritualsStarted++;
@@ -267,8 +246,7 @@ export function pilot(
     const dueThreats = b.threats.filter(
       (t) => t.resolveAt <= b.time + 0.05000001,
     );
-    const guarded = b.guardUntil > b.time + 0.05;
-    const guardedBoss = b.entities.find(
+    const shieldedBoss = b.entities.find(
       (e) => e.boss && !e.done && e.guardUntil > b.time,
     );
     const imminent = b.entities.filter(
@@ -295,17 +273,19 @@ export function pilot(
     if (oldRitual && !b.ritual) {
       if (oldRitual.resolveAt <= b.time + 0.000001) {
         ritualsResolved++;
-        if (guarded) ritualsGuarded++;
       } else if (b.entities.find((e) => e.id === oldRitual.bossId)?.done)
         ritualsKilled++;
       else ritualsInterrupted++;
     }
-    if (guarded && b.player.squad < oldSquad)
-      guardedTroopLoss += oldSquad - b.player.squad;
+    if ((b.pressure?.pulses || 0) > oldPulses) {
+      pressurePulses += b.pressure.pulses - oldPulses;
+      pressureHpLoss += Math.max(0, oldHp - b.player.hp);
+      pressureShieldLoss += Math.max(0, oldShield - b.shield);
+    }
     if (
-      guardedBoss &&
+      shieldedBoss &&
       b.shots > oldShots &&
-      Math.abs(b.x - guardedBoss.x) >= 0.3
+      Math.abs(b.x - shieldedBoss.x) >= 0.3
     )
       flankShots++;
     if (
@@ -336,16 +316,16 @@ export function pilot(
     weapon: b.player.weaponTier,
     level: g.experience(b.player).level,
     xp: b.player.xp,
-    braces,
     projectileHits,
     threatHits,
     ritualsStarted,
     ritualsResolved,
-    ritualsGuarded,
     ritualsInterrupted,
     ritualsKilled,
-    guardedTroopLoss,
     flankShots,
+    pressurePulses,
+    pressureHpLoss,
+    pressureShieldLoss,
     bossAttacks: b.entities.find((e) => e.boss)?.attackIndex || 0,
   };
 }
@@ -463,8 +443,9 @@ export function summarize(results) {
         avgLevel: avg(runs.map((r) => r.level)),
         projectileHits: rooms.reduce((n, r) => n + r.projectileHits, 0),
         ritualsStarted: rooms.reduce((n, r) => n + r.ritualsStarted, 0),
-        ritualsGuarded: rooms.reduce((n, r) => n + r.ritualsGuarded, 0),
+        ritualsResolved: rooms.reduce((n, r) => n + r.ritualsResolved, 0),
         ritualsInterrupted: rooms.reduce((n, r) => n + r.ritualsInterrupted, 0),
+        pressurePulses: rooms.reduce((n, r) => n + r.pressurePulses, 0),
       });
     }
   return rows;
@@ -486,7 +467,6 @@ if (
           expedition(classId, 734 + i * 1009, mode, {
             reaction: Number(process.env.PILOT_REACTION || 0.15),
             stationary: process.env.STATIONARY === '1',
-            defense: process.env.DEFENSE !== '0',
           }),
         );
   const out = {
@@ -494,7 +474,6 @@ if (
     options: {
       reaction: Number(process.env.PILOT_REACTION || 0.15),
       stationary: process.env.STATIONARY === '1',
-      defense: process.env.DEFENSE !== '0',
     },
     priorities,
     summary: summarize(results),

@@ -2859,32 +2859,110 @@ body.expedition-active {
   justify-content: space-between;
   gap: 16px;
 }
-.guard-button {
-  width: 80px;
-  height: 62px;
-  padding: 4px;
-  display: grid;
-  grid-template-columns: 24px 1fr;
-  gap: 2px 5px;
-  align-items: center;
-  border: 1px solid #acd2cc88;
-  background: #163533dd;
-  color: #d2ece8;
-  border-radius: 8px;
+.boss-pressure-timer {
+  color: #ffc9a5;
+  font-variant-numeric: tabular-nums;
+}
+.boss-pressure-timer b {
+  font-size: 15px;
+  color: #ffe2bd;
+}
+.boss-arrival {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: #070d0c;
+  color: #f3e9d3;
+  cursor: pointer;
+  text-align: center;
   touch-action: manipulation;
+  animation: boss-reveal 280ms ease-out;
 }
-.guard-button strong {
-  font-size: 16px;
+.boss-arrival-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
 }
-.guard-button small {
-  grid-column: 1 / -1;
-  font-size: 10px;
-  letter-spacing: 0.5px;
+.boss-arrival-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #07100d20 0%,
+    transparent 35%,
+    #080d0c78 60%,
+    #080d0c 96%
+  );
 }
-.guard-button.guarding {
-  box-shadow: 0 0 24px #b4e9ff88;
-  background: #45828a;
-  opacity: 1;
+.boss-arrival-copy {
+  position: absolute;
+  bottom: max(30px, env(safe-area-inset-bottom));
+  left: 22px;
+  right: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-shadow: 0 2px 8px #000;
+}
+.boss-arrival-eyebrow {
+  color: var(--boss-color);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 5px;
+}
+.boss-arrival-copy p {
+  margin: 0;
+  color: #d2c8b7;
+  font-size: 13px;
+  letter-spacing: 3px;
+}
+.boss-arrival-copy h2 {
+  margin: 0;
+  font-size: clamp(32px, 9vw, 48px);
+  color: #fff0d9;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+.boss-arrival-copy blockquote {
+  margin: 0 0 10px;
+  color: var(--boss-color);
+  font-size: 14px;
+}
+.boss-arrival-hint {
+  font-size: 13px;
+  color: #e6dfd0;
+}
+.boss-arrival-copy small {
+  font-size: 12px;
+  color: #d9bca6;
+}
+.boss-arrival-copy em {
+  margin-top: 12px;
+  font-style: normal;
+  font-size: 12px;
+  color: #aca99c;
+}
+@keyframes boss-reveal {
+  from {
+    opacity: 0;
+    transform: scale(1.025);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .boss-arrival {
+    animation: none;
+  }
 }
 .is-expedition .skill-button {
   height: 62px;

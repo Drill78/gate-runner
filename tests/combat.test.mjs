@@ -23,7 +23,6 @@ import {
   activateSkill,
   damagePlayer,
   attackDamage,
-  brace,
   projectilePosition,
 } from '../lib/combat.ts';
 import { VIEW, screenY } from '../lib/view.ts';
@@ -55,7 +54,7 @@ test('movement is continuous, speed limited, bounded, and stops on release', () 
   const b = battle();
   movePlayer(b, 0.67);
   stepBattle(b, 0.05);
-  assert.ok(Math.abs(b.x - BALANCE.moveSpeed * 0.05) < 1e-9);
+  assert.ok(Math.abs(b.x - BALANCE.pointerMaxSpeed * 0.05) < 1e-9);
   advance(b, 0.5);
   assert.equal(b.x, 0.67);
   setMoveAxis(b, -1);
@@ -238,7 +237,8 @@ test('chapter bosses expose their unique warned patterns and eventually enrage',
     stepBattle(b, 0.01);
     if (floor === 3) assert.ok(b.projectiles.some((p) => p.kind === 'axe'));
     if (floor === 7) assert.ok(b.projectiles.some((p) => p.kind === 'star'));
-    if (floor === 11) assert.equal(b.ritual.interruptible, false);
+    if (floor === 11) assert.ok(b.projectiles.some((p) => p.kind === 'ember'));
+    b.pressure = null;
     b.time = b.finalStart + BALANCE.enrageAfter + 0.1;
     b.threats = [];
     stepBattle(b, 0.01);
@@ -342,37 +342,6 @@ test('same projectile volley cannot multiply damage; swept crossings still resol
   assert.ok(Math.abs(projectilePosition(p, p.impactAt).x) < 1e-9);
 });
 
-test('timed guard reduces damage and prevents troop loss with a separate cooldown', () => {
-  const b = battle('ranger');
-  const damage = attackDamage(b);
-  assert.ok(brace(b));
-  assert.equal(brace(b), false);
-  damagePlayer(b, 20, 0.2);
-  assert.equal(b.player.hp, 85);
-  assert.equal(b.player.squad, 15);
-  assert.equal(b.cooldown, 0);
-  assert.equal(attackDamage(b), damage);
-  advance(b, 1.1);
-  damagePlayer(b, 20, 0.2);
-  assert.equal(b.player.hp, 65);
-  assert.equal(b.player.squad, 12);
-});
-
-test('guarding pauses normal shooting and slows movement', () => {
-  const b = battle('ranger'),
-    e = b.entities.find((e) => e.kind === 'enemy' && !e.boss);
-  isolate(b, e);
-  b.time = e.start + 0.2;
-  b.x = e.x;
-  const hp = e.hp;
-  brace(b);
-  setMoveAxis(b, 1);
-  const oldX = b.x;
-  stepBattle(b, 0.05);
-  assert.equal(e.hp, hp);
-  assert.ok(Math.abs(b.x - oldX - BALANCE.moveSpeed * 0.05 * 0.6) < 1e-9);
-});
-
 test('chapter bosses begin mechanics during their first second in range', () => {
   for (const floor of [3, 7, 11]) {
     const b = battle('ranger', floor),
@@ -385,47 +354,25 @@ test('chapter bosses begin mechanics during their first second in range', () => 
   }
 });
 
-test('the king shock hits at any horizontal position but can be guarded', () => {
-  function king() {
-    const b = battle('ranger', 11),
-      e = b.entities.find((e) => e.boss);
-    isolate(b, e);
-    b.x = 0.9;
-    b.time = e.start;
-    advance(b, 1.1);
-    return b;
-  }
-  const unguarded = king(),
-    guarded = king();
-  assert.equal(unguarded.ritual.interruptible, false);
-  advance(unguarded, 2.2);
-  advance(guarded, 1.2);
-  brace(guarded);
-  advance(guarded, 1);
-  assert.ok(unguarded.player.hp < 90);
-  assert.ok(guarded.player.hp > unguarded.player.hp);
-  assert.equal(guarded.player.squad, 15);
-});
-
-test('focus fire can interrupt a breakable ritual; the fixed shock cannot be interrupted', () => {
-  for (const interruptible of [true, false]) {
-    const b = battle('mage', 11),
-      e = b.entities.find((e) => e.boss);
-    isolate(b, e);
-    b.time = e.start + 0.5;
-    b.ritual = {
-      bossId: e.id,
-      name: 'test',
-      startedAt: b.time,
-      resolveAt: b.time + 3,
-      damage: 20,
-      interruptible,
-      breakMax: 10,
-      breakRemaining: 10,
-    };
-    activateSkill(b);
-    assert.equal(b.ritual === null, interruptible);
-  }
+test('focus fire interrupts the king chant without resetting its independent pressure clock', () => {
+  const b = battle('mage', 11),
+    e = b.entities.find((e) => e.boss);
+  isolate(b, e);
+  b.time = e.start + 0.5;
+  const pressureAt = b.pressure.nextAt;
+  b.ritual = {
+    bossId: e.id,
+    name: '末日敕令',
+    startedAt: b.time,
+    resolveAt: b.time + 3.2,
+    damage: 20,
+    interruptible: true,
+    breakMax: 10,
+    breakRemaining: 10,
+  };
+  activateSkill(b);
+  assert.equal(b.ritual, null);
+  assert.equal(b.pressure.nextAt, pressureAt);
 });
 
 test('the watcher frontal shield rewards firing from a flank', () => {
@@ -445,4 +392,112 @@ test('the watcher frontal shield rewards firing from a flank', () => {
   const side = hp - e.hp;
   assert.ok(side > front * 3);
   assert.ok(front > 0);
+});
+
+// Pressure is a separate, time-based DPS check, independent of the normal attack rotation.
+test('boss pressure grants its full grace period then repeats and escalates without troop loss', () => {
+  for (const floor of [3, 7, 11])
+    for (const x of [-0.9, 0, 0.9]) {
+      const b = battle('ranger', floor),
+        boss = b.entities.find((e) => e.boss),
+        act = Math.floor(floor / 4);
+      isolate(b, boss);
+      boss.lastAttack = Infinity;
+      b.shootTimer = Infinity;
+      b.x = x;
+      b.player.hp = b.player.maxHp = 500;
+      const first = b.pressure.nextAt,
+        squad = b.player.squad;
+      assert.equal(first, b.finalStart + BALANCE.pressureGrace[act]);
+      b.time = first - 0.1;
+      stepBattle(b, 0.05);
+      assert.equal(b.player.hp, 500);
+      stepBattle(b, 0.05);
+      stepBattle(b, 0.001);
+      assert.equal(b.player.hp, 500 - BALANCE.pressureDamage[act]);
+      assert.equal(b.pressure.pulses, 1);
+      assert.equal(b.player.squad, squad);
+      b.time = b.pressure.nextAt - 0.001;
+      stepBattle(b, 0.01);
+      assert.equal(
+        b.player.hp,
+        500 - 2 * BALANCE.pressureDamage[act] - BALANCE.pressureRamp[act],
+      );
+      assert.equal(b.pressure.pulses, 2);
+      assert.equal(b.player.squad, squad);
+    }
+});
+test('class shields and armor still mitigate pressure; killing before the deadline cancels it', () => {
+  const b = battle('knight', 11),
+    boss = b.entities.find((e) => e.boss);
+  isolate(b, boss);
+  boss.lastAttack = Infinity;
+  b.shootTimer = Infinity;
+  b.x = 0.9;
+  b.time = b.pressure.nextAt - 0.01;
+  const hp = b.player.hp,
+    shield = b.shield;
+  stepBattle(b, 0.02);
+  assert.equal(b.player.hp, hp - Math.max(0, Math.ceil(20 * 0.88) - shield));
+  const kill = battle('ranger', 11),
+    target = kill.entities.find((e) => e.boss);
+  isolate(kill, target);
+  target.lastAttack = Infinity;
+  target.hp = 1;
+  kill.x = 0;
+  kill.time = kill.pressure.nextAt - 0.01;
+  stepBattle(kill, 0.02);
+  assert.equal(kill.state, 'won');
+  assert.equal(kill.pressure, null);
+  assert.equal(kill.player.hp, kill.player.maxHp);
+});
+test('first gatekeeper pressures the player with five axes and a second half-health volley', () => {
+  const b = battle('ranger'),
+    boss = b.entities.find((e) => e.boss);
+  isolate(b, boss);
+  b.x = 0.9;
+  b.time = boss.start;
+  advance(b, 1.01);
+  assert.equal(boss.maxHp, 430);
+  assert.equal(b.projectiles.length, 5);
+  boss.hp = boss.maxHp * 0.49;
+  boss.attackIndex = 2;
+  boss.lastAttack = b.time - 4;
+  b.projectiles = [];
+  stepBattle(b, 0.01);
+  assert.equal(b.projectiles.length, 8);
+  assert.ok(b.projectiles.at(-1).spawnAt > b.projectiles[0].spawnAt);
+});
+test('later boss scaling is stronger without inflating first-floor common enemies or chests', () => {
+  const first = battle(),
+    later = battle('knight', 11);
+  assert.equal(BALANCE.enemyActMultiplier[0], 1);
+  assert.ok(BALANCE.bossActMultiplier[2] > BALANCE.bossActMultiplier[1]);
+  assert.ok(later.entities.find((e) => e.boss).maxHp > 45000);
+  assert.equal(first.entities.find((e) => e.kind === 'chest').hp, 60);
+});
+
+test('arrival locks all combat inputs and timers even before the UI snapshot updates', () => {
+  const b = battle('knight', 11);
+  b.inputLocked = true;
+  const time = b.time,
+    shield = b.shield,
+    pressureAt = b.pressure.nextAt;
+  assert.equal(activateSkill(b), false);
+  movePlayer(b, 0.8);
+  setMoveAxis(b, 1);
+  stepBattle(b, 0.05);
+  assert.equal(b.x, 0);
+  assert.equal(b.targetX, null);
+  assert.equal(b.inputAxis, 0);
+  assert.equal(b.time, time);
+  assert.equal(b.cooldown, 0);
+  assert.equal(b.shield, shield);
+  assert.equal(b.pressure.nextAt, pressureAt);
+  b.inputLocked = false;
+  movePlayer(b, 0.8);
+  stepBattle(b, 0.05);
+  assert.ok(b.x > 0);
+  assert.ok(b.time > time);
+  assert.ok(activateSkill(b));
 });
