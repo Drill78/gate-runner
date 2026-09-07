@@ -7,6 +7,8 @@ import {
   addRelic,
   restoreRun,
   stats,
+  experience,
+  grantExperience,
 } from '../lib/game.ts';
 import {
   BALANCE,
@@ -21,7 +23,10 @@ import {
   activateSkill,
   damagePlayer,
   attackDamage,
+  brace,
+  projectilePosition,
 } from '../lib/combat.ts';
+import { VIEW, screenY } from '../lib/view.ts';
 
 function battle(classId = 'knight', floor = 0) {
   const run = createRun(classId, 734);
@@ -231,10 +236,213 @@ test('chapter bosses expose their unique warned patterns and eventually enrage',
     b.time = boss.start + 4.3;
     b.x = 0.9;
     stepBattle(b, 0.01);
-    assert.equal(b.threats.length, floor === 3 ? 1 : 2);
+    if (floor === 3) assert.ok(b.projectiles.some((p) => p.kind === 'axe'));
+    if (floor === 7) assert.ok(b.projectiles.some((p) => p.kind === 'star'));
+    if (floor === 11) assert.equal(b.ritual.interruptible, false);
     b.time = b.finalStart + BALANCE.enrageAfter + 0.1;
     b.threats = [];
     stepBattle(b, 0.01);
     assert.ok(b.enrage);
   }
+});
+
+test('expanded orthographic view exposes upcoming targets without entering firing range', () => {
+  const b = battle(),
+    e = b.entities.find((e) => e.kind === 'enemy');
+  const far = screenY(worldY(e, e.start - 1), 844),
+    near = screenY(worldY(e, e.start), 844);
+  assert.ok(far > 0 && far < near);
+  assert.ok(screenY(0.8, 844) > 844 * 0.65);
+  assert.ok(
+    screenY(0.8, 844) + 45 < 844 - 140,
+    'army stays above the bottom controls',
+  );
+  assert.equal(VIEW.previewSeconds, 1.25);
+  isolate(b, e);
+  b.time = e.start - 1;
+  b.x = e.x;
+  const hp = e.hp;
+  advance(b, 0.5);
+  assert.equal(e.hp, hp);
+});
+
+test('experience grows attributes modestly, never restores a whole health bar', () => {
+  const r = createRun('knight');
+  r.hp = 50;
+  const damage = stats(r).damage;
+  assert.equal(grantExperience(r, 29), 0);
+  assert.equal(grantExperience(r, 1), 1);
+  assert.equal(experience(r).level, 2);
+  assert.equal(r.maxHp, 122);
+  assert.equal(r.hp, 52);
+  assert.ok(Math.abs(stats(r).damage - damage * 1.02) < 1e-9);
+  assert.equal(grantExperience(r, Infinity), 0);
+  assert.equal(r.xp, 30);
+});
+
+test('v0.2 checkpoints migrate without losing the expedition; invalid XP is rejected', () => {
+  const r = createRun('mage');
+  r.phase = 'map';
+  const old = { ...r, version: 2 };
+  delete old.xp;
+  const restored = restoreRun(JSON.stringify(old));
+  assert.equal(restored.version, 3);
+  assert.equal(restored.xp, 0);
+  assert.equal(restored.seed, r.seed);
+  assert.equal(restoreRun(JSON.stringify({ ...r, xp: -1 })), null);
+  assert.equal(restoreRun(JSON.stringify({ ...r, xp: 2.5 })), null);
+});
+
+test('enemy kills award gold and XP once; leaked enemies award neither', () => {
+  const b = battle('ranger'),
+    e = b.entities.find((e) => e.kind === 'enemy' && !e.boss);
+  isolate(b, e);
+  b.time = e.start + 0.2;
+  b.x = e.x;
+  e.hp = 1;
+  const gold = b.player.gold;
+  stepBattle(b, 0.01);
+  assert.equal(b.player.gold, gold + 4);
+  assert.equal(b.player.xp, 6);
+  advance(b, 0.2);
+  assert.equal(b.player.xp, 6);
+  const missed = battle('ranger'),
+    leak = missed.entities.find((e) => e.kind === 'enemy' && !e.boss);
+  isolate(missed, leak);
+  missed.time = leak.arrival - 0.01;
+  missed.x = leak.x > 0 ? -0.9 : 0.9;
+  stepBattle(missed, 0.05);
+  assert.ok(leak.done);
+  assert.equal(missed.player.xp, 0);
+  assert.equal(missed.player.gold, 40);
+});
+
+test('same projectile volley cannot multiply damage; swept crossings still resolve', () => {
+  const b = battle('ranger');
+  const p = {
+    id: 1,
+    volleyId: 1,
+    kind: 'star',
+    fromX: 0,
+    fromY: 0.33,
+    toX: 0,
+    spawnAt: 0,
+    impactAt: 0.04,
+    radius: 0.04,
+    damage: 20,
+    sway: 0.1,
+    phase: 0,
+    resolved: false,
+  };
+  b.projectiles = [{ ...p }, { ...p, id: 2 }];
+  stepBattle(b, 0.05);
+  assert.equal(b.player.hp, 70);
+  assert.ok(b.projectiles.every((p) => p.resolved));
+  assert.ok(Math.abs(projectilePosition(p, p.impactAt).y - 0.8) < 1e-9);
+  assert.ok(Math.abs(projectilePosition(p, p.impactAt).x) < 1e-9);
+});
+
+test('timed guard reduces damage and prevents troop loss with a separate cooldown', () => {
+  const b = battle('ranger');
+  const damage = attackDamage(b);
+  assert.ok(brace(b));
+  assert.equal(brace(b), false);
+  damagePlayer(b, 20, 0.2);
+  assert.equal(b.player.hp, 85);
+  assert.equal(b.player.squad, 15);
+  assert.equal(b.cooldown, 0);
+  assert.equal(attackDamage(b), damage);
+  advance(b, 1.1);
+  damagePlayer(b, 20, 0.2);
+  assert.equal(b.player.hp, 65);
+  assert.equal(b.player.squad, 12);
+});
+
+test('guarding pauses normal shooting and slows movement', () => {
+  const b = battle('ranger'),
+    e = b.entities.find((e) => e.kind === 'enemy' && !e.boss);
+  isolate(b, e);
+  b.time = e.start + 0.2;
+  b.x = e.x;
+  const hp = e.hp;
+  brace(b);
+  setMoveAxis(b, 1);
+  const oldX = b.x;
+  stepBattle(b, 0.05);
+  assert.equal(e.hp, hp);
+  assert.ok(Math.abs(b.x - oldX - BALANCE.moveSpeed * 0.05 * 0.6) < 1e-9);
+});
+
+test('chapter bosses begin mechanics during their first second in range', () => {
+  for (const floor of [3, 7, 11]) {
+    const b = battle('ranger', floor),
+      boss = b.entities.find((e) => e.boss);
+    isolate(b, boss);
+    b.x = 0.9;
+    b.time = boss.start;
+    advance(b, 1.1);
+    assert.ok(b.projectiles.length > 0 || b.ritual !== null);
+  }
+});
+
+test('the king shock hits at any horizontal position but can be guarded', () => {
+  function king() {
+    const b = battle('ranger', 11),
+      e = b.entities.find((e) => e.boss);
+    isolate(b, e);
+    b.x = 0.9;
+    b.time = e.start;
+    advance(b, 1.1);
+    return b;
+  }
+  const unguarded = king(),
+    guarded = king();
+  assert.equal(unguarded.ritual.interruptible, false);
+  advance(unguarded, 2.2);
+  advance(guarded, 1.2);
+  brace(guarded);
+  advance(guarded, 1);
+  assert.ok(unguarded.player.hp < 90);
+  assert.ok(guarded.player.hp > unguarded.player.hp);
+  assert.equal(guarded.player.squad, 15);
+});
+
+test('focus fire can interrupt a breakable ritual; the fixed shock cannot be interrupted', () => {
+  for (const interruptible of [true, false]) {
+    const b = battle('mage', 11),
+      e = b.entities.find((e) => e.boss);
+    isolate(b, e);
+    b.time = e.start + 0.5;
+    b.ritual = {
+      bossId: e.id,
+      name: 'test',
+      startedAt: b.time,
+      resolveAt: b.time + 3,
+      damage: 20,
+      interruptible,
+      breakMax: 10,
+      breakRemaining: 10,
+    };
+    activateSkill(b);
+    assert.equal(b.ritual === null, interruptible);
+  }
+});
+
+test('the watcher frontal shield rewards firing from a flank', () => {
+  const b = battle('ranger', 3),
+    e = b.entities.find((e) => e.boss);
+  isolate(b, e);
+  b.time = e.start + 0.3;
+  e.guardUntil = b.time + 3;
+  b.random = () => 1;
+  let hp = e.hp;
+  stepBattle(b, 0.01);
+  const front = hp - e.hp;
+  b.x = 0.4;
+  b.shootTimer = 0;
+  hp = e.hp;
+  stepBattle(b, 0.01);
+  const side = hp - e.hp;
+  assert.ok(side > front * 3);
+  assert.ok(front > 0);
 });

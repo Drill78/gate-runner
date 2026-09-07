@@ -39,6 +39,7 @@ import {
   familyCount,
   stats,
   firepower,
+  experience,
   formatNumber,
   weaponName,
   type ClassId,
@@ -298,6 +299,7 @@ export function BuildPanel({
   const s = stats(run, shield),
     count = familyCount(run);
   const power = firepower(run, shield);
+  const xp = experience(run);
   const families = { knight: '圣盾反击', ranger: '暴击连射', mage: '奥术回响' };
   return (
     <aside className="build-panel panel">
@@ -320,6 +322,14 @@ export function BuildPanel({
           <h2>{hero.name}</h2>
           <span>{hero.tags}</span>
         </div>
+      </div>
+      <div className="experience-details">
+        <strong>冒险等级 {xp.level}</strong>
+        <span>
+          {xp.level === 12 ? '等级已满' : `${xp.current}/${xp.needed} XP`}
+        </span>
+        <Progress value={xp.progress} aria-label="冒险等级经验" />
+        <p>击杀获得经验。每级攻击 +2%，生命上限 +2。</p>
       </div>
       <div className="health-section">
         <div className="stat-label">
@@ -815,14 +825,16 @@ export function Help() {
       <section>
         <h3>02 · 瞄准，自动开火</h3>
         <p>
-          队伍自动攻击瞄准范围内最近的目标。兵装秘匣升级武器；补给宝箱提供金币和兵力。需要持续对准才能击破。漏掉敌人仍会受伤；红色预警倒计时结束前移出范围，可躲开攻击。
+          队伍自动攻击瞄准范围内最近的目标。兵装秘匣升级武器；补给宝箱提供金币和兵力。需要持续对准才能击破。击败敌人获得金币和经验，升级提高攻击与生命。漏掉敌人仍会受伤且没有奖励；红色预警或飞来弹幕需要及时躲避。
         </p>
       </section>
       <section>
         <h3>03 · 在关键时刻释放技能</h3>
         <p>
           按 <kbd>Space</kbd> 或点击技能按钮，释放职业技能。技能通常冷却 12
-          秒。按 <kbd>P</kbd> / <kbd>Esc</kbd> 暂停；切到其他页面也会自动暂停。
+          秒。按 <kbd>Shift</kbd> 或点「格挡」可在 1 秒内减伤 75%，独立冷却 6
+          秒；格挡期间不损失兵力，停止普通射击、移动变慢。按 <kbd>P</kbd> /{' '}
+          <kbd>Esc</kbd> 暂停；切到其他页面也会自动暂停。
         </p>
       </section>
       <section>
@@ -836,7 +848,7 @@ export function Help() {
         <h3>05 · 登上十二层高塔</h3>
         <p>
           三幕各 4 层，每幕战斗分别有 8 / 10 / 12
-          波敌军，越往上节奏越快。首领停在中央，需要瞄准并躲避其预警攻击；登场
+          波敌军，越往上节奏越快。荆棘守望者投掷散斧，举盾时需要侧翼攻击；蚀月巫妖释放交错魔法弹幕；灰烬之王的震荡无法躲避，需要格挡减伤，其吟唱可持续攻击打断。首领登场
           22 秒后狂暴。生命归零则本局结束，所有职业始终可选。
         </p>
       </section>
@@ -849,7 +861,7 @@ export function Help() {
         </p>
       </section>
       <p className="save-explanation">
-        进度仅保存在当前浏览器，关卡间自动存档；战斗中刷新会回到该房间前的存档。音效可在右上角切换。
+        进度仅保存在当前浏览器，关卡间自动存档；战斗中刷新会回到该房间前的存档。左上角「角色」可查看装备、构筑与路线，或切换音效；查看时暂停战斗。
       </p>
     </div>
   );

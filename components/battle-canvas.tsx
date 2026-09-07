@@ -5,6 +5,8 @@ import {
   type Battle,
   stepBattle,
   activateSkill,
+  brace,
+  type Ritual,
   movePlayer,
   setMoveAxis,
 } from '@/lib/combat';
@@ -21,6 +23,9 @@ export interface BattleSnapshot {
   totalWaves: number;
   duration: number;
   enrage: boolean;
+  guarding: boolean;
+  guardCooldown: number;
+  ritual: Ritual | null;
 }
 export function BattleCanvas({
   battle,
@@ -89,6 +94,8 @@ export function BattleCanvas({
         hurt: 95,
         shoot: 190,
         kill: 320,
+        level: 980,
+        guard: 400,
       };
       try {
         const o = audio.createOscillator(),
@@ -130,6 +137,8 @@ export function BattleCanvas({
           'KeyA',
           'KeyD',
           'Space',
+          'ShiftLeft',
+          'ShiftRight',
           'KeyP',
           'Escape',
         ].includes(code)
@@ -146,6 +155,8 @@ export function BattleCanvas({
         updateAxis();
       }
       if (code === 'Space' && !e.repeat) activateSkill(battle);
+      if ((code === 'ShiftLeft' || code === 'ShiftRight') && !e.repeat)
+        brace(battle);
     };
     const pointer = (e: PointerEvent) => {
       if (current.current.paused) return;
@@ -178,6 +189,9 @@ export function BattleCanvas({
           totalWaves: battle.totalWaves,
           duration: battle.duration,
           enrage: battle.enrage,
+          guarding: battle.guardUntil > battle.time,
+          guardCooldown: battle.guardCooldown,
+          ritual: battle.ritual ? { ...battle.ritual } : null,
         });
       }
       if (battle.state !== 'running' && !finished) {

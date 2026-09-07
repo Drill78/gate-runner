@@ -16,7 +16,15 @@ const {
   stats,
   RELIC_BY_ID,
 } = g;
-const { BALANCE, createBattle, movePlayer, stepBattle, activateSkill } = c;
+const {
+  BALANCE,
+  createBattle,
+  movePlayer,
+  stepBattle,
+  activateSkill,
+  brace,
+  projectilePosition,
+} = c;
 export const priorities = {
   knight: [
     'bash',
@@ -78,18 +86,19 @@ function value(run, gate) {
   );
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-function future(x, target, t) {
+function future(b, target, t) {
+  t = Math.max(0, t);
+  const guarded = Math.min(t, Math.max(0, b.guardUntil - b.time));
+  const distance = BALANCE.moveSpeed * (t - guarded * 0.4);
   return (
-    x +
-    Math.sign(target - x) *
-      Math.min(Math.abs(target - x), t * BALANCE.moveSpeed)
+    b.x + Math.sign(target - b.x) * Math.min(Math.abs(target - b.x), distance)
   );
 }
 // 150 ms observation/decision interval; only currently visible entities and announced attacks.
 // All motion goes through movePlayer and the real engine's speed clamp.
 export function pilot(
   b,
-  { reaction = 0.15, stationary = false, maxTime = 220 } = {},
+  { reaction = 0.15, stationary = false, maxTime = 220, defense = true } = {},
 ) {
   let nextDecision = 0,
     skills = 0,
@@ -97,7 +106,18 @@ export function pilot(
     leaks = 0,
     missedChests = 0,
     gateMisses = 0,
-    distance = 0;
+    distance = 0,
+    braces = 0,
+    projectileHits = 0,
+    threatHits = 0,
+    ritualsStarted = 0,
+    ritualsResolved = 0,
+    ritualsGuarded = 0,
+    ritualsInterrupted = 0,
+    ritualsKilled = 0,
+    guardedTroopLoss = 0,
+    flankShots = 0;
+  const seenRituals = new Set();
   while (b.state === 'running' && b.time < maxTime) {
     if (b.time >= nextDecision) {
       nextDecision = b.time + reaction;
@@ -105,7 +125,10 @@ export function pilot(
       const targets = visible
         .filter((e) => e.hp > 0)
         .sort((a, z) => a.arrival - z.arrival);
-      const target = targets[0];
+      const ritualBoss = b.ritual?.interruptible
+        ? targets.find((e) => e.id === b.ritual.bossId)
+        : null;
+      const target = ritualBoss || targets[0];
       const gate = visible.find((e) => e.kind === 'gate');
       const bestGate = gate?.gate
         .slice()
@@ -121,12 +144,22 @@ export function pilot(
         (e) => e.kind === 'hazard' && e.arrival - b.time < 1.0,
       );
       const threats = b.threats.filter((t) => t.resolveAt - b.time < 1.3);
+      // No reading queued projectiles before spawnAt: only already visible trajectories.
+      const projectiles = b.projectiles.filter(
+        (p) =>
+          !p.resolved &&
+          p.spawnAt <= b.time &&
+          p.impactAt > b.time &&
+          p.impactAt - b.time < 2.0,
+      );
       let bestX = b.x,
         bestScore = -Infinity;
       const candidates = [
         b.x,
         gateX,
         target?.x ?? b.x,
+        clamp((target?.x || 0) - 0.36, -0.9, 0.9),
+        clamp((target?.x || 0) + 0.36, -0.9, 0.9),
         ...Array.from({ length: 61 }, (_, i) => -0.9 + i * 0.03),
       ];
       for (const x of candidates) {
@@ -137,15 +170,18 @@ export function pilot(
             0,
             (Math.abs(x - target.x) - aim) / BALANCE.moveSpeed,
           );
-          const endX = future(b.x, x, 0.3);
+          const endX = future(b, x, 0.3);
           score +=
             Math.abs(endX - target.x) < aim
               ? 5
               : Math.max(-4, 1 - Math.abs(x - target.x) * 4);
           score -= attackDelay;
+          if (target.guardUntil > b.time && Math.abs(endX - target.x) < 0.335)
+            score -= 9;
+          if (ritualBoss && Math.abs(endX - target.x) < aim) score += 7;
         }
         if (gateDue) {
-          const gx = future(b.x, x, gate.arrival - b.time - 0.03);
+          const gx = future(b, x, gate.arrival - b.time - 0.03);
           const selected = gate.gate.find(
             (s) => gx >= s.left + 0.008 && gx <= s.right - 0.008,
           );
@@ -157,13 +193,20 @@ export function pilot(
         }
         for (const t of threats) {
           const delay = t.resolveAt - b.time;
-          const xx = future(b.x, x, delay - 0.035);
+          const xx = future(b, x, delay - 0.035);
           if (Math.abs(xx - t.x) < t.width / 2 + 0.075)
             score -= 70 / (0.4 + delay);
         }
+        for (const p of projectiles) {
+          const delay = p.impactAt - b.time,
+            landing = projectilePosition(p, p.impactAt);
+          const xx = future(b, x, delay - 0.035);
+          if (Math.abs(xx - landing.x) < p.radius + 0.07)
+            score -= 75 / (0.4 + delay);
+        }
         for (const h of hazards) {
           const delay = h.arrival - b.time;
-          const xx = future(b.x, x, delay - 0.035);
+          const xx = future(b, x, delay - 0.035);
           if (Math.abs(xx - h.x) < h.width / 2 + 0.075)
             score -= 65 / (0.4 + delay);
         }
@@ -173,6 +216,28 @@ export function pilot(
         }
       }
       if (!stationary) movePlayer(b, bestX);
+      const castDue = b.ritual && b.ritual.resolveAt - b.time <= 0.3;
+      const actualTarget = stationary ? b.x : bestX;
+      const hitDue =
+        projectiles.some(
+          (p) =>
+            p.impactAt - b.time <= 0.25 &&
+            Math.abs(future(b, actualTarget, p.impactAt - b.time) - p.toX) <
+              p.radius + 0.05,
+        ) ||
+        threats.some(
+          (t) =>
+            t.resolveAt - b.time <= 0.25 &&
+            Math.abs(future(b, actualTarget, t.resolveAt - b.time) - t.x) <
+              t.width / 2 + 0.045,
+        );
+      if (
+        defense &&
+        b.guardCooldown === 0 &&
+        (castDue || (!b.ritual && hitDue))
+      ) {
+        if (brace(b)) braces++;
+      }
       if (b.cooldown === 0 && targets.length) {
         // Saving a burst while only a tiny target remains is a realistic, visible-state decision.
         if (
@@ -186,13 +251,68 @@ export function pilot(
       }
     }
     const oldHp = b.player.hp,
-      oldX = b.x;
+      oldX = b.x,
+      oldSquad = b.player.squad,
+      oldShots = b.shots,
+      oldGates = b.player.gates,
+      oldRitual = b.ritual,
+      oldHitVolleys = new Set(b.hitVolleys || []);
+    if (oldRitual && !seenRituals.has(oldRitual.startedAt)) {
+      seenRituals.add(oldRitual.startedAt);
+      ritualsStarted++;
+    }
+    const dueProjectiles = b.projectiles.filter(
+      (p) => !p.resolved && p.impactAt <= b.time + 0.05000001,
+    );
+    const dueThreats = b.threats.filter(
+      (t) => t.resolveAt <= b.time + 0.05000001,
+    );
+    const guarded = b.guardUntil > b.time + 0.05;
+    const guardedBoss = b.entities.find(
+      (e) => e.boss && !e.done && e.guardUntil > b.time,
+    );
     const imminent = b.entities.filter(
       (e) => !e.done && e.arrival >= b.time && e.arrival < b.time + 0.051,
     );
     stepBattle(b, 0.05);
     damage += Math.max(0, oldHp - b.player.hp);
     distance += Math.abs(b.x - oldX);
+    for (const p of dueProjectiles) {
+      const fraction = clamp((p.impactAt - (b.time - 0.05)) / 0.05, 0, 1);
+      const xx = oldX + (b.x - oldX) * fraction;
+      if (
+        p.resolved &&
+        Math.abs(xx - p.toX) < p.radius + 0.04 &&
+        !oldHitVolleys.has(p.volleyId)
+      ) {
+        projectileHits++;
+        if (p.volleyId !== undefined) oldHitVolleys.add(p.volleyId);
+      }
+    }
+    threatHits += dueThreats.filter(
+      (t) => Math.abs(b.x - t.x) < t.width / 2 + 0.035,
+    ).length;
+    if (oldRitual && !b.ritual) {
+      if (oldRitual.resolveAt <= b.time + 0.000001) {
+        ritualsResolved++;
+        if (guarded) ritualsGuarded++;
+      } else if (b.entities.find((e) => e.id === oldRitual.bossId)?.done)
+        ritualsKilled++;
+      else ritualsInterrupted++;
+    }
+    if (guarded && b.player.squad < oldSquad)
+      guardedTroopLoss += oldSquad - b.player.squad;
+    if (
+      guardedBoss &&
+      b.shots > oldShots &&
+      Math.abs(b.x - guardedBoss.x) >= 0.3
+    )
+      flankShots++;
+    if (
+      imminent.some((e) => e.kind === 'gate' && e.done) &&
+      b.player.gates === oldGates
+    )
+      gateMisses++;
     for (const e of imminent) {
       if (e.done && e.hp > 0) {
         if (e.kind === 'enemy') leaks++;
@@ -203,6 +323,7 @@ export function pilot(
   return {
     state: b.state,
     time: b.time,
+    bossTime: Math.max(0, b.time - b.finalStart),
     skills,
     damage,
     leaks,
@@ -213,6 +334,19 @@ export function pilot(
     squad: b.player.squad,
     shield: b.shield,
     weapon: b.player.weaponTier,
+    level: g.experience(b.player).level,
+    xp: b.player.xp,
+    braces,
+    projectileHits,
+    threatHits,
+    ritualsStarted,
+    ritualsResolved,
+    ritualsGuarded,
+    ritualsInterrupted,
+    ritualsKilled,
+    guardedTroopLoss,
+    flankShots,
+    bossAttacks: b.entities.find((e) => e.boss)?.attackIndex || 0,
   };
 }
 function scoreRelic(run, id, mode) {
@@ -296,6 +430,8 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
     squad: run.squad,
     weapon: run.weaponTier,
     relics: run.relics,
+    level: g.experience(run).level,
+    xp: run.xp,
     rooms,
   };
 }
@@ -320,10 +456,15 @@ export function summarize(results) {
         avgDamagePerRoom: avg(rooms.map((r) => r.damage)),
         avgLeaksPerRoom: avg(rooms.map((r) => r.leaks)),
         avgBossTime: avg(
-          rooms.filter((r) => r.kind === 'boss').map((r) => r.time),
+          rooms.filter((r) => r.kind === 'boss').map((r) => r.bossTime),
         ),
         maxRoomTime: Math.max(...rooms.map((r) => r.time)),
         avgWeapon: avg(runs.map((r) => r.weapon)),
+        avgLevel: avg(runs.map((r) => r.level)),
+        projectileHits: rooms.reduce((n, r) => n + r.projectileHits, 0),
+        ritualsStarted: rooms.reduce((n, r) => n + r.ritualsStarted, 0),
+        ritualsGuarded: rooms.reduce((n, r) => n + r.ritualsGuarded, 0),
+        ritualsInterrupted: rooms.reduce((n, r) => n + r.ritualsInterrupted, 0),
       });
     }
   return rows;
@@ -332,7 +473,6 @@ if (
   process.argv[1] &&
   pathToFileURL(process.argv[1]).href === import.meta.url
 ) {
-  mkdirSync(new URL('../artifacts/', import.meta.url), { recursive: true });
   const n = Number(process.argv[2] || 24);
   const results = [];
   for (const classId of (
@@ -346,17 +486,23 @@ if (
           expedition(classId, 734 + i * 1009, mode, {
             reaction: Number(process.env.PILOT_REACTION || 0.15),
             stationary: process.env.STATIONARY === '1',
+            defense: process.env.DEFENSE !== '0',
           }),
         );
   const out = {
     balance: BALANCE,
+    options: {
+      reaction: Number(process.env.PILOT_REACTION || 0.15),
+      stationary: process.env.STATIONARY === '1',
+      defense: process.env.DEFENSE !== '0',
+    },
     priorities,
     summary: summarize(results),
     results,
   };
+  mkdirSync('artifacts', { recursive: true });
   writeFileSync(
-    process.env.RESULT_FILE ||
-      new URL('../artifacts/balance-results.json', import.meta.url),
+    process.env.RESULT_FILE || 'artifacts/balance-results.json',
     JSON.stringify(out, null, 2),
   );
   console.table(out.summary);

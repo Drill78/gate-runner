@@ -1,5 +1,11 @@
-import { HEROES, gateLabel, formatNumber } from './game.ts';
-import { worldY, type Battle, type Entity } from './combat.ts';
+import { HEROES, gateLabel } from './game.ts';
+import {
+  worldY,
+  projectilePosition,
+  type Battle,
+  type Entity,
+} from './combat.ts';
+import { VIEW, screenX, screenY } from './view.ts';
 
 // Orthographic world: linear coordinates and distance-independent object sizes.
 export function drawBattle(
@@ -10,9 +16,9 @@ export function drawBattle(
   reducedMotion = false,
 ) {
   const hero = HEROES.find((v) => v.id === b.player.classId)!;
-  const scale = Math.max(0.7, Math.min(1.1, w / 650));
-  const X = (x: number) => w * (0.5 + x * 0.455),
-    Y = (y: number) => h * (0.04 + y * 0.9);
+  const scale = Math.max(0.86, Math.min(1.18, w / 520));
+  const X = (x: number) => screenX(x, w),
+    Y = (y: number) => screenY(y, h);
   const playerY = Y(0.8),
     playerX = X(b.x);
   ctx.clearRect(0, 0, w, h);
@@ -21,7 +27,8 @@ export function drawBattle(
   const tile = 70 * scale;
   const scrollDistance = reducedMotion
     ? 0
-    : (b.time * h * 0.81) / (b.entities[0].arrival - b.entities[0].start);
+    : (b.time * (Y(0.9) - Y(0))) /
+      (b.entities[0].arrival - b.entities[0].start);
   const scroll = scrollDistance % tile;
   const rowOffset = Math.floor(scrollDistance / tile);
   for (let row = -1; row < h / tile + 1; row++)
@@ -47,10 +54,10 @@ export function drawBattle(
     ctx.stroke();
   }
   const fog = ctx.createLinearGradient(0, 0, 0, h);
-  fog.addColorStop(0, '#0a161aec');
-  fog.addColorStop(0.15, '#0c1b1333');
+  fog.addColorStop(0, '#0a161a70');
+  fog.addColorStop(0.15, '#0c1b1315');
   fog.addColorStop(0.75, '#10191400');
-  fog.addColorStop(1, '#09120de8');
+  fog.addColorStop(1, '#09120da0');
   ctx.fillStyle = fog;
   ctx.fillRect(0, 0, w, h);
   const label = (
@@ -120,7 +127,7 @@ export function drawBattle(
     leader = false,
     enemy = false,
   ) {
-    const s = scale * (leader ? 1.5 : 1),
+    const s = scale * (enemy ? (leader ? 3.0 : 1.9) : leader ? 1.5 : 1),
       step = reducedMotion ? 0 : Math.sin(b.time * 16 + index) * 1.2;
     ctx.fillStyle = '#060e0b70';
     ctx.beginPath();
@@ -156,7 +163,7 @@ export function drawBattle(
     ctx.moveTo(x + 10 * s, y + 2 * s);
     ctx.lineTo(x + 11 * s, y - 17 * s);
     ctx.stroke();
-    if (leader || b.player.classId === 'knight')
+    if (leader || (!enemy && b.player.classId === 'knight'))
       round(x - 14 * s, y - 7 * s, 7 * s, 12 * s, 2 * s, color, '#cdbb84');
   }
   function gates(e: Entity) {
@@ -266,8 +273,15 @@ export function drawBattle(
       ctx.beginPath();
       ctx.arc(x, y, 42 * scale, 0, Math.PI * 2);
       ctx.stroke();
-      hpBar(e, x, y - 57 * scale, 148 * scale);
-      label(e.name, x, y - 69 * scale, 18 * scale, '#ffe0b6', '700');
+      hpBar(e, x, y - 66 * scale, 148 * scale);
+      label(
+        e.name,
+        x,
+        y - 80 * scale,
+        Math.max(17, 18 * scale),
+        '#ffe0b6',
+        '700',
+      );
       label(
         `${Math.ceil(e.hp)} / ${Math.ceil(e.maxHp)}`,
         x,
@@ -288,15 +302,49 @@ export function drawBattle(
         false,
         true,
       );
-      hpBar(e, x, y - 26 * scale, 72 * scale);
-      label(e.name, x, y - 36 * scale, 14 * scale, '#eee4c6', '600');
+      hpBar(e, x, y - 40 * scale, 72 * scale);
+      label(
+        e.name,
+        x,
+        y - 53 * scale,
+        Math.max(14, 14 * scale),
+        '#eee4c6',
+        '600',
+      );
       label(
         `${Math.ceil(e.hp)}${e.armor ? ' ◈' : ''}`,
         x,
-        y + 34 * scale,
+        y + 40 * scale,
         13,
         '#e0d4b3',
       );
+    }
+    if (e.boss) {
+      const act = Math.floor(b.player.floor / 4);
+      if (b.player.node?.kind === 'boss' && act === 1) {
+        for (let i = 0; i < 5; i++) {
+          const angle = b.time * 0.8 + (i * Math.PI * 2) / 5;
+          ctx.fillStyle = '#c5b0ff';
+          ctx.beginPath();
+          ctx.arc(
+            x + Math.cos(angle) * 42 * scale,
+            y + Math.sin(angle) * 24 * scale,
+            4 * scale,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+      }
+      if (e.guardUntil > b.time) {
+        ctx.strokeStyle = '#ffe3a4';
+        ctx.lineWidth = 7 * scale;
+        ctx.beginPath();
+        ctx.ellipse(x, y + 12 * scale, 42 * scale, 23 * scale, 0, 0, Math.PI);
+        ctx.stroke();
+        label('举盾 · 侧翼破防', x, y + 77 * scale, 13, '#ffdda3', '700');
+      } else if (e.hp < e.maxHp * 0.5)
+        label('Ⅱ · 狂怒形态', x, y + 75 * scale, 12, '#efab88');
     }
     if (e.burnUntil > b.time) {
       ctx.fillStyle = '#ebaf6150';
@@ -306,9 +354,90 @@ export function drawBattle(
     }
   }
   b.entities
-    .filter((e) => !e.done && e.start <= b.time)
+    .filter((e) => !e.done && e.start <= b.time + VIEW.previewSeconds)
     .sort((a, z) => worldY(a, b.time) - worldY(z, b.time))
-    .forEach(entity);
+    .forEach((e) => {
+      ctx.save();
+      if (e.start > b.time) ctx.globalAlpha = 0.62;
+      entity(e);
+      ctx.restore();
+    });
+  ctx.setLineDash([3, 10]);
+  ctx.strokeStyle = '#c5d9b323';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(X(-0.94), Y(-0.1));
+  ctx.lineTo(X(0.94), Y(-0.1));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  label('射程', X(0.85), Y(-0.1) - 9, 11, '#a8bdaa');
+  for (const p of b.projectiles) {
+    if (b.time < p.spawnAt - 0.4) continue;
+    const pos = projectilePosition(p, b.time),
+      x = X(pos.x),
+      y = Y(pos.y);
+    if (y > h + 25 || y < -25) continue;
+    const color =
+      p.kind === 'star'
+        ? '#d1b5ff'
+        : p.kind === 'ember'
+          ? '#ffb47f'
+          : '#e7d4a2';
+    ctx.save();
+    ctx.globalAlpha = p.resolved ? 0.4 : 1;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    if (b.time < p.spawnAt) {
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, 12 + (p.spawnAt - b.time) * 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    const previous = projectilePosition(p, b.time - 0.12);
+    ctx.lineWidth = 3;
+    ctx.globalAlpha *= 0.5;
+    ctx.beginPath();
+    ctx.moveTo(X(previous.x), Y(previous.y));
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.globalAlpha = p.resolved ? 0.35 : 1;
+    const radius = Math.max(5, p.radius * w * 0.455);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 12;
+    if (p.kind === 'star') {
+      ctx.translate(x, y);
+      ctx.rotate(b.time * 2 + p.phase);
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4,
+          r = i % 2 ? radius * 0.4 : radius;
+        const px = Math.cos(a) * r,
+          py = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else if (p.kind === 'axe') {
+      ctx.translate(x, y);
+      ctx.rotate(b.time * 8);
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-radius, 0);
+      ctx.lineTo(radius, 0);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(radius * 0.55, 0, radius * 0.72, -Math.PI / 2, Math.PI / 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
   for (const threat of b.threats) {
     const left = X(threat.x - threat.width / 2),
       right = X(threat.x + threat.width / 2);
@@ -329,7 +458,26 @@ export function drawBattle(
       '700',
     );
   }
-  const count = Math.min(28, b.player.squad),
+  if (b.ritual) {
+    const cast = b.ritual,
+      t = (b.time - cast.startedAt) / (cast.resolveAt - cast.startedAt);
+    ctx.strokeStyle = cast.interruptible ? '#d2b3ee' : '#ffc592';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.2 + t * 0.5;
+    ctx.beginPath();
+    ctx.ellipse(
+      playerX,
+      playerY,
+      Math.max(22, (1 - t) * w * 0.8),
+      Math.max(10, (1 - t) * h * 0.5),
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  const count = Math.min(24, b.player.squad),
     cols = Math.min(6, Math.ceil(Math.sqrt(count))),
     rows = Math.ceil(count / cols);
   for (let i = count - 1; i >= 0; i--) {
@@ -348,6 +496,23 @@ export function drawBattle(
   ctx.beginPath();
   ctx.arc(playerX, playerY, 18 * scale, Math.PI * 1.1, Math.PI * 1.9);
   ctx.stroke();
+  if (b.guardUntil > b.time) {
+    ctx.fillStyle = '#b0e0ff20';
+    ctx.strokeStyle = '#d3f3ff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(
+      playerX,
+      playerY + 4,
+      37 * scale,
+      24 * scale,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+    ctx.stroke();
+  }
   if (b.shield > 0) {
     ctx.strokeStyle = '#dac17c99';
     ctx.lineWidth = 2;
@@ -363,14 +528,6 @@ export function drawBattle(
     );
     ctx.stroke();
   }
-  label(
-    formatNumber(b.player.squad),
-    playerX,
-    playerY + rows * 8 * scale + 32,
-    25,
-    '#fff0bd',
-    '700',
-  );
   for (const e of b.effects) {
     ctx.globalAlpha = Math.min(1, e.life * 3);
     const x = X(e.x),

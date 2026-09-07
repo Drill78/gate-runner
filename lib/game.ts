@@ -393,7 +393,7 @@ export interface RouteNode {
   kind: NodeKind;
 }
 export interface Run {
-  version: 2;
+  version: 3;
   phase: Phase;
   classId: ClassId;
   seed: number;
@@ -409,6 +409,7 @@ export interface Run {
   node: RouteNode | null;
   reward: string[];
   purchases: string[];
+  xp: number;
   kills: number;
   chests: number;
   gates: number;
@@ -455,7 +456,7 @@ export function createMap(seed: number): RouteNode[][] {
 export function createRun(classId: ClassId, seed = 12345): Run {
   const h = HEROES.find((h) => h.id === classId)!;
   return {
-    version: 2,
+    version: 3,
     phase: 'setup',
     classId,
     seed,
@@ -471,6 +472,7 @@ export function createRun(classId: ClassId, seed = 12345): Run {
     node: null,
     reward: [],
     purchases: [],
+    xp: 0,
     kills: 0,
     chests: 0,
     gates: 0,
@@ -513,6 +515,31 @@ export function familyCount(run: Run) {
     0,
   );
 }
+export function experience(run: Pick<Run, 'xp'>) {
+  let level = 1,
+    current = run.xp,
+    needed = 30;
+  while (current >= needed && level < 12) {
+    current -= needed;
+    level++;
+    needed = 30 + (level - 1) * 14;
+  }
+  return {
+    level,
+    current,
+    needed,
+    progress: level === 12 ? 100 : (current / needed) * 100,
+  };
+}
+export function grantExperience(run: Run, amount: number) {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const before = experience(run).level;
+  run.xp = Math.min(Number.MAX_SAFE_INTEGER, run.xp + Math.floor(amount));
+  const gained = experience(run).level - before;
+  run.maxHp += gained * 2;
+  run.hp = Math.min(run.maxHp, run.hp + gained * 2);
+  return gained;
+}
 export function stats(run: Run, shield = 0) {
   const r = (id: string) => run.relics[id] || 0;
   const synergy = familyCount(run) >= 3;
@@ -521,6 +548,7 @@ export function stats(run: Run, shield = 0) {
   return {
     damage:
       (warrior ? 7.2 : ranger ? 5.4 : 8.8) *
+      (1 + (experience(run).level - 1) * 0.02) *
       (1 + (run.weaponTier - 1) * 0.1) *
       (1 + r('steel') * 0.2 + r('surge') * 0.25) *
       (1 + shield * r('bash') * 0.005) *
@@ -759,9 +787,16 @@ export function applyGate(
 }
 export function restoreRun(text: string): Run | null {
   try {
-    const r = JSON.parse(text) as Run;
+    const raw = JSON.parse(text);
+    if (!raw || typeof raw !== 'object') return null;
+    // v0.2 checkpoints remain playable; prior kills grant no retroactive XP.
+    if (raw.version === 2) {
+      raw.version = 3;
+      raw.xp = 0;
+    }
+    const r = raw as Run;
     if (
-      r.version !== 2 ||
+      r.version !== 3 ||
       !HEROES.some((h) => h.id === r.classId) ||
       !['map', 'reward', 'rest', 'shop', 'event'].includes(r.phase) ||
       !Number.isInteger(r.seed) ||
@@ -778,6 +813,7 @@ export function restoreRun(text: string): Run | null {
     )
       return null;
     for (const key of [
+      'xp',
       'hp',
       'maxHp',
       'squad',
@@ -789,6 +825,7 @@ export function restoreRun(text: string): Run | null {
     ] as const)
       if (!Number.isFinite(r[key]) || r[key] < 0) return null;
     if (
+      !Number.isSafeInteger(r.xp) ||
       r.hp <= 0 ||
       r.hp > r.maxHp ||
       r.maxHp > 500 ||

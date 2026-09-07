@@ -18,10 +18,10 @@ import {
   Shield,
   Pause,
   Play,
-  ChevronLeft,
-  ChevronRight,
   RotateCcw,
-  Flag,
+  Coins,
+  Heart,
+  Menu,
 } from 'lucide-react';
 import {
   Dialog,
@@ -29,6 +29,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 import { BattleCanvas, type BattleSnapshot } from '@/components/battle-canvas';
 import {
@@ -51,17 +58,12 @@ import {
   shopBuy,
   eventAction,
   formatNumber,
+  experience,
   type ClassId,
   type Run,
 } from '@/lib/game';
 
-import {
-  createBattle,
-  activateSkill,
-  setMoveAxis,
-  movePlayer,
-  type Battle,
-} from '@/lib/combat';
+import { createBattle, activateSkill, brace, type Battle } from '@/lib/combat';
 
 import {
   subscribeStorage,
@@ -88,7 +90,10 @@ export default function Home() {
     available: saveAvailable,
   } = useMemo(() => parseStorage(stored), [stored]);
   const [paused, setPaused] = useState(false);
-  const [overlay, setOverlay] = useState<'help' | 'codex' | null>(null);
+  const [overlay, setOverlay] = useState<'help' | 'codex' | 'route' | null>(
+    null,
+  );
+  const [characterOpen, setCharacterOpen] = useState(false);
   const game = run.phase === 'battle' && snapshot ? snapshot.run : run;
   const hero = HEROES.find((h) => h.id === game.classId)!;
   const ClassIcon = CLASS_ICONS[game.classId];
@@ -98,7 +103,13 @@ export default function Home() {
   );
   const act = ACTS[Math.max(0, actIndex)];
   const inBattle = run.phase === 'battle' && battle !== null;
-  const blocked = paused || overlay !== null;
+  const inExpedition = run.phase !== 'setup';
+  const blocked = paused || overlay !== null || characterOpen;
+  const xp = experience(game);
+  useEffect(() => {
+    document.body.classList.toggle('expedition-active', inExpedition);
+    return () => document.body.classList.remove('expedition-active');
+  }, [inExpedition]);
   useEffect(() => {
     persistRun(run);
   }, [run]);
@@ -146,30 +157,14 @@ export default function Home() {
     setRun(createRun(run.classId));
   };
   const toggleSound = () => persistSound(!muted);
-  const move = (axis: number) => {
-    if (battle && !blocked) setMoveAxis(battle, axis);
-  };
-  const moveProps = (axis: -1 | 1) => ({
-    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
-      e.currentTarget.setPointerCapture(e.pointerId);
-      move(axis);
-    },
-    onPointerUp: () => move(0),
-    onPointerCancel: () => move(0),
-    onLostPointerCapture: () => move(0),
-    onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => {
-      if (e.key === 'Enter' && battle && !blocked) {
-        e.preventDefault();
-        movePlayer(battle, battle.x + axis * 0.25);
-      }
-    },
-  });
   const skill = () => {
     if (battle && !blocked) activateSkill(battle);
   };
 
   return (
-    <main className={`game-shell ${inBattle ? 'is-battle' : ''}`}>
+    <main
+      className={`game-shell ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
+    >
       <header className="masthead">
         <div className="brand">
           <span className="brand-mark">
@@ -239,7 +234,7 @@ export default function Home() {
         </div>
       </section>
       <div className="game-layout">
-        <RoutePanel run={run} onEnter={go} />
+        {run.phase === 'setup' ? <RoutePanel run={run} onEnter={go} /> : null}
         <section
           className={`arena ${run.phase === 'setup' ? 'arena-setup' : ''} act-${actIndex}`}
           aria-label="远征游戏区域"
@@ -278,6 +273,49 @@ export default function Home() {
               </span>
             )}
           </div>
+          {inExpedition ? (
+            <div className="expedition-hud">
+              <div className="hud-left-edge">
+                <button
+                  className="edge-character"
+                  onClick={() => setCharacterOpen(true)}
+                  aria-label="角色与构筑菜单"
+                >
+                  <Menu size={20} />
+                  <span>
+                    角色 <b>Lv.{xp.level}</b>
+                  </span>
+                </button>
+                <span className="edge-health">
+                  <Heart size={14} />
+                  <b>{Math.ceil(game.hp)}</b>
+                  <small>/{game.maxHp}</small>
+                  <Shield size={13} />
+                  {Math.ceil(snapshot?.shield || 0)}
+                </span>
+              </div>
+              <div className="hud-right-edge">
+                <span className="edge-gold">
+                  <Coins size={17} />
+                  <b>{formatNumber(game.gold)}</b>
+                </span>
+                {inBattle ? (
+                  <button
+                    className="edge-pause"
+                    onClick={() => setPaused(true)}
+                    aria-label="暂停游戏"
+                  >
+                    <Pause size={19} />
+                    <span>暂停</span>
+                  </button>
+                ) : (
+                  <span className="edge-floor">
+                    第 {Math.min(12, run.floor + 1)} / 12 层
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : null}
           {run.phase === 'setup' ? (
             <>
               <img
@@ -342,87 +380,91 @@ export default function Home() {
                 onEnd={onEnd}
                 onPause={onPause}
               />
-              <div className="battle-progress">
-                <Progress
-                  value={Math.min(
-                    100,
-                    ((snapshot?.time || 0) /
-                      (snapshot?.duration || battle.duration)) *
-                      100,
-                  )}
-                  aria-label="关卡进度"
-                />
-                <div>
+              <div className="battle-edge-progress">
+                <span>
+                  第 {run.floor + 1} 层 ·{' '}
+                  {snapshot?.enrage
+                    ? '狂暴'
+                    : `${snapshot?.wave || 1}/${battle.totalWaves} 波`}
+                </span>
+                <span>兵力 {formatNumber(game.squad)}</span>
+              </div>
+              <div className="battle-xp">
+                <span>
+                  Lv.{xp.level}{' '}
+                  <small>
+                    {xp.level === 12
+                      ? 'MAX'
+                      : `${xp.current} / ${xp.needed} XP`}
+                  </small>
+                </span>
+                <Progress value={xp.progress} aria-label="升级经验" />
+              </div>
+              {snapshot?.ritual ? (
+                <div
+                  className={`ritual-indicator ${snapshot.ritual.interruptible ? 'interruptible' : 'unavoidable'}`}
+                >
+                  <strong>
+                    {snapshot.ritual.name} ·{' '}
+                    {Math.max(
+                      0,
+                      snapshot.ritual.resolveAt - snapshot.time,
+                    ).toFixed(1)}
+                    s
+                  </strong>
                   <span>
-                    波次 {snapshot?.wave || 1} / {battle.totalWaves}
+                    {snapshot.ritual.interruptible
+                      ? '持续攻击打断 · 或格挡承受'
+                      : '全屏震荡 · 最后一刻格挡'}
                   </span>
-                  <span>
-                    {snapshot?.enrage
-                      ? '首领狂暴'
-                      : (snapshot?.time || 0) > battle.finalStart
-                        ? '首领现身'
-                        : '突破防线'}
-                    <Flag size={12} />
-                  </span>
+                  {snapshot.ritual.interruptible ? (
+                    <Progress
+                      value={
+                        (100 * snapshot.ritual.breakRemaining) /
+                        snapshot.ritual.breakMax
+                      }
+                      aria-label="剩余打断值"
+                    />
+                  ) : null}
                 </div>
-              </div>
-              <div className="battle-hud" aria-label="即时战况">
-                <span className="hud-health">
-                  生命{' '}
-                  <b>
-                    {Math.ceil(game.hp)}
-                    <small> / {game.maxHp}</small>
-                  </b>
-                </span>
-                <span>
-                  护盾 <b>{Math.ceil(snapshot?.shield || 0)}</b>
-                </span>
-                <span>
-                  兵力 <b>{formatNumber(game.squad)}</b>
-                </span>
-              </div>
+              ) : null}
               <output className="battle-message" aria-live="polite">
-                {snapshot?.message}
+                {snapshot?.ritual ? '' : snapshot?.message}
               </output>
               <div className="battle-controls">
                 <button
-                  className="move-button"
-                  {...moveProps(-1)}
-                  disabled={blocked}
-                  aria-label="按住向左移动"
+                  className={`guard-button ${snapshot?.guarding ? 'guarding' : ''}`}
+                  onClick={() => {
+                    if (battle && !blocked) brace(battle);
+                  }}
+                  disabled={blocked || (snapshot?.guardCooldown || 0) > 0}
+                  aria-label="短时格挡，减伤百分之七十五"
                 >
-                  <ChevronLeft size={23} />
-                  <kbd>A</kbd>
+                  <Shield size={23} />
+                  <strong>
+                    {(snapshot?.guardCooldown || 0) > 0
+                      ? `${Math.ceil(snapshot!.guardCooldown)}s`
+                      : '格挡'}
+                  </strong>
+                  <small>SHIFT · 减伤</small>
                 </button>
+                <span className="drag-hint">拖动移动</span>
                 <button
                   className="skill-button"
                   onClick={skill}
                   disabled={blocked || (snapshot?.cooldown || 0) > 0}
-                  aria-label={`${hero.skill}${snapshot?.cooldown ? ` 冷却 ${Math.ceil(snapshot.cooldown)} 秒` : ''}`}
+                  aria-label={hero.skill}
                   title={hero.skillDesc}
                 >
-                  <ClassIcon size={22} />
+                  <ClassIcon size={25} />
                   <span>
                     <strong>
                       {(snapshot?.cooldown || 0) > 0
                         ? `${Math.ceil(snapshot!.cooldown)} 秒`
                         : hero.skill}
                     </strong>
-                    <small>
-                      {(snapshot?.cooldown || 0) > 0
-                        ? '技能冷却中'
-                        : 'SPACE · 释放技能'}
-                    </small>
+                    <small>SPACE · 技能</small>
                   </span>
-                </button>
-                <button
-                  className="move-button"
-                  {...moveProps(1)}
-                  disabled={blocked}
-                  aria-label="按住向右移动"
-                >
-                  <kbd>D</kbd>
-                  <ChevronRight size={23} />
                 </button>
               </div>
             </>
@@ -442,13 +484,7 @@ export default function Home() {
         </section>
         {run.phase === 'setup' ? (
           <ClassPicker id={run.classId} onSelect={selectClass} />
-        ) : (
-          <BuildPanel
-            run={game}
-            shield={snapshot?.shield || 0}
-            onCodex={() => setOverlay('codex')}
-          />
-        )}
+        ) : null}
       </div>
       <footer className="game-footer">
         <span>
@@ -467,9 +503,53 @@ export default function Home() {
           )}
         </span>
         <span>
-          EARLY ACCESS <b>v0.2</b>
+          EARLY ACCESS <b>v0.3</b>
         </span>
       </footer>
+      <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>
+        <SheetContent className="character-sheet">
+          <SheetHeader>
+            <SheetTitle>冒险者档案</SheetTitle>
+            <SheetDescription>
+              查看等级、装备和构筑。查看时暂停战斗。
+            </SheetDescription>
+          </SheetHeader>
+          <div className="sheet-scroll">
+            <BuildPanel
+              run={game}
+              shield={snapshot?.shield || 0}
+              onCodex={() => {
+                setCharacterOpen(false);
+                setOverlay('codex');
+              }}
+            />
+            <div className="sheet-links">
+              <button
+                onClick={() => {
+                  setCharacterOpen(false);
+                  setOverlay('route');
+                }}
+              >
+                <Footprints size={17} />
+                远征路线
+              </button>
+              <button
+                onClick={() => {
+                  setCharacterOpen(false);
+                  setOverlay('help');
+                }}
+              >
+                <CircleHelp size={17} />
+                冒险手册
+              </button>
+              <button onClick={toggleSound}>
+                {muted ? <VolumeX size={17} /> : <Volume2 size={17} />}音效
+                {muted ? '关闭' : '开启'}
+              </button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
       <Dialog
         open={overlay !== null}
         onOpenChange={(open) => {
@@ -480,18 +560,34 @@ export default function Home() {
           className={`game-dialog ${overlay === 'codex' ? 'codex-dialog' : ''}`}
         >
           <DialogTitle>
-            {overlay === 'codex' ? '秘宝与构筑' : '冒险者手册'}
+            {overlay === 'codex'
+              ? '秘宝与构筑'
+              : overlay === 'route'
+                ? '远征路线'
+                : '冒险者手册'}
           </DialogTitle>
           <DialogDescription>
             {overlay === 'codex'
               ? '以每一次选择，铸成独一无二的英雄。'
               : '穿过数值门，收集强化，在灰烬中登上高塔。'}
           </DialogDescription>
-          {overlay === 'codex' ? <Codex run={game} /> : <Help />}
+          {overlay === 'codex' ? (
+            <Codex run={game} />
+          ) : overlay === 'route' ? (
+            <RoutePanel
+              run={run}
+              onEnter={(id) => {
+                setOverlay(null);
+                go(id);
+              }}
+            />
+          ) : (
+            <Help />
+          )}
         </DialogContent>
       </Dialog>
       <Dialog
-        open={paused && overlay === null && inBattle}
+        open={paused && overlay === null && !characterOpen && inBattle}
         onOpenChange={setPaused}
       >
         <DialogContent className="game-dialog pause-dialog">
