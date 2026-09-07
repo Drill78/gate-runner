@@ -4,10 +4,10 @@ export const VIEW = {
   near: 1.03,
   playerY: 0.8,
   previewSeconds: 1.25,
-  controlSpace: 140,
+  controlSpace: 24,
 } as const;
 export function screenY(y: number, height: number) {
-  // Leave room below the army for thumb controls without covering the fight.
+  // Skills live at the side; reserve only the slim bottom experience strip.
   return (
     ((y - VIEW.far) / (VIEW.near - VIEW.far)) *
     Math.max(1, height - VIEW.controlSpace)

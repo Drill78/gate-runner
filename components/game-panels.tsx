@@ -26,6 +26,7 @@ import {
   BookOpen,
   Anvil,
   Tent,
+  KeyRound,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -34,7 +35,8 @@ import {
   RELICS,
   RELIC_BY_ID,
   NODE_INFO,
-  SHOP_ITEMS,
+  shopInventory,
+  shopItemAvailability,
   availableNodes,
   familyCount,
   stats,
@@ -46,6 +48,7 @@ import {
   type Run,
   type NodeKind,
   type Relic,
+  type ShopCategory,
 } from '@/lib/game';
 export const CLASS_ICONS = {
   knight: Shield,
@@ -68,6 +71,7 @@ const ICONS = {
   target: Target,
   crown: Crown,
   star: Star,
+  key: KeyRound,
 };
 export const NODE_ICONS: Record<NodeKind, typeof Swords> = {
   battle: Swords,
@@ -391,7 +395,7 @@ export function BuildPanel({
           兵力加成<b>×{power.multiplier.toFixed(2)}</b>
         </span>
         <span>
-          齐射伤害<b>{power.volley.toFixed(1)}</b>
+          主弹伤害<b>{power.volley.toFixed(1)}</b>
         </span>
         <span>
           攻击频率<b>{s.rate.toFixed(1)} / 秒</b>
@@ -400,12 +404,26 @@ export function BuildPanel({
           暴击率<b>{Math.round(s.crit * 100)}%</b>
         </span>
         <span>
-          常态每秒火力
+          理论主弹 DPS
           <b>{power.dps.toFixed(0)}</b>
+        </span>
+        <span>
+          常规齐射<b>{1 + s.extraPairs * 2} 枚</b>
+        </span>
+        <span>
+          额外穿透<b>{s.pierceCount} 个目标</b>
+        </span>
+        <span>
+          弹速倍率<b>×{(s.bulletSpeed / 1.7).toFixed(2)}</b>
+        </span>
+        <span>
+          弹体半径<b>×{(s.bulletRadius / 0.025).toFixed(2)}</b>
         </span>
       </div>
       <p className="firepower-note">
-        齐射 = 攻击强度 × 兵力加成。兵力收益递减，持续增长。
+        主弹伤害 = 攻击强度 ×
+        兵力加成。人数越多，火力越高。自动向前发射，弹体不会锁定。 理论主弹 DPS
+        只估算主弹、攻速与暴击；实际输出还受命中率、副弹、穿透和爆裂影响。
       </p>
       <div className={`synergy-box ${s.synergy ? 'unlocked' : ''}`}>
         <div>
@@ -517,7 +535,10 @@ export function Codex({ run }: { run: Run }) {
         ))}
       </fieldset>
       <p className="codex-intro">
-        职业强化累计 3 层激活流派。相同强化可叠加，数值按层数累加。
+        共 {RELICS.length} 项强化。通用弹幕词条可与任何职业搭配；职业强化累计 3
+        层激活流派。 相同强化可叠层，副弹、穿透、爆裂等效果见卡片说明。
+        禁术钥印仅在第四层起的精英或章节首领战后有机会出现：下一次精英先过 5
+        道必经红门，再争夺极窄平方门，本局限一次。
       </p>
       <div className="codex-grid">
         {RELICS.filter((r) => r.family === filter).map((r) => (
@@ -553,6 +574,7 @@ export function RoomScreen({
 }) {
   const phase = run.phase;
   const act = ACTS[Math.min(2, Math.floor(run.floor / 4))];
+  const [shopFilter, setShopFilter] = useState<ShopCategory | '全部'>('全部');
   return (
     <div className={`room-screen room-${phase}`}>
       {phase === 'map' ? (
@@ -563,6 +585,12 @@ export function RoomScreen({
             <p>
               第 {run.floor + 1} 层 · {act.name}
             </p>
+            {run.relics.square_key && !run.squareGateSeen ? (
+              <p>
+                禁术钥印已就绪：下一次精英先过 5
+                道必经红门，再争夺极窄平方门。本局仅此一次。
+              </p>
+            ) : null}
           </div>
           <div className="route-choices">
             {availableNodes(run).map((n) => {
@@ -669,38 +697,63 @@ export function RoomScreen({
             <h2>渡鸦商人</h2>
             <p>“好东西，总要留给活着的人。”</p>
           </div>
+          <fieldset className="codex-filters" aria-label="筛选商店商品">
+            {(['全部', '补给', '弹幕', '职业'] as const).map((category) => (
+              <button
+                type="button"
+                key={category}
+                className={shopFilter === category ? 'active' : ''}
+                aria-pressed={shopFilter === category}
+                onClick={() => setShopFilter(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </fieldset>
+          <p className="room-footnote">
+            定向购买，补齐构筑。每件商品在本店限购一次。
+          </p>
           <div className="shop-grid">
-            {SHOP_ITEMS.map((item) => {
-              const sold = run.purchases.includes(item.id);
-              const unavailable =
-                run.gold < item.cost ||
-                sold ||
-                (item.id === 'potion' && run.hp === run.maxHp) ||
-                (item.id === 'weapon' && run.weaponTier >= 10);
-              return (
-                <button
-                  key={item.id}
-                  disabled={unavailable}
-                  onClick={() => onBuy(item.id)}
-                >
-                  <RelicIcon name={item.icon} />
-                  <div>
-                    <h3>{item.name}</h3>
-                    <p>{item.desc}</p>
-                  </div>
-                  <span>
-                    {sold ? (
-                      <Check size={17} />
-                    ) : (
-                      <>
-                        <Coins size={14} />
-                        {item.cost}
-                      </>
-                    )}
-                  </span>
-                </button>
-              );
-            })}
+            {shopInventory(run)
+              .filter(
+                (item) => shopFilter === '全部' || item.category === shopFilter,
+              )
+              .map((item) => {
+                const sold = run.purchases.includes(item.id);
+                const availability = shopItemAvailability(run, item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={!availability.available}
+                    onClick={() => onBuy(item.id)}
+                    aria-label={`${item.name}，${item.cost} 金币，${availability.available ? '购买' : availability.reason}`}
+                    title={availability.reason || item.desc}
+                  >
+                    <RelicIcon name={item.icon} />
+                    <div>
+                      <h3>{item.name}</h3>
+                      <p>{item.desc}</p>
+                      <small>
+                        {availability.reason ||
+                          (item.kind === 'relic'
+                            ? `已有 ${run.relics[item.relicId] || 0} / ${RELIC_BY_ID[item.relicId].max} 层`
+                            : item.category)}
+                      </small>
+                    </div>
+                    <span>
+                      {sold ? (
+                        <Check size={17} />
+                      ) : (
+                        <>
+                          <Coins size={14} />
+                          {item.cost}
+                        </>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
           </div>
           <button
             className="primary-button room-continue"
@@ -818,29 +871,35 @@ export function Help() {
         <p>
           使用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd>{' '}
           持续左右移动，松开即停。触屏在场地任意位置点击或拖动。门有不同宽度，每组
-          2–3 道；以队长中心经过的门结算一次。门隙不生效，红门减少兵力，最少保留
-          1 人。
+          通常 2–3
+          道；以队长中心经过的门结算一次。门隙不生效，红门减少兵力，最少保留 1
+          人，加减数值随兵力缩放。先取得禁术钥印，下一次精英才会开启试炼：连续通过
+          5 道全宽必经红门，再争夺极窄平方门 x²，旁边也有平方根 √x
+          和加法门可选。试炼本局仅开启一次，无论是否选中平方门；职业和遗物招募在运算后结算。
         </p>
       </section>
       <section>
         <h3>02 · 瞄准，自动开火</h3>
         <p>
-          队伍自动攻击瞄准范围内最近的目标。兵装秘匣升级武器；补给宝箱提供金币和兵力。需要持续对准才能击破。击败敌人获得金币和经验，升级提高攻击与生命。漏掉敌人仍会受伤且没有奖励；红色预警或飞来弹幕需要及时躲避。
+          队伍自动向前发射飞行弹体，横移调整弹道；子弹不会锁定，打空会继续飞过敌人。
+          穿透让子弹继续命中后方目标，散射与爆裂覆盖更大范围。兵装秘匣升级武器，补给宝箱提供金币和兵力。
+          击败敌人获得金币和经验，升级提高攻击与生命。漏掉敌人仍会受伤且没有奖励；红色预警或飞来弹幕需要及时躲避。
         </p>
       </section>
       <section>
         <h3>03 · 在关键时刻释放技能</h3>
         <p>
-          按 <kbd>Space</kbd> 或点击技能按钮，释放职业技能。技能通常冷却 12
-          秒。按 <kbd>P</kbd> / <kbd>Esc</kbd>{' '}
-          暂停；切到其他页面也会自动暂停。防御来自职业技能、护盾与护甲，没有通用格挡。
+          按 <kbd>Space</kbd> 或点击场地右侧技能按钮，释放职业技能。技能通常冷却
+          12 秒。按 <kbd>P</kbd> / <kbd>Esc</kbd>{' '}
+          暂停；切到其他页面也会自动暂停。普通射击采用飞行弹幕，职业主动技能保留各自的护盾或全场打击效果。
         </p>
       </section>
       <section>
         <h3>04 · 构筑属于你的流派</h3>
         <p>
           战后从三项强化中选一项，强化持续整局。累计 3
-          层职业强化激活额外加成。选择精英获得更好奖励，也可以去营火治疗、商店购买补给。
+          层职业强化激活额外加成。穿透、散射、爆裂等通用弹幕词条可以和职业搭配。
+          选择精英获得更好奖励，也可以去营火治疗、商店按分类购买定向强化和补给。
         </p>
       </section>
       <section>
@@ -854,9 +913,10 @@ export function Help() {
       <section>
         <h3>06 · 兵力与攻击强度</h3>
         <p>
-          兵力代表军团规模，没有 999 上限；武器和遗物提升攻击强度。兵力加成 = 1
-          + log₂(1 + 兵力 / 12)，齐射伤害 = 攻击强度 ×
-          兵力加成。每秒火力包含攻速和平均暴击收益，未计技能、弹射和灼烧。受伤会损失兵力，护盾完全吸收伤害时不会损兵。
+          兵力代表军团规模，没有 999 上限，人数越多火力越高。主弹伤害 = 攻击强度
+          × 兵力加成。理论主弹 DPS
+          包含攻速和平均暴击收益，实际输出还受命中率、副弹、穿透、爆裂和技能影响。
+          多数攻击在扣生命时也损失兵力，护盾完全吸收或章节压力不损兵。
         </p>
       </section>
       <p className="save-explanation">

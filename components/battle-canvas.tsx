@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { type Run } from '@/lib/game';
 import {
   type Battle,
@@ -12,6 +12,7 @@ import {
 } from '@/lib/combat';
 import { drawBattle } from '@/lib/renderer';
 import { bossProfile } from '@/lib/bosses';
+import { BossArrival } from '@/components/boss-arrival';
 
 export interface BattleSnapshot {
   run: Run;
@@ -111,25 +112,31 @@ export function BattleCanvas({
         shoot: 190,
         kill: 320,
         level: 980,
+        'boss-arrival': 82,
+        'elite-arrival': 104,
       };
       try {
         const o = audio.createOscillator(),
           g = audio.createGain();
-        o.type = name === 'hurt' ? 'sawtooth' : 'triangle';
+        const impact = name === 'boss-arrival' || name === 'elite-arrival';
+        o.type = impact ? 'sine' : name === 'hurt' ? 'sawtooth' : 'triangle';
         o.frequency.setValueAtTime(freq[name] || 300, audio.currentTime);
         o.frequency.exponentialRampToValueAtTime(
-          (freq[name] || 300) * (name === 'hurt' ? 0.4 : 1.65),
-          audio.currentTime + 0.12,
+          (freq[name] || 300) * (impact ? 0.35 : name === 'hurt' ? 0.4 : 1.65),
+          audio.currentTime + (impact ? 0.22 : 0.12),
         );
         g.gain.setValueAtTime(
-          name === 'shoot' ? 0.014 : 0.055,
+          impact ? 0.1 : name === 'shoot' ? 0.014 : 0.055,
           audio.currentTime,
         );
-        g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.17);
+        g.gain.exponentialRampToValueAtTime(
+          0.001,
+          audio.currentTime + (impact ? 0.24 : 0.17),
+        );
         o.connect(g);
         g.connect(audio.destination);
         o.start();
-        o.stop(audio.currentTime + 0.18);
+        o.stop(audio.currentTime + (impact ? 0.25 : 0.18));
       } catch {
         /* Keep combat running if audio fails. */
       }
@@ -146,6 +153,11 @@ export function BattleCanvas({
         return;
       const code = e.code;
       if (
+        ['Space', 'Enter'].includes(code) &&
+        (e.target as HTMLElement).closest('button,a')
+      )
+        return;
+      if (
         [
           'ArrowLeft',
           'ArrowRight',
@@ -161,7 +173,14 @@ export function BattleCanvas({
         if (!e.repeat) current.current.onPause();
         return;
       }
-      if (current.current.paused || introRemaining > 0) return;
+      if (current.current.paused || document.hidden) return;
+      if (introRemaining > 0) {
+        if (code === 'Enter' || code === 'Space') {
+          e.preventDefault();
+          if (!e.repeat) skipArrival.current = true;
+        }
+        return;
+      }
       ensureAudio();
       if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(code)) {
         held.add(code);
@@ -189,6 +208,11 @@ export function BattleCanvas({
           held.clear();
           setMoveAxis(battle, 0);
           setArrival(true);
+          play(
+            battle.player.node?.kind === 'boss'
+              ? 'boss-arrival'
+              : 'elite-arrival',
+          );
         }
         if (introRemaining > 0) {
           introRemaining = skipArrival.current
@@ -292,39 +316,18 @@ export function BattleCanvas({
         aria-label="俯视战斗场地：按住方向键或 A D 连续左右移动，空格释放技能。触屏点击任意位置或拖动移动。"
       />
       {arrival ? (
-        <button
-          className="boss-arrival"
-          style={{ '--boss-color': profile.color } as CSSProperties}
-          onClick={() => {
-            skipArrival.current = true;
+        <BossArrival
+          profile={profile}
+          chapterBoss={battle.player.node?.kind === 'boss'}
+          paused={paused}
+          pressureAfterSeconds={
+            battle.pressure ? battle.pressure.nextAt - battle.finalStart : null
+          }
+          onSkip={() => {
+            if (!paused && !document.hidden && battle.inputLocked)
+              skipArrival.current = true;
           }}
-          aria-label={`${profile.name}登场，点击跳过展示并应战`}
-        >
-          <img
-            className="boss-arrival-portrait"
-            src={profile.portrait}
-            alt={profile.name}
-          />
-          <div className="boss-arrival-shade" />
-          <div className="boss-arrival-copy">
-            <span className="boss-arrival-eyebrow">
-              {battle.player.node?.kind === 'boss'
-                ? 'CHAPTER BOSS'
-                : 'GATE KEEPER'}
-            </span>
-            <p>{profile.title}</p>
-            <h2>{profile.name}</h2>
-            <blockquote>「{profile.quote}」</blockquote>
-            <span className="boss-arrival-hint">{profile.hint}</span>
-            {battle.pressure ? (
-              <small>
-                交战 {battle.pressure.nextAt - battle.finalStart}{' '}
-                秒后，周期性受到全屏伤害
-              </small>
-            ) : null}
-            <em>点击应战 · 展示期间战斗暂停</em>
-          </div>
-        </button>
+        />
       ) : null}
     </>
   );

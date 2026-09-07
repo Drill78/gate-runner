@@ -19,8 +19,16 @@ export function drawBattle(
   const scale = Math.max(0.86, Math.min(1.18, w / 520));
   const X = (x: number) => screenX(x, w),
     Y = (y: number) => screenY(y, h);
-  const playerY = Y(0.8),
+  const playerY = Y(VIEW.playerY),
     playerX = X(b.x);
+  const classId = b.player.classId;
+  const attackColor =
+    classId === 'knight'
+      ? '#f4d58a'
+      : classId === 'ranger'
+        ? '#98efbd'
+        : '#d2b3ff';
+  const captions: { entity: Entity; x: number; y: number }[] = [];
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = '#202a28';
   ctx.fillRect(0, 0, w, h);
@@ -69,6 +77,8 @@ export function drawBattle(
     weight = '500',
   ) => {
     ctx.font = `${weight} ${size}px 'Segoe UI','Microsoft YaHei',sans-serif`;
+    const halfText = Math.min(w / 2 - 8, ctx.measureText(text).width / 2 + 4);
+    x = Math.max(halfText + 4, Math.min(w - halfText - 4, x));
     ctx.textAlign = 'center';
     ctx.lineJoin = 'round';
     ctx.lineWidth = 4;
@@ -107,18 +117,47 @@ export function drawBattle(
       e.boss ? '#eb8968' : '#c2ba81',
     );
   };
-  ctx.fillStyle = '#b0d0ad07';
-  ctx.fillRect(playerX - w * 0.13, 80, w * 0.26, playerY - 80);
-  ctx.setLineDash([4, 8]);
-  ctx.strokeStyle = '#b2cda02c';
-  ctx.lineWidth = 1;
-  for (const side of [-1, 1]) {
+  // Short, deterministic strokes provide impact detail without particle state or blur.
+  const sparks = (
+    x: number,
+    y: number,
+    radius: number,
+    color: string,
+    rotation = 0,
+    count = 6,
+  ) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5 * scale;
     ctx.beginPath();
-    ctx.moveTo(playerX + side * w * 0.13, playerY);
-    ctx.lineTo(playerX + side * w * 0.13, 90);
+    const rays = reducedMotion ? Math.min(4, count) : count;
+    for (let i = 0; i < rays; i++) {
+      const angle = rotation + (i * Math.PI * 2) / rays;
+      const inner = radius * 0.48;
+      ctx.moveTo(x + Math.cos(angle) * inner, y + Math.sin(angle) * inner);
+      ctx.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+    }
     ctx.stroke();
-  }
-  ctx.setLineDash([]);
+  };
+  const rune = (x: number, y: number, radius: number, rotation = 0) => {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const angle = rotation + (i * Math.PI) / 3;
+      const px = x + Math.cos(angle) * radius;
+      const py = y + Math.sin(angle) * radius;
+      ctx.moveTo(
+        px - Math.cos(angle) * 3 * scale,
+        py - Math.sin(angle) * 3 * scale,
+      );
+      ctx.lineTo(
+        px + Math.cos(angle) * 3 * scale,
+        py + Math.sin(angle) * 3 * scale,
+      );
+    }
+    ctx.stroke();
+  };
   function soldier(
     x: number,
     y: number,
@@ -157,13 +196,33 @@ export function drawBattle(
     ctx.beginPath();
     ctx.arc(x, y - 4 * s, 4.5 * s, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#e0dcc0';
+    ctx.strokeStyle = !enemy && leader ? attackColor : '#e0dcc0';
     ctx.lineWidth = 2 * s;
     ctx.beginPath();
-    ctx.moveTo(x + 10 * s, y + 2 * s);
-    ctx.lineTo(x + 11 * s, y - 17 * s);
+    if (!enemy && leader && classId === 'ranger') {
+      ctx.arc(x + 9 * s, y - 4 * s, 11 * s, -Math.PI / 2, Math.PI / 2);
+      ctx.moveTo(x + 9 * s, y - 15 * s);
+      ctx.lineTo(x + 9 * s, y + 7 * s);
+    } else {
+      ctx.moveTo(x + 10 * s, y + 2 * s);
+      ctx.lineTo(x + 11 * s, y - 17 * s);
+      if (!enemy && leader && classId === 'knight') {
+        ctx.moveTo(x + 7 * s, y - 7 * s);
+        ctx.lineTo(x + 14 * s, y - 7 * s);
+      }
+    }
     ctx.stroke();
-    if (leader || (!enemy && b.player.classId === 'knight'))
+    if (!enemy && leader && classId === 'mage') {
+      ctx.fillStyle = '#ebdbff';
+      ctx.beginPath();
+      ctx.moveTo(x + 11 * s, y - 22 * s);
+      ctx.lineTo(x + 15 * s, y - 17 * s);
+      ctx.lineTo(x + 11 * s, y - 12 * s);
+      ctx.lineTo(x + 7 * s, y - 17 * s);
+      ctx.closePath();
+      ctx.fill();
+    }
+    if ((enemy && leader) || (!enemy && classId === 'knight'))
       round(x - 14 * s, y - 7 * s, 7 * s, 12 * s, 2 * s, color, '#cdbb84');
   }
   function gates(e: Entity) {
@@ -174,32 +233,64 @@ export function drawBattle(
         right = X(g.right),
         gw = right - x,
         gh = 67 * scale;
-      const pos = g.op === '+' || g.op === '×';
-      const color = !pos ? '#ef9a81' : g.op === '×' ? '#9cdaed' : '#badc8e';
+      const squared = g.op === '²';
+      const pos = g.op === '+' || g.op === '×' || squared;
+      const color = !pos
+        ? e.trialStep
+          ? '#ff8976'
+          : '#ef9a81'
+        : squared
+          ? '#e6c0ff'
+          : g.op === '×'
+            ? '#9cdaed'
+            : '#badc8e';
       ctx.save();
       ctx.shadowColor = color;
-      ctx.shadowBlur = 11;
+      ctx.shadowBlur = reducedMotion ? 0 : 6;
       round(
         x,
         y - gh / 2,
         gw,
         gh,
         4,
-        !pos ? '#5b322fe8' : g.op === '×' ? '#254856eF' : '#354b2aeF',
+        !pos
+          ? '#5b322fe8'
+          : squared
+            ? '#50395ceF'
+            : g.op === '×'
+              ? '#254856eF'
+              : '#354b2aeF',
         color,
       );
       ctx.shadowBlur = 0;
-      ctx.fillStyle = color;
+      ctx.fillStyle = squared ? '#e8c989' : color;
       ctx.fillRect(x, y - gh / 2, 3, gh);
       ctx.fillRect(right - 3, y - gh / 2, 3, gh);
       const font = Math.max(
         20,
         Math.min(34 * scale, gw / (gateLabel(g).length * 0.65)),
       );
-      label(gateLabel(g), (x + right) / 2, y + 6 * scale, font, color, '700');
-      if (gw > 65)
+      label(
+        gateLabel(g),
+        (x + right) / 2,
+        y + 6 * scale,
+        font,
+        squared ? '#ffdeb0' : color,
+        '700',
+      );
+      if (gw > 65 || squared || g.op === '√')
         label(
-          pos ? (g.op === '×' ? '倍增' : '招募') : '损耗',
+          e.trialStep
+            ? `必经红门 ${e.trialStep}/5`
+            : squared
+              ? '平方'
+              : g.op === '√'
+                ? '开方'
+                : pos
+                  ? g.op === '×'
+                    ? '倍增'
+                    : '招募'
+                  : '损耗',
           (x + right) / 2,
           y - 19 * scale,
           Math.max(12, 12 * scale),
@@ -238,7 +329,7 @@ export function drawBattle(
         ch = 31 * scale;
       ctx.save();
       ctx.shadowColor = '#e8b14f';
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = reducedMotion ? 0 : 6;
       round(x - cw / 2, y - ch / 2, cw, ch, 5, '#805936', '#ebc877');
       ctx.shadowBlur = 0;
       ctx.fillStyle = '#d4b674';
@@ -247,16 +338,7 @@ export function drawBattle(
       ctx.fillRect(x + 9 * scale, y - ch / 2, 4 * scale, ch);
       round(x - 4, y - 6, 8, 11, 1, '#f9db8b');
       ctx.restore();
-      hpBar(e, x, y - 29 * scale, 65 * scale);
-      label(
-        e.reward === 'weapon' ? '兵装秘匣' : '补给宝箱',
-        x,
-        y - 39 * scale,
-        Math.max(14, 14 * scale),
-        '#f4d896',
-        '600',
-      );
-      label(`${Math.ceil(e.hp)}`, x, y + 37 * scale, 13, '#e4dab7');
+      captions.push({ entity: e, x, y });
       return;
     }
     if (e.boss) {
@@ -286,28 +368,14 @@ export function drawBattle(
         false,
         true,
       );
-      hpBar(e, x, y - 40 * scale, 72 * scale);
-      label(
-        e.name,
-        x,
-        y - 53 * scale,
-        Math.max(14, 14 * scale),
-        '#eee4c6',
-        '600',
-      );
-      label(
-        `${Math.ceil(e.hp)}${e.armor ? ' ◈' : ''}`,
-        x,
-        y + 40 * scale,
-        13,
-        '#e0d4b3',
-      );
+      captions.push({ entity: e, x, y });
     }
     if (e.boss) {
       const act = Math.floor(b.player.floor / 4);
       if (b.player.node?.kind === 'boss' && act === 1) {
         for (let i = 0; i < 5; i++) {
-          const angle = b.time * 0.8 + (i * Math.PI * 2) / 5;
+          const angle =
+            (reducedMotion ? 0 : b.time * 0.8) + (i * Math.PI * 2) / 5;
           ctx.fillStyle = '#c5b0ff';
           ctx.beginPath();
           ctx.arc(
@@ -336,6 +404,125 @@ export function drawBattle(
       ctx.fill();
     }
   }
+  // Skills sit behind combat silhouettes; only their short accents move.
+  if (b.skillFlash > 0) {
+    const progress = Math.max(0, Math.min(1, 1 - b.skillFlash / 0.7));
+    const spread = reducedMotion ? 0.42 : progress;
+    ctx.save();
+    ctx.strokeStyle = attackColor;
+    ctx.fillStyle = attackColor;
+    ctx.globalAlpha = (1 - progress) * 0.75;
+    ctx.lineWidth = 2 * scale;
+    if (classId === 'knight') {
+      const radius = (35 + spread * 62) * scale;
+      for (let i = 0; i < 2; i++) {
+        ctx.beginPath();
+        ctx.ellipse(
+          playerX,
+          playerY + 9 * scale,
+          radius + i * 12 * scale,
+          radius * 0.56 + i * 6 * scale,
+          0,
+          Math.PI * 1.05,
+          Math.PI * 1.95,
+        );
+        ctx.stroke();
+      }
+      // A shield crest signals protection rather than a damaging projectile.
+      const cy = playerY - 67 * scale;
+      ctx.beginPath();
+      ctx.moveTo(playerX, cy - 18 * scale);
+      ctx.lineTo(playerX + 17 * scale, cy - 11 * scale);
+      ctx.lineTo(playerX + 13 * scale, cy + 8 * scale);
+      ctx.lineTo(playerX, cy + 21 * scale);
+      ctx.lineTo(playerX - 13 * scale, cy + 8 * scale);
+      ctx.lineTo(playerX - 17 * scale, cy - 11 * scale);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(playerX, cy - 8 * scale);
+      ctx.lineTo(playerX, cy + 10 * scale);
+      ctx.moveTo(playerX - 7 * scale, cy - 1 * scale);
+      ctx.lineTo(playerX + 7 * scale, cy - 1 * scale);
+      ctx.stroke();
+    } else if (classId === 'ranger') {
+      const arrows = reducedMotion ? 5 : 9;
+      for (let i = 0; i < arrows; i++) {
+        const x = w * (0.12 + (i * 0.76) / (arrows - 1));
+        const row = (i * 0.37) % 1;
+        const y =
+          Y(-0.1) + (playerY - Y(-0.1) - 50) * ((row + spread * 0.48) % 1);
+        const length = (reducedMotion ? 18 : 32) * scale;
+        ctx.beginPath();
+        ctx.moveTo(x - length * 0.25, y - length);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x - 6 * scale, y - 5 * scale);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 3 * scale, y - 8 * scale);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.ellipse(
+        playerX,
+        playerY + 8 * scale,
+        38 * scale,
+        18 * scale,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+    } else {
+      const radius = (30 + spread * 95) * scale;
+      rune(playerX, playerY, radius, reducedMotion ? 0 : progress * 0.4);
+      ctx.globalAlpha *= 0.65;
+      rune(playerX, playerY, radius * 0.72, Math.PI / 6);
+      sparks(playerX, playerY, radius + 12 * scale, '#eadbff', Math.PI / 6);
+    }
+    ctx.restore();
+  }
+  if (b.pressure && b.pressure.flashUntil > b.time) {
+    const pulse = Math.max(
+      0,
+      Math.min(1, 1 - (b.pressure.flashUntil - b.time) / 0.7),
+    );
+    const color = ['#c0ce8a', '#c9aff0', '#ffb185'][
+      Math.min(2, Math.floor(b.player.floor / 4))
+    ];
+    const spread = reducedMotion ? 0.18 : pulse;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = (1 - pulse) * 0.65;
+    ctx.lineWidth = (reducedMotion ? 2 : 3) * scale;
+    ctx.beginPath();
+    ctx.ellipse(
+      playerX,
+      playerY + 10,
+      34 + spread * w,
+      17 + spread * h * 0.55,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    // Broken ground rays distinguish an unavoidable pulse from an aim warning.
+    const rays = reducedMotion ? 4 : 6;
+    ctx.beginPath();
+    for (let i = 0; i < rays; i++) {
+      const angle = (i * Math.PI * 2) / rays + Math.PI / 6;
+      const length = (35 + spread * 72) * scale;
+      const cx = Math.cos(angle),
+        sy = Math.sin(angle) * 0.55;
+      ctx.moveTo(playerX + cx * 27 * scale, playerY + sy * 27 * scale);
+      ctx.lineTo(
+        playerX + cx * length * 0.7 + sy * 7,
+        playerY + sy * length * 0.7,
+      );
+      ctx.lineTo(playerX + cx * length, playerY + sy * length);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
   b.entities
     .filter((e) => !e.done && e.start <= b.time + VIEW.previewSeconds)
     .sort((a, z) => worldY(a, b.time) - worldY(z, b.time))
@@ -345,18 +532,101 @@ export function drawBattle(
       entity(e);
       ctx.restore();
     });
-  ctx.setLineDash([3, 10]);
-  ctx.strokeStyle = '#c5d9b323';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(X(-0.94), Y(-0.1));
-  ctx.lineTo(X(0.94), Y(-0.1));
-  ctx.stroke();
-  ctx.setLineDash([]);
-  label('射程', X(0.85), Y(-0.1) - 9, 11, '#a8bdaa');
+  for (const bullet of b.bullets) {
+    if (b.time < bullet.spawnAt) continue;
+    const x = X(bullet.x),
+      y = Y(bullet.y);
+    if (y < -30 || y > h + 30 || x < -30 || x > w + 30) continue;
+    const age = Math.max(0, b.time - bullet.spawnAt);
+    const trailAge = Math.min(age, reducedMotion ? 0.025 : 0.085);
+    const tailX = X(bullet.x - bullet.vx * trailAge);
+    const tailY = Y(bullet.y - bullet.vy * trailAge);
+    const dx = X(bullet.vx) - X(0),
+      dy = Y(bullet.vy) - Y(0);
+    const angle = Math.atan2(dy, dx);
+    const radius = Math.max(3, bullet.radius * w * 0.455);
+    const color =
+      bullet.kind === 'blade'
+        ? '#f4d58a'
+        : bullet.kind === 'arrow'
+          ? '#98efbd'
+          : bullet.kind === 'shard'
+            ? attackColor
+            : '#d2b3ff';
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = reducedMotion ? 0.3 : 0.48;
+    ctx.lineWidth = Math.max(1.5, radius * 0.45);
+    ctx.beginPath();
+    ctx.moveTo(tailX, tailY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    if (bullet.pierceLeft > 0) {
+      const offsetX = -Math.sin(angle) * radius * 0.55;
+      const offsetY = Math.cos(angle) * radius * 0.55;
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (const side of [-1, 1]) {
+        ctx.moveTo(tailX + offsetX * side, tailY + offsetY * side);
+        ctx.lineTo(x + offsetX * side, y + offsetY * side);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = bullet.critical ? '#fff7d8' : color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.2 * scale;
+    if (bullet.kind === 'blade') {
+      ctx.beginPath();
+      ctx.moveTo(-radius * 0.5, -radius);
+      ctx.quadraticCurveTo(radius * 1.55, 0, -radius * 0.5, radius);
+      ctx.quadraticCurveTo(radius * 0.35, 0, -radius * 0.5, -radius);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-radius * 0.6, -radius * 0.65);
+      ctx.lineTo(-radius * 0.9, radius * 0.65);
+      ctx.stroke();
+    } else if (bullet.kind === 'arrow') {
+      ctx.beginPath();
+      ctx.moveTo(-radius * 2.3, 0);
+      ctx.lineTo(radius * 0.35, 0);
+      ctx.moveTo(-radius * 1.7, 0);
+      ctx.lineTo(-radius * 2.2, -radius * 0.45);
+      ctx.moveTo(-radius * 1.7, 0);
+      ctx.lineTo(-radius * 2.2, radius * 0.45);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(-radius * 0.4, -radius * 0.65);
+      ctx.lineTo(-radius * 0.13, 0);
+      ctx.lineTo(-radius * 0.4, radius * 0.65);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(0, -radius * (bullet.kind === 'shard' ? 0.5 : 0.8));
+      ctx.lineTo(-radius, 0);
+      ctx.lineTo(0, radius * (bullet.kind === 'shard' ? 0.5 : 0.8));
+      ctx.closePath();
+      ctx.fill();
+      if (bullet.kind === 'bolt') {
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, -Math.PI * 0.3, Math.PI * 0.3);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   for (const p of b.projectiles) {
     if (b.time < p.spawnAt - 0.4) continue;
-    const pos = projectilePosition(p, b.time),
+    const pos = projectilePosition(p, Math.min(b.time, p.impactAt)),
       x = X(pos.x),
       y = Y(pos.y);
     if (y > h + 25 || y < -25) continue;
@@ -367,31 +637,64 @@ export function drawBattle(
           ? '#ffb47f'
           : '#e7d4a2';
     ctx.save();
-    ctx.globalAlpha = p.resolved ? 0.4 : 1;
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     if (b.time < p.spawnAt) {
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(x, y, 12 + (p.spawnAt - b.time) * 8, 0, Math.PI * 2);
+      ctx.arc(
+        x,
+        y,
+        12 + (reducedMotion ? 0 : (p.spawnAt - b.time) * 8),
+        0,
+        Math.PI * 2,
+      );
       ctx.stroke();
       ctx.restore();
       continue;
     }
-    const previous = projectilePosition(p, b.time - 0.12);
-    ctx.lineWidth = 3;
-    ctx.globalAlpha *= 0.5;
-    ctx.beginPath();
-    ctx.moveTo(X(previous.x), Y(previous.y));
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.globalAlpha = p.resolved ? 0.35 : 1;
     const radius = Math.max(5, p.radius * w * 0.455);
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 12;
+    if (p.resolved) {
+      const fade = Math.max(0, 1 - (b.time - p.impactAt) / 0.45);
+      ctx.globalAlpha = fade * 0.55;
+      // Every projectile lands here, including misses; this is a small ground impact.
+      sparks(
+        x,
+        y,
+        radius * (reducedMotion ? 1 : 1 + (1 - fade) * 1.6),
+        color,
+        p.phase,
+        5,
+      );
+      ctx.restore();
+      continue;
+    }
+    const segments = reducedMotion ? 1 : 3;
+    const trailTime = reducedMotion ? 0.035 : 0.13;
+    for (let i = segments; i > 0; i--) {
+      const previous = projectilePosition(
+        p,
+        Math.max(p.spawnAt, b.time - (trailTime * i) / segments),
+      );
+      const next = projectilePosition(
+        p,
+        Math.max(p.spawnAt, b.time - (trailTime * (i - 1)) / segments),
+      );
+      ctx.globalAlpha = 0.14 + 0.13 * (segments - i);
+      ctx.lineWidth =
+        Math.max(1.5, radius * (p.kind === 'ember' ? 0.9 : 0.35)) *
+        (1 - (i - 1) / (segments + 1));
+      ctx.beginPath();
+      ctx.moveTo(X(previous.x), Y(previous.y));
+      ctx.lineTo(X(next.x), Y(next.y));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1.3 * scale;
+    ctx.strokeStyle = '#18221e';
     if (p.kind === 'star') {
       ctx.translate(x, y);
-      ctx.rotate(b.time * 2 + p.phase);
+      ctx.rotate((reducedMotion ? 0 : b.time * 2) + p.phase);
       ctx.beginPath();
       for (let i = 0; i < 8; i++) {
         const a = (i * Math.PI) / 4,
@@ -403,20 +706,56 @@ export function drawBattle(
       }
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#f4eaff';
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.24, 0, Math.PI * 2);
+      ctx.fill();
     } else if (p.kind === 'axe') {
       ctx.translate(x, y);
-      ctx.rotate(b.time * 8);
-      ctx.lineWidth = 3;
+      ctx.rotate(reducedMotion ? p.phase : b.time * 8);
+      ctx.strokeStyle = '#473d2c';
+      ctx.lineWidth = 4 * scale;
       ctx.beginPath();
       ctx.moveTo(-radius, 0);
       ctx.lineTo(radius, 0);
       ctx.stroke();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5 * scale;
+      ctx.stroke();
       ctx.beginPath();
-      ctx.arc(radius * 0.55, 0, radius * 0.72, -Math.PI / 2, Math.PI / 2);
+      ctx.moveTo(radius * 0.2, -radius * 0.3);
+      ctx.quadraticCurveTo(
+        radius * 0.6,
+        -radius * 0.85,
+        radius,
+        -radius * 0.75,
+      );
+      ctx.quadraticCurveTo(radius * 0.52, 0, radius, radius * 0.75);
+      ctx.quadraticCurveTo(
+        radius * 0.6,
+        radius * 0.85,
+        radius * 0.2,
+        radius * 0.3,
+      );
+      ctx.closePath();
       ctx.fill();
+      ctx.strokeStyle = '#fff1c9';
+      ctx.lineWidth = 1 * scale;
+      ctx.stroke();
     } else {
+      ctx.fillStyle = '#e27642';
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffcf8f';
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 0.66, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff2ca';
+      ctx.beginPath();
+      ctx.arc(x, y - radius * 0.16, radius * 0.3, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -443,7 +782,13 @@ export function drawBattle(
   }
   if (b.ritual) {
     const cast = b.ritual,
-      t = (b.time - cast.startedAt) / (cast.resolveAt - cast.startedAt);
+      t = Math.max(
+        0,
+        Math.min(
+          1,
+          (b.time - cast.startedAt) / (cast.resolveAt - cast.startedAt),
+        ),
+      );
     ctx.strokeStyle = cast.interruptible ? '#d2b3ee' : '#ffc592';
     ctx.lineWidth = 2;
     ctx.globalAlpha = 0.2 + t * 0.5;
@@ -451,8 +796,8 @@ export function drawBattle(
     ctx.ellipse(
       playerX,
       playerY,
-      Math.max(22, (1 - t) * w * 0.8),
-      Math.max(10, (1 - t) * h * 0.5),
+      reducedMotion ? 42 * scale : Math.max(22, (1 - t) * w * 0.8),
+      reducedMotion ? 24 * scale : Math.max(10, (1 - t) * h * 0.5),
       0,
       0,
       Math.PI * 2,
@@ -494,7 +839,139 @@ export function drawBattle(
     );
     ctx.stroke();
   }
-  // The army count travels with the commander so growth is readable at a glance.
+  let impactCount = 0;
+  let burstCount = 0;
+  for (const e of b.effects) {
+    if (e.type === 'text' || e.type === 'shot') continue;
+    const x = X(e.x),
+      y = Y(e.y);
+    if (e.type === 'impact') {
+      if (++impactCount > (reducedMotion ? 12 : 24)) continue;
+      const progress = Math.max(0, Math.min(1, 1 - e.life / 0.26));
+      const radius = (reducedMotion ? 9 : 6 + progress * 13) * scale;
+      ctx.save();
+      ctx.globalAlpha = (1 - progress) * 0.85;
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 2 * scale;
+      if (classId === 'knight') {
+        ctx.beginPath();
+        ctx.moveTo(x - radius * 0.7, y + radius);
+        ctx.lineTo(x + radius * 0.7, y - radius);
+        ctx.moveTo(x - radius * 0.65, y - radius * 0.45);
+        ctx.lineTo(x + radius * 0.65, y + radius * 0.45);
+        ctx.stroke();
+        sparks(x, y, radius * 0.7, '#ffedc1', Math.PI / 4, 4);
+      } else if (classId === 'ranger') {
+        sparks(x, y, radius, e.color, Math.PI / 6);
+        ctx.fillStyle = '#e8fff1';
+        ctx.fillRect(x - 1.5 * scale, y - 1.5 * scale, 3 * scale, 3 * scale);
+      } else {
+        ctx.beginPath();
+        for (let i = 0; i < (reducedMotion ? 3 : 4); i++) {
+          const angle = (i * Math.PI) / 2 + Math.PI / 4;
+          const dx = Math.cos(angle),
+            dy = Math.sin(angle);
+          ctx.moveTo(x + dx * radius * 0.25, y + dy * radius * 0.25);
+          ctx.lineTo(
+            x + dx * radius * 0.55 - dy * 3 * scale,
+            y + dy * radius * 0.55 + dx * 3 * scale,
+          );
+          ctx.lineTo(x + dx * radius, y + dy * radius);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = '#eee2ff';
+        rune(x, y, radius * 0.35);
+      }
+      ctx.restore();
+    } else if (e.type === 'burst') {
+      if (++burstCount > (reducedMotion ? 8 : 16)) continue;
+      const progress = Math.max(0, Math.min(1, 1 - e.life / 0.65));
+      const radius = (reducedMotion ? 14 : 8 + progress * 28) * scale;
+      ctx.save();
+      ctx.globalAlpha = (1 - progress) * 0.8;
+      sparks(x, y, radius, e.color, Math.PI / 8, 8);
+      ctx.globalAlpha *= 0.5;
+      ctx.lineWidth = 1.5 * scale;
+      ctx.beginPath();
+      ctx.ellipse(
+        x,
+        y + 3 * scale,
+        radius * 0.75,
+        radius * 0.4,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+  if (b.flash > 0) {
+    const fade = Math.min(1, b.flash / 0.3);
+    ctx.fillStyle = `rgba(170,42,29,${reducedMotion ? b.flash * 0.4 : b.flash})`;
+    ctx.fillRect(0, 0, w, h);
+    ctx.save();
+    ctx.globalAlpha = fade * 0.8;
+    sparks(
+      playerX,
+      playerY,
+      (reducedMotion ? 30 : 24 + (1 - fade) * 20) * scale,
+      b.message.startsWith('护盾吸收') ? '#ffe3a0' : '#ffb59c',
+      Math.PI / 4,
+      4,
+    );
+    ctx.restore();
+  }
+  // Combat captions remain above decorative effects. Boss HP belongs to the UI.
+  for (const { entity: e, x, y } of captions) {
+    ctx.save();
+    if (e.start > b.time) ctx.globalAlpha = 0.62;
+    if (e.kind === 'chest') {
+      hpBar(e, x, y - 29 * scale, 65 * scale);
+      label(
+        e.reward === 'weapon' ? '兵装秘匣' : '补给宝箱',
+        x,
+        y - 39 * scale,
+        Math.max(14, 14 * scale),
+        '#f4d896',
+        '600',
+      );
+      label(`${Math.ceil(e.hp)}`, x, y + 37 * scale, 13, '#e4dab7');
+    } else {
+      hpBar(e, x, y - 40 * scale, 72 * scale);
+      label(
+        e.name,
+        x,
+        y - 53 * scale,
+        Math.max(14, 14 * scale),
+        '#eee4c6',
+        '600',
+      );
+      label(
+        `${Math.ceil(e.hp)}${e.armor ? ' ◈' : ''}`,
+        x,
+        y + 40 * scale,
+        13,
+        '#e0d4b3',
+      );
+    }
+    ctx.restore();
+  }
+  for (const e of b.effects) {
+    if (e.type !== 'text') continue;
+    ctx.globalAlpha = Math.min(1, e.life * 3);
+    label(
+      e.text,
+      X(e.x),
+      Y(e.y) - (reducedMotion ? 10 : (1.3 - e.life) * 16),
+      e.text.length > 8 ? 13 : 19,
+      e.color,
+      '700',
+    );
+  }
+  ctx.globalAlpha = 1;
+  // The army count travels with the commander and is never dimmed by hit flashes.
   label(
     formatNumber(b.player.squad),
     playerX,
@@ -503,71 +980,4 @@ export function drawBattle(
     '#fff0bd',
     '800',
   );
-  if (b.pressure && b.pressure.flashUntil > b.time) {
-    const pulse = 1 - (b.pressure.flashUntil - b.time) / 0.7;
-    ctx.strokeStyle = ['#c0ce8a', '#c9aff0', '#ffb185'][
-      Math.floor(b.player.floor / 4)
-    ];
-    ctx.globalAlpha = 1 - pulse;
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.ellipse(
-      playerX,
-      playerY,
-      30 + pulse * w,
-      15 + pulse * h * 0.6,
-      0,
-      0,
-      Math.PI * 2,
-    );
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  for (const e of b.effects) {
-    ctx.globalAlpha = Math.min(1, e.life * 3);
-    const x = X(e.x),
-      y = Y(e.y);
-    if (e.type === 'text')
-      label(
-        e.text,
-        x,
-        y - (1.3 - e.life) * 16,
-        e.text.length > 8 ? 13 : 19,
-        e.color,
-        '700',
-      );
-    else if (e.type === 'shot') {
-      ctx.strokeStyle = e.color;
-      ctx.lineWidth = b.player.classId === 'mage' ? 3 : 2;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(X(e.targetX!), Y(e.targetY!));
-      ctx.stroke();
-    } else
-      for (let i = 0; i < 8; i++) {
-        const radius = (0.7 - e.life) * 65,
-          angle = (i * Math.PI) / 4;
-        ctx.fillStyle = e.color;
-        ctx.fillRect(
-          x + Math.cos(angle) * radius,
-          y + Math.sin(angle) * radius,
-          3,
-          3,
-        );
-      }
-  }
-  ctx.globalAlpha = 1;
-  if (b.skillFlash > 0) {
-    ctx.globalAlpha = b.skillFlash;
-    ctx.strokeStyle = hero.color;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(playerX, playerY, (0.75 - b.skillFlash) * w, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  if (b.flash > 0) {
-    ctx.fillStyle = `rgba(170,42,29,${b.flash})`;
-    ctx.fillRect(0, 0, w, h);
-  }
 }

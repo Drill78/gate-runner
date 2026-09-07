@@ -203,6 +203,86 @@ export const RELICS: Relic[] = [
     icon: 'flag',
   },
   {
+    id: 'split',
+    name: '双翼符印',
+    family: 'all',
+    tag: '散射',
+    rarity: '稀有',
+    desc: '每层增加左右一对斜向副弹，每枚造成主弹 50% 伤害。',
+    max: 2,
+    icon: 'copy',
+  },
+  {
+    id: 'pierce',
+    name: '贯阵尖锥',
+    family: 'all',
+    tag: '穿透',
+    rarity: '稀有',
+    desc: '每层多穿透 1 个目标，每次穿透后保留 75% 伤害。',
+    max: 3,
+    icon: 'sword',
+  },
+  {
+    id: 'velocity',
+    name: '疾风导环',
+    family: 'all',
+    tag: '弹速',
+    rarity: '普通',
+    desc: '弹体飞行速度 +25%。',
+    max: 2,
+    icon: 'spark',
+  },
+  {
+    id: 'blast',
+    name: '炼金火芯',
+    family: 'all',
+    tag: '爆裂',
+    rarity: '稀有',
+    desc: '命中时，对周围其他目标造成弹体伤害 30% 的范围伤害。',
+    max: 3,
+    icon: 'flame',
+  },
+  {
+    id: 'heavy',
+    name: '铅铸重弹',
+    family: 'all',
+    tag: '重击',
+    rarity: '普通',
+    desc: '主弹伤害 +25%，攻击速度 −10%。',
+    max: 2,
+    icon: 'sword',
+  },
+  {
+    id: 'focus',
+    name: '聚能刻印',
+    family: 'all',
+    tag: '稳准',
+    rarity: '普通',
+    desc: '弹体半径 +30%，伤害 +10%。',
+    max: 2,
+    icon: 'target',
+  },
+  {
+    id: 'execute',
+    name: '终猎契印',
+    family: 'all',
+    tag: '斩杀',
+    rarity: '稀有',
+    desc: '对生命低于 30% 的目标，额外伤害 +20%。',
+    max: 2,
+    icon: 'target',
+  },
+  {
+    id: 'square_key',
+    name: '禁术钥印',
+    family: 'all',
+    tag: '禁术',
+    rarity: '史诗',
+    desc: '下一次精英关开启禁术试炼：先通过5道必经削减门，再争夺极窄平方门。本局限一次。',
+    max: 1,
+    icon: 'key',
+  },
+  {
     id: 'bulwark',
     name: '圣誓壁垒',
     family: 'knight',
@@ -298,7 +378,7 @@ export const RELICS: Relic[] = [
     family: 'ranger',
     tag: '猎杀',
     rarity: '稀有',
-    desc: '暴击时，对另一个可见目标造成 60% 伤害。',
+    desc: '暴击命中后向前两侧发射 2 枚 30%/层伤害碎片，不再次分裂。',
     max: 3,
     icon: 'spark',
   },
@@ -338,7 +418,7 @@ export const RELICS: Relic[] = [
     family: 'mage',
     tag: '奥术',
     rarity: '稀有',
-    desc: '每三次攻击触发一次 80% 伤害的额外命中。',
+    desc: '每三次齐射，沿原轨迹追加 1 枚 80%/层伤害弹体。',
     max: 3,
     icon: 'spark',
   },
@@ -404,6 +484,7 @@ export interface Run {
   gold: number;
   weaponTier: number;
   relics: Record<string, number>;
+  squareGateSeen: boolean;
   nodes: RouteNode[][];
   path: string[];
   node: RouteNode | null;
@@ -467,6 +548,7 @@ export function createRun(classId: ClassId, seed = 12345): Run {
     gold: 40,
     weaponTier: 1,
     relics: {},
+    squareGateSeen: false,
     nodes: createMap(seed),
     path: [],
     node: null,
@@ -551,11 +633,13 @@ export function stats(run: Run, shield = 0) {
       (1 + (experience(run).level - 1) * 0.02) *
       (1 + (run.weaponTier - 1) * 0.1) *
       (1 + r('steel') * 0.2 + r('surge') * 0.25) *
+      (1 + r('heavy') * 0.25 + r('focus') * 0.1) *
       (1 + shield * r('bash') * 0.005) *
       (synergy && warrior ? 1.15 : 1),
     rate:
       (ranger ? 3.5 : 2.7) *
-      (1 + r('quiver') * 0.2 + (synergy && run.classId === 'mage' ? 0.2 : 0)),
+      (1 + r('quiver') * 0.2 + (synergy && run.classId === 'mage' ? 0.2 : 0)) *
+      (1 - r('heavy') * 0.1),
     crit: Math.min(
       0.85,
       (ranger ? 0.2 : 0.05) +
@@ -570,18 +654,28 @@ export function stats(run: Run, shield = 0) {
     gateMult: r('mirror') * 0.08,
     summon: (run.classId === 'mage' ? 2 : 0) + r('summon') * 3 + r('army') * 3,
     cooldown: 12 - (r('paladin') + r('hunter') + r('archmage')) * 4,
+    bulletSpeed: 1.7 * (1 + r('velocity') * 0.25),
+    bulletRadius: 0.025 * (1 + r('focus') * 0.3),
+    extraPairs: r('split'),
+    pierceCount: r('pierce'),
+    blast: r('blast'),
+    execute: r('execute'),
     synergy,
   };
+}
+export function availableRelics(run: Run): Relic[] {
+  return RELICS.filter(
+    (r) =>
+      r.id !== 'square_key' &&
+      (r.family === 'all' || r.family === run.classId) &&
+      (run.relics[r.id] || 0) < r.max,
+  );
 }
 export function rollRewards(run: Run, elite = false): string[] {
   const random = rng(
     run.seed + run.floor * 233 + run.path.length * 19 + run.gold,
   );
-  const pool = RELICS.filter(
-    (r) =>
-      (r.family === 'all' || r.family === run.classId) &&
-      (run.relics[r.id] || 0) < r.max,
-  );
+  const pool = availableRelics(run);
   const out: string[] = [];
   for (let i = 0; i < 3 && pool.length; i++) {
     const weighted = pool.filter((r) =>
@@ -595,6 +689,18 @@ export function rollRewards(run: Run, elite = false): string[] {
     const chosen = candidates[Math.floor(random() * candidates.length)];
     out.push(chosen.id);
     pool.splice(pool.indexOf(chosen), 1);
+  }
+  if (
+    elite &&
+    run.phase === 'reward' &&
+    (run.node?.kind === 'elite' || run.node?.kind === 'boss') &&
+    run.floor >= 4 &&
+    !run.relics.square_key &&
+    !run.squareGateSeen &&
+    random() < 0.12
+  ) {
+    if (out.length >= 3) out[2] = 'square_key';
+    else out.push('square_key');
   }
   return out;
 }
@@ -646,13 +752,50 @@ export function restAction(run: Run, action: 'heal' | 'forge'): Run {
   }
   return completeRoom(n, false);
 }
-export const SHOP_ITEMS = [
+export type ShopCategory = '补给' | '弹幕' | '职业';
+interface ShopItemBase {
+  id: string;
+  name: string;
+  desc: string;
+  cost: number;
+  icon: string;
+  category: ShopCategory;
+}
+export type ShopItem = ShopItemBase &
+  (
+    | { kind: 'heal' | 'recruits'; amount: number }
+    | { kind: 'weapon' | 'random-relic' }
+    | { kind: 'relic'; relicId: string }
+  );
+
+function relicWare(
+  relicId: string,
+  cost: number,
+  category: ShopCategory = '弹幕',
+): ShopItem {
+  const relic = RELIC_BY_ID[relicId];
+  return {
+    id: `relic-${relicId}`,
+    name: relic.name,
+    desc: relic.desc,
+    cost,
+    icon: relic.icon,
+    category,
+    kind: 'relic',
+    relicId,
+  };
+}
+
+export const SHOP_ITEMS: readonly ShopItem[] = [
   {
     id: 'potion',
     name: '绯红药剂',
     desc: '恢复 40 生命',
     cost: 35,
     icon: 'heart',
+    category: '补给',
+    kind: 'heal',
+    amount: 40,
   },
   {
     id: 'soldiers',
@@ -660,6 +803,9 @@ export const SHOP_ITEMS = [
     desc: '招募 18 名队员',
     cost: 45,
     icon: 'users',
+    category: '补给',
+    kind: 'recruits',
+    amount: 18,
   },
   {
     id: 'weapon',
@@ -667,36 +813,109 @@ export const SHOP_ITEMS = [
     desc: '武器等级 +1',
     cost: 70,
     icon: 'sword',
+    category: '补给',
+    kind: 'weapon',
   },
   {
     id: 'relic',
     name: '神秘遗物',
-    desc: '获得一项随机职业强化',
+    desc: '获得一项随机强化，优先本职业',
     cost: 85,
     icon: 'spark',
+    category: '职业',
+    kind: 'random-relic',
   },
+  {
+    id: 'tonic',
+    name: '琥珀复苏酿',
+    desc: '恢复 80 生命',
+    cost: 60,
+    icon: 'heart',
+    category: '补给',
+    kind: 'heal',
+    amount: 80,
+  },
+  {
+    id: 'company',
+    name: '整编佣兵团',
+    desc: '招募 50 名队员',
+    cost: 100,
+    icon: 'users',
+    category: '补给',
+    kind: 'recruits',
+    amount: 50,
+  },
+  relicWare('vitality', 95, '补给'),
+  relicWare('split', 155),
+  relicWare('pierce', 125),
+  relicWare('velocity', 75),
+  relicWare('blast', 145),
+  relicWare('heavy', 85),
+  relicWare('focus', 85),
+  relicWare('execute', 110),
+  relicWare('bash', 145, '职业'),
+  relicWare('deadeye', 145, '职业'),
+  relicWare('echo', 145, '职业'),
 ];
+
+export function shopInventory(run: Pick<Run, 'classId'>): ShopItem[] {
+  return SHOP_ITEMS.filter((item) => {
+    if (item.kind !== 'relic') return true;
+    const relic = RELIC_BY_ID[item.relicId];
+    return relic && (relic.family === 'all' || relic.family === run.classId);
+  });
+}
+
+export function shopItemAvailability(
+  run: Run,
+  id: string,
+): { available: boolean; reason: string } {
+  const item = SHOP_ITEMS.find((entry) => entry.id === id);
+  const unavailable = (reason: string) => ({ available: false, reason });
+  if (!item) return unavailable('商品不存在');
+  if (run.phase !== 'shop') return unavailable('当前不在商店');
+  if (run.purchases.includes(id)) return unavailable('本店已购买');
+  if (item.kind === 'heal' && run.hp >= run.maxHp)
+    return unavailable('生命已满');
+  if (item.kind === 'weapon' && run.weaponTier >= 10)
+    return unavailable('武器已满级');
+  if (
+    item.kind === 'recruits' &&
+    safeTroops(run.squad + item.amount) <= run.squad
+  )
+    return unavailable('兵力已达上限');
+  if (item.kind === 'relic') {
+    const relic = RELIC_BY_ID[item.relicId];
+    if (!relic || (relic.family !== 'all' && relic.family !== run.classId))
+      return unavailable('该职业无法使用');
+    if ((run.relics[relic.id] || 0) >= relic.max)
+      return unavailable('强化已满层');
+  }
+  if (item.kind === 'random-relic' && availableRelics(run).length === 0)
+    return unavailable('可用强化已全部满层');
+  if (run.gold < item.cost) return unavailable('金币不足');
+  return { available: true, reason: '' };
+}
+
+export function canBuyShopItem(run: Run, id: string): boolean {
+  return shopItemAvailability(run, id).available;
+}
+
 export function shopBuy(run: Run, id: string): Run {
   const item = SHOP_ITEMS.find((i) => i.id === id);
-  if (
-    run.phase !== 'shop' ||
-    !item ||
-    run.purchases.includes(id) ||
-    run.gold < item.cost ||
-    (id === 'weapon' && run.weaponTier >= 10) ||
-    (id === 'potion' && run.hp === run.maxHp)
-  )
-    return run;
+  if (!item || !canBuyShopItem(run, id)) return run;
   let n = structuredClone(run);
   n.gold -= item.cost;
-  n.purchases.push(id);
-  if (id === 'potion') n.hp = Math.min(n.maxHp, n.hp + 40);
-  if (id === 'soldiers') n.squad = safeTroops(n.squad + 18);
-  if (id === 'weapon') n.weaponTier++;
-  if (id === 'relic') {
+  if (item.kind === 'heal') n.hp = Math.min(n.maxHp, n.hp + item.amount);
+  if (item.kind === 'recruits') n.squad = safeTroops(n.squad + item.amount);
+  if (item.kind === 'weapon') n.weaponTier++;
+  if (item.kind === 'relic') n = addRelic(n, item.relicId);
+  if (item.kind === 'random-relic') {
     const candidate = rollRewards(n, true)[0];
-    if (candidate) n = addRelic(n, candidate);
+    if (!candidate) return run;
+    n = addRelic(n, candidate);
   }
+  n.purchases.push(id);
   logRun(n, `购买 · ${item.name}`);
   return n;
 }
@@ -754,17 +973,22 @@ export function firepower(run: Run, shield = 0) {
   };
 }
 export function formatNumber(n: number) {
-  return n >= 100000000
-    ? `${(n / 100000000).toFixed(1)}亿`
-    : n >= 10000
-      ? `${(n / 10000).toFixed(1)}万`
-      : Math.round(n).toLocaleString('zh-CN');
+  return n >= 1000000000000
+    ? `${(n / 1000000000000).toFixed(1)}兆`
+    : n >= 100000000
+      ? `${(n / 100000000).toFixed(1)}亿`
+      : n >= 10000
+        ? `${(n / 10000).toFixed(1)}万`
+        : Math.round(n).toLocaleString('zh-CN');
 }
 export interface GateChoice {
-  op: '+' | '×' | '-' | '÷';
+  op: '+' | '×' | '-' | '÷' | '²' | '√';
   value: number;
 }
 export function gateLabel(g: GateChoice) {
+  if (g.op === '²') return 'x²';
+  if (g.op === '√') return '√x';
+  if (g.op === '+' || g.op === '-') return `${g.op}${formatNumber(g.value)}`;
   return `${g.op}${Number.isInteger(g.value) ? g.value : g.value.toFixed(2).replace(/0$/, '')}`;
 }
 export function applyGate(
@@ -779,8 +1003,11 @@ export function applyGate(
     run.squad = Math.floor(run.squad * (gate.value + s.gateMult));
   if (gate.op === '-') run.squad -= gate.value;
   if (gate.op === '÷') run.squad = Math.floor(run.squad / gate.value);
+  if (gate.op === '²') run.squad *= run.squad;
+  if (gate.op === '√') run.squad = Math.floor(Math.sqrt(run.squad));
   run.squad = safeTroops(run.squad + s.summon);
-  if (gate.op === '+' || gate.op === '×') shield += 6 * (run.relics.aegis || 0);
+  if (gate.op === '+' || gate.op === '×' || gate.op === '²')
+    shield += 6 * (run.relics.aegis || 0);
   run.gates++;
   logRun(run, `${gateLabel(gate)} 之门 · 队伍 ${old} → ${run.squad}`);
   return { shield: Math.min(250, shield), delta: run.squad - old };
@@ -794,9 +1021,11 @@ export function restoreRun(text: string): Run | null {
       raw.version = 3;
       raw.xp = 0;
     }
+    if (!Object.hasOwn(raw, 'squareGateSeen')) raw.squareGateSeen = false;
     const r = raw as Run;
     if (
       r.version !== 3 ||
+      typeof r.squareGateSeen !== 'boolean' ||
       !HEROES.some((h) => h.id === r.classId) ||
       !['map', 'reward', 'rest', 'shop', 'event'].includes(r.phase) ||
       !Number.isInteger(r.seed) ||

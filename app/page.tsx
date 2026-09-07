@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
 } from 'react';
 import {
   Flame,
@@ -38,6 +39,7 @@ import {
 } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 import { BattleCanvas, type BattleSnapshot } from '@/components/battle-canvas';
+import { GameTutorial } from '@/components/game-tutorial';
 import {
   RoutePanel,
   ClassPicker,
@@ -64,6 +66,7 @@ import {
 } from '@/lib/game';
 
 import { createBattle, activateSkill, type Battle } from '@/lib/combat';
+import { VIEW } from '@/lib/view';
 
 import {
   subscribeStorage,
@@ -72,6 +75,7 @@ import {
   parseStorage,
   persistRun,
   persistSound,
+  persistTutorialSeen,
 } from '@/lib/storage';
 
 export default function Home() {
@@ -87,6 +91,7 @@ export default function Home() {
     saved,
     best,
     muted,
+    tutorialSeen,
     available: saveAvailable,
   } = useMemo(() => parseStorage(stored), [stored]);
   const [paused, setPaused] = useState(false);
@@ -94,6 +99,15 @@ export default function Home() {
     null,
   );
   const [characterOpen, setCharacterOpen] = useState(false);
+  const [tutorialDismissed, setTutorialDismissed] = useState(false);
+  const activeOverlay =
+    overlay ??
+    (Boolean(stored) &&
+    !tutorialSeen &&
+    !tutorialDismissed &&
+    run.phase === 'setup'
+      ? 'help'
+      : null);
   const game = run.phase === 'battle' && snapshot ? snapshot.run : run;
   const hero = HEROES.find((h) => h.id === game.classId)!;
   const ClassIcon = CLASS_ICONS[game.classId];
@@ -104,8 +118,9 @@ export default function Home() {
   const act = ACTS[Math.max(0, actIndex)];
   const inBattle = run.phase === 'battle' && battle !== null;
   const inExpedition = run.phase !== 'setup';
-  const blocked = paused || overlay !== null || characterOpen;
+  const blocked = paused || activeOverlay !== null || characterOpen;
   const xp = experience(game);
+  const playerScreenRatio = (VIEW.playerY - VIEW.far) / (VIEW.near - VIEW.far);
   useEffect(() => {
     document.body.classList.toggle('expedition-active', inExpedition);
     return () => document.body.classList.remove('expedition-active');
@@ -157,6 +172,13 @@ export default function Home() {
     setRun(createRun(run.classId));
   };
   const toggleSound = () => persistSound(!muted);
+  const closeOverlay = () => {
+    if (activeOverlay === 'help') {
+      setTutorialDismissed(true);
+      persistTutorialSeen();
+    }
+    setOverlay(null);
+  };
   const skill = () => {
     if (battle && !blocked && !snapshot?.arriving) activateSkill(battle);
   };
@@ -492,13 +514,23 @@ export default function Home() {
                   ) : null}
                 </div>
               ) : null}
-              <output className="battle-message" aria-live="polite">
-                {snapshot?.ritual ? '' : snapshot?.message}
+              <output
+                className="hero-notice"
+                aria-live="polite"
+                style={{
+                  left: `clamp(min(145px, 46%), ${50 + (snapshot?.x || 0) * 45.5}%, max(calc(100% - 145px), 54%))`,
+                  top: `calc(${playerScreenRatio * 100}% - ${VIEW.controlSpace * playerScreenRatio + 103}px)`,
+                }}
+              >
+                {snapshot?.message}
               </output>
-              <div className="battle-controls">
-                <span className="drag-hint">拖动移动</span>
+              <span className="battle-drag-hint">← 横向拖动 · 自动发射 →</span>
+              <div
+                className="skill-dock"
+                style={{ '--skill-color': hero.color } as CSSProperties}
+              >
                 <button
-                  className="skill-button"
+                  className="side-skill-button"
                   onClick={skill}
                   disabled={
                     blocked ||
@@ -508,14 +540,16 @@ export default function Home() {
                   aria-label={hero.skill}
                   title={hero.skillDesc}
                 >
-                  <ClassIcon size={25} />
+                  <ClassIcon size={28} />
                   <span>
                     <strong>
                       {(snapshot?.cooldown || 0) > 0
                         ? `${Math.ceil(snapshot!.cooldown)} 秒`
                         : hero.skill}
                     </strong>
-                    <small>SPACE · 技能</small>
+                    <small>
+                      {(snapshot?.cooldown || 0) > 0 ? '冷却中' : '点击 / 空格'}
+                    </small>
                   </span>
                 </button>
               </div>
@@ -555,7 +589,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          EARLY ACCESS <b>v0.4.1</b>
+          EARLY ACCESS <b>v0.5</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>
@@ -603,29 +637,29 @@ export default function Home() {
         </SheetContent>
       </Sheet>
       <Dialog
-        open={overlay !== null}
+        open={activeOverlay !== null}
         onOpenChange={(open) => {
-          if (!open) setOverlay(null);
+          if (!open) closeOverlay();
         }}
       >
         <DialogContent
-          className={`game-dialog ${overlay === 'codex' ? 'codex-dialog' : ''}`}
+          className={`game-dialog ${activeOverlay === 'codex' ? 'codex-dialog' : activeOverlay === 'help' ? 'tutorial-dialog' : ''}`}
         >
           <DialogTitle>
-            {overlay === 'codex'
+            {activeOverlay === 'codex'
               ? '秘宝与构筑'
-              : overlay === 'route'
+              : activeOverlay === 'route'
                 ? '远征路线'
-                : '冒险者手册'}
+                : '冒险入门'}
           </DialogTitle>
           <DialogDescription>
-            {overlay === 'codex'
+            {activeOverlay === 'codex'
               ? '以每一次选择，铸成独一无二的英雄。'
               : '穿过数值门，收集强化，在灰烬中登上高塔。'}
           </DialogDescription>
-          {overlay === 'codex' ? (
+          {activeOverlay === 'codex' ? (
             <Codex run={game} />
-          ) : overlay === 'route' ? (
+          ) : activeOverlay === 'route' ? (
             <RoutePanel
               run={run}
               onEnter={(id) => {
@@ -634,12 +668,18 @@ export default function Home() {
               }}
             />
           ) : (
-            <Help />
+            <>
+              <GameTutorial onComplete={closeOverlay} />
+              <details className="tutorial-reference">
+                <summary>完整规则与存档说明</summary>
+                <Help />
+              </details>
+            </>
           )}
         </DialogContent>
       </Dialog>
       <Dialog
-        open={paused && overlay === null && !characterOpen && inBattle}
+        open={paused && activeOverlay === null && !characterOpen && inBattle}
         onOpenChange={setPaused}
       >
         <DialogContent className="game-dialog pause-dialog">
@@ -654,7 +694,7 @@ export default function Home() {
             onClick={() => setOverlay('help')}
           >
             <CircleHelp size={17} />
-            查看冒险者手册
+            查看图文教程
           </button>
           <button
             className="text-button"

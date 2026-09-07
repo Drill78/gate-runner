@@ -55,7 +55,7 @@ test('movement is continuous, speed limited, bounded, and stops on release', () 
   movePlayer(b, 0.67);
   stepBattle(b, 0.05);
   assert.ok(Math.abs(b.x - BALANCE.pointerMaxSpeed * 0.05) < 1e-9);
-  advance(b, 0.5);
+  advance(b, 0.6);
   assert.equal(b.x, 0.67);
   setMoveAxis(b, -1);
   advance(b, 0.2);
@@ -200,6 +200,7 @@ test('weapon and supply chests grant distinct rewards; expired chests give nothi
     const gold = b.player.gold,
       tier = b.player.weaponTier;
     stepBattle(b, 0.05);
+    advance(b, 0.55);
     assert.equal(b.player.chests, 1);
     assert.equal(b.player.weaponTier, tier + (reward === 'weapon' ? 1 : 0));
     assert.equal(b.player.gold, gold + (reward === 'gold' ? 22 : 0));
@@ -252,10 +253,10 @@ test('expanded orthographic view exposes upcoming targets without entering firin
   const far = screenY(worldY(e, e.start - 1), 844),
     near = screenY(worldY(e, e.start), 844);
   assert.ok(far > 0 && far < near);
-  assert.ok(screenY(0.8, 844) > 844 * 0.65);
+  assert.ok(screenY(VIEW.playerY, 844) > 844 * 0.8);
   assert.ok(
-    screenY(0.8, 844) + 45 < 844 - 140,
-    'army stays above the bottom controls',
+    screenY(VIEW.playerY, 844) + 45 < 844 - 65,
+    'lower army position leaves the bottom experience and status strip clear',
   );
   assert.equal(VIEW.previewSeconds, 1.25);
   isolate(b, e);
@@ -302,6 +303,12 @@ test('enemy kills award gold and XP once; leaked enemies award neither', () => {
   e.hp = 1;
   const gold = b.player.gold;
   stepBattle(b, 0.01);
+  assert.equal(
+    b.player.gold,
+    gold,
+    'launching a projectile does not award a kill',
+  );
+  advance(b, 0.55);
   assert.equal(b.player.gold, gold + 4);
   assert.equal(b.player.xp, 6);
   advance(b, 0.2);
@@ -376,20 +383,23 @@ test('focus fire interrupts the king chant without resetting its independent pre
 });
 
 test('the watcher frontal shield rewards firing from a flank', () => {
-  const b = battle('ranger', 3),
-    e = b.entities.find((e) => e.boss);
-  isolate(b, e);
-  b.time = e.start + 0.3;
-  e.guardUntil = b.time + 3;
-  b.random = () => 1;
-  let hp = e.hp;
-  stepBattle(b, 0.01);
-  const front = hp - e.hp;
-  b.x = 0.4;
-  b.shootTimer = 0;
-  hp = e.hp;
-  stepBattle(b, 0.01);
-  const side = hp - e.hp;
+  const fireFrom = (x) => {
+    const b = battle('ranger', 3),
+      e = b.entities.find((e) => e.boss);
+    isolate(b, e);
+    b.time = e.start + 2;
+    e.guardUntil = b.time + 3;
+    e.lastAttack = Infinity;
+    b.random = () => 1;
+    b.x = x;
+    const hp = e.hp;
+    stepBattle(b, 0.01);
+    b.shootTimer = Infinity;
+    advance(b, 0.6);
+    return hp - e.hp;
+  };
+  const front = fireFrom(0),
+    side = fireFrom(0.24);
   assert.ok(side > front * 3);
   assert.ok(front > 0);
 });
@@ -446,6 +456,24 @@ test('class shields and armor still mitigate pressure; killing before the deadli
   target.hp = 1;
   kill.x = 0;
   kill.time = kill.pressure.nextAt - 0.01;
+  kill.shootTimer = Infinity;
+  kill.bullets.push({
+    id: 999,
+    kind: 'arrow',
+    x: 0,
+    y: worldY(target, kill.time) + 0.075,
+    vx: 0,
+    vy: -1.7,
+    radius: 0.025,
+    damage: 10,
+    critical: false,
+    pierceLeft: 0,
+    hitIds: [],
+    spawnAt: kill.time - 0.3,
+    originX: 0,
+    originY: VIEW.playerY,
+    canProc: true,
+  });
   stepBattle(kill, 0.02);
   assert.equal(kill.state, 'won');
   assert.equal(kill.pressure, null);

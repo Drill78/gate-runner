@@ -9,9 +9,11 @@ import {
   safeTroops,
   grantExperience,
   experience,
+  formatNumber,
   type Run,
   type GateChoice,
 } from './game.ts';
+import { VIEW } from './view.ts';
 
 export const BALANCE = {
   moveSpeed: 2.2,
@@ -25,7 +27,7 @@ export const BALANCE = {
   hpGrowth: 1.34,
   bossGrowth: 1.34,
   enemyBaseHp: 110,
-  bossBaseHp: 850,
+  bossBaseHp: 1700,
   commanderBaseHp: 430,
   eliteCommanderBaseHp: 550,
   enemyActMultiplier: [1, 1.05, 1.12],
@@ -56,6 +58,10 @@ export interface Entity {
   armor: number;
   done: boolean;
   gate?: GateSegment[];
+  gatePrepared?: boolean;
+  trialStep?: number;
+  trialFraction?: number;
+  trialFinal?: boolean;
   boss?: boolean;
   variant:
     | 'soldier'
@@ -97,6 +103,23 @@ export interface Projectile {
   phase: number;
   resolved: boolean;
 }
+export interface PlayerBullet {
+  id: number;
+  kind: 'blade' | 'arrow' | 'bolt' | 'shard';
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  damage: number;
+  critical: boolean;
+  pierceLeft: number;
+  hitIds: number[];
+  spawnAt: number;
+  originX: number;
+  originY: number;
+  canProc: boolean;
+}
 export interface Ritual {
   name: string;
   bossId: number;
@@ -113,7 +136,7 @@ export interface Effect {
   text: string;
   color: string;
   life: number;
-  type: 'text' | 'shot' | 'burst';
+  type: 'text' | 'shot' | 'burst' | 'impact';
   targetX?: number;
   targetY?: number;
 }
@@ -138,6 +161,8 @@ export interface Battle {
   effects: Effect[];
   threats: Threat[];
   projectiles: Projectile[];
+  bullets: PlayerBullet[];
+  bulletSeq: number;
   ritual: Ritual | null;
   pressure: BossPressure | null;
   projectileSeq: number;
@@ -174,7 +199,35 @@ export function makeGate(
   random: () => number,
   wave: number,
   floor: number,
+  elite = false,
+  squareTrial = false,
 ): GateSegment[] {
+  if (squareTrial || (elite && wave === 2)) {
+    const choices: { choice: GateChoice; width: number }[] = [
+      {
+        choice: squareTrial ? { op: '²', value: 2 } : { op: '×', value: 1.45 },
+        width: squareTrial ? 0.18 : 0.64,
+      },
+      { choice: { op: '√', value: 2 }, width: squareTrial ? 0.88 : 0.65 },
+      {
+        choice: { op: '+', value: 10 + floor },
+        width: squareTrial ? 0.88 : 0.65,
+      },
+    ];
+    const offset = Math.floor(random() * 3);
+    if (random() < 0.5) choices.reverse();
+    let left = -0.97;
+    return [0, 1, 2].map((i) => {
+      const item = choices[(i + offset) % 3];
+      const g = {
+        ...item.choice,
+        left: left + 0.016,
+        right: left + item.width - 0.016,
+      };
+      left += item.width;
+      return g;
+    });
+  }
   const three = wave > 0 && random() < 0.6;
   const splits = three
     ? [
@@ -223,6 +276,23 @@ export function makeGate(
     left: splits[i] + 0.016,
     right: splits[i + 1] - 0.016,
   }));
+}
+export function scaleGateNumbers(
+  gates: GateSegment[],
+  squad: number,
+  floor: number,
+) {
+  if (floor < 1) return gates;
+  const depth = Math.min(8, floor);
+  return gates.map((g) => {
+    if (g.op !== '+' && g.op !== '-') return g;
+    const base = 6 + Math.floor(floor * 0.65);
+    const variation = Math.max(0.85, Math.min(1.25, g.value / base));
+    const ratio = g.op === '+' ? 0.14 + depth * 0.01 : 0.12 + depth * 0.02;
+    const raw = Math.max(g.value, squad * ratio * variation);
+    const step = Math.pow(10, Math.max(0, Math.floor(Math.log10(raw)) - 1));
+    return { ...g, value: Math.max(g.value, Math.round(raw / step) * step) };
+  });
 }
 export function createBattle(run: Run): Battle {
   const player = structuredClone(run),
@@ -296,7 +366,7 @@ export function createBattle(run: Run): Battle {
     const t = i * spacing;
     if (i % 2 === 0) {
       const g = put('gate', t, 0, 0, 'gate', '命运之门', i + 1);
-      g.gate = makeGate(random, i, player.floor);
+      g.gate = makeGate(random, i, player.floor, elite);
     }
     const variant = i % 4 === 2 ? 'archer' : i % 4 === 3 ? 'guard' : 'soldier';
     const x = (random() * 0.72 + 0.1) * (random() > 0.5 ? 1 : -1);
@@ -342,7 +412,47 @@ export function createBattle(run: Run): Battle {
         i + 1,
       );
   }
-  const finalStart = waves * spacing + 1;
+  let finalStart = waves * spacing + 1;
+  if (elite && player.relics.square_key && !player.squareGateSeen) {
+    player.squareGateSeen = true;
+    // The ritual begins after the ordinary waves have left. Its fixed sequence
+    // can then be forecast once without changing any number in front of a player.
+    const trialStart =
+      Math.max(...entities.map((e) => e.arrival)) + VIEW.previewSeconds + 0.25;
+    const steps = [
+      { op: '-' as const, value: 1, fraction: 0.18 },
+      { op: '÷' as const, value: 1.3, fraction: 0 },
+      { op: '-' as const, value: 1, fraction: 0.22 },
+      { op: '÷' as const, value: 1.35, fraction: 0 },
+      { op: '-' as const, value: 1, fraction: 0.25 },
+    ];
+    steps.forEach((s, index) => {
+      const g = put(
+        'gate',
+        trialStart + index * 0.95,
+        0,
+        0,
+        'gate',
+        `禁术红门 ${index + 1}/5`,
+        waves,
+      );
+      g.gate = [{ op: s.op, value: s.value, left: -1, right: 1 }];
+      g.trialStep = index + 1;
+      g.trialFraction = s.fraction;
+    });
+    const secret = put(
+      'gate',
+      trialStart + 5 * 0.95 + 0.4,
+      0,
+      0,
+      'gate',
+      '禁术秘门',
+      waves,
+    );
+    secret.gate = makeGate(random, 0, player.floor, false, true);
+    secret.trialFinal = true;
+    finalStart = secret.arrival + 1;
+  }
   const final = put(
     'enemy',
     finalStart,
@@ -376,6 +486,8 @@ export function createBattle(run: Run): Battle {
     effects: [],
     threats: [],
     projectiles: [],
+    bullets: [],
+    bulletSeq: 0,
     ritual: null,
     pressure: bossRoom
       ? {
@@ -400,7 +512,7 @@ export function createBattle(run: Run): Battle {
     state: 'running',
     flash: 0,
     skillFlash: 0,
-    message: '按住 A / D 自由移动 · 瞄准目标自动攻击',
+    message: '横移瞄准 · 自动向前发射弹幕',
     messageUntil: 4,
     wave: 1,
     totalWaves: waves,
@@ -414,7 +526,7 @@ export function createBattle(run: Run): Battle {
 }
 export function progress(e: Entity, time: number) {
   return Math.min(
-    e.boss ? 0.48 : 1.12,
+    e.boss ? 0.12 : 1.12,
     (time - e.start) / (e.arrival - e.start),
   );
 }
@@ -448,9 +560,10 @@ function hitEntity(
   damage: number,
   critical = false,
   show = true,
+  sourceX = b.x,
 ) {
   if (e.done || e.hp <= 0) return;
-  const frontalShield = e.guardUntil > b.time && Math.abs(b.x - e.x) < 0.3;
+  const frontalShield = e.guardUntil > b.time && Math.abs(sourceX - e.x) < 0.16;
   const actual = damage * (1 - e.armor) * (frontalShield ? 0.3 : 1);
   e.hp -= actual;
   if (b.ritual?.interruptible && b.ritual.bossId === e.id) {
@@ -565,6 +678,220 @@ export function damagePlayer(b: Battle, amount: number, troopLoss = 0.08) {
 export function attackDamage(b: Battle) {
   return (
     firepower(b.player, b.shield).volley * (b.buffUntil > b.time ? 1.5 : 1)
+  );
+}
+function emitBullet(
+  b: Battle,
+  x: number,
+  y: number,
+  angle: number,
+  damage: number,
+  critical: boolean,
+  delay = 0,
+  fragment = false,
+  skipId?: number,
+) {
+  // A bounded pool keeps dense builds predictable on phones.
+  if (b.bullets.length >= 180) return;
+  const s = stats(b.player, b.shield);
+  b.bullets.push({
+    id: b.bulletSeq++,
+    kind: fragment
+      ? 'shard'
+      : b.player.classId === 'knight'
+        ? 'blade'
+        : b.player.classId === 'ranger'
+          ? 'arrow'
+          : 'bolt',
+    x,
+    y,
+    originX: x,
+    originY: y,
+    vx: Math.sin(angle) * s.bulletSpeed,
+    vy: -Math.cos(angle) * s.bulletSpeed,
+    radius: s.bulletRadius * (fragment ? 0.8 : 1),
+    damage,
+    critical,
+    pierceLeft: fragment ? 0 : s.pierceCount,
+    hitIds: skipId === undefined ? [] : [skipId],
+    spawnAt: b.time + delay,
+    canProc: !fragment,
+  });
+}
+function firePlayerVolley(b: Battle) {
+  const s = stats(b.player, b.shield);
+  const critical = b.random() < s.crit;
+  const damage = attackDamage(b) * (critical ? s.critMult : 1);
+  b.shots++;
+  sound(b, 'shoot');
+  emitBullet(b, b.x, VIEW.playerY - 0.035, 0, damage, critical);
+  for (let pair = 1; pair <= s.extraPairs; pair++) {
+    for (const side of [-1, 1])
+      emitBullet(
+        b,
+        b.x,
+        VIEW.playerY - 0.035,
+        side * pair * 0.17,
+        damage * 0.5,
+        critical,
+      );
+  }
+  if (b.player.relics.echo && b.shots % 3 === 0)
+    emitBullet(
+      b,
+      b.x,
+      VIEW.playerY - 0.035,
+      0,
+      damage * 0.8 * b.player.relics.echo,
+      critical,
+      0.1,
+    );
+}
+// Slab intersection over the full travelled segment prevents fast rounds from
+// jumping through a target. Coordinates are relative to the moving enemy.
+function segmentHit(
+  ax: number,
+  ay: number,
+  zx: number,
+  zy: number,
+  rx: number,
+  ry: number,
+) {
+  let enter = 0,
+    leave = 1;
+  for (const [a, delta, radius] of [
+    [ax, zx - ax, rx],
+    [ay, zy - ay, ry],
+  ]) {
+    if (Math.abs(delta) < 1e-9) {
+      if (Math.abs(a) > radius) return null;
+    } else {
+      const t1 = (-radius - a) / delta,
+        t2 = (radius - a) / delta;
+      enter = Math.max(enter, Math.min(t1, t2));
+      leave = Math.min(leave, Math.max(t1, t2));
+      if (enter > leave) return null;
+    }
+  }
+  return enter;
+}
+function enemyXAt(b: Battle, e: Entity, time: number) {
+  return e.boss &&
+    b.player.node?.kind === 'boss' &&
+    Math.floor(b.player.floor / 4) === 1
+    ? Math.sin((time - e.start) * 0.8) * 0.18
+    : e.x;
+}
+function stepPlayerBullets(b: Battle, oldTime: number) {
+  const s = stats(b.player, b.shield);
+  const color = HEROES.find((h) => h.id === b.player.classId)!.color;
+  // Fragments created on impact begin travelling next frame, never recursively.
+  const activeCount = b.bullets.length;
+  for (let index = 0; index < activeCount; index++) {
+    const bullet = b.bullets[index];
+    const fromTime = Math.max(oldTime, bullet.spawnAt);
+    const elapsed = b.time - fromTime;
+    if (elapsed <= 0) continue;
+    const fromX = bullet.x,
+      fromY = bullet.y;
+    const toX = fromX + bullet.vx * elapsed,
+      toY = fromY + bullet.vy * elapsed;
+    const hits: { e: Entity; t: number }[] = [];
+    for (const e of b.entities) {
+      if (
+        e.done ||
+        e.hp <= 0 ||
+        !['enemy', 'chest'].includes(e.kind) ||
+        bullet.hitIds.includes(e.id)
+      )
+        continue;
+      // The entrance frame belongs to the portrait pause, before combat resumes.
+      const activeFrom = Math.max(fromTime, e.start + 1e-6);
+      const activeTo = Math.min(b.time, e.boss ? b.time : e.arrival);
+      if (activeFrom > activeTo) continue;
+      const begin = (activeFrom - fromTime) / elapsed,
+        end = (activeTo - fromTime) / elapsed;
+      const ax = fromX + (toX - fromX) * begin - enemyXAt(b, e, activeFrom);
+      const ay = fromY + (toY - fromY) * begin - worldY(e, activeFrom);
+      const zx = fromX + (toX - fromX) * end - enemyXAt(b, e, activeTo);
+      const zy = fromY + (toY - fromY) * end - worldY(e, activeTo);
+      const t = segmentHit(
+        ax,
+        ay,
+        zx,
+        zy,
+        e.width / 2 + bullet.radius,
+        (e.boss ? 0.065 : 0.045) + bullet.radius * 0.45,
+      );
+      if (t !== null) hits.push({ e, t: begin + t * (end - begin) });
+    }
+    hits.sort((a, z) => a.t - z.t);
+    for (const { e, t } of hits) {
+      if (e.done) continue;
+      const x = fromX + (toX - fromX) * t,
+        y = fromY + (toY - fromY) * t;
+      const damage =
+        bullet.damage * (e.hp / e.maxHp < 0.3 ? 1 + s.execute * 0.2 : 1);
+      bullet.hitIds.push(e.id);
+      hitEntity(b, e, damage, bullet.critical, true, bullet.originX);
+      b.effects.push({ type: 'impact', x, y, color, text: '', life: 0.26 });
+      if (bullet.canProc) {
+        if (!e.done && b.player.relics.ember) e.burnUntil = b.time + 3;
+        if (s.blast) {
+          b.effects.push({ type: 'burst', x, y, color, text: '', life: 0.4 });
+          for (const other of b.entities)
+            if (
+              other !== e &&
+              !other.done &&
+              other.hp > 0 &&
+              other.start <= b.time &&
+              Math.hypot(
+                enemyXAt(b, other, b.time) - x,
+                (worldY(other, b.time) - y) * 1.5,
+              ) < 0.26
+            )
+              hitEntity(
+                b,
+                other,
+                bullet.damage *
+                  s.blast *
+                  0.3 *
+                  (other.hp / other.maxHp < 0.3 ? 1 + s.execute * 0.2 : 1),
+                false,
+                true,
+                bullet.originX,
+              );
+        }
+        if (bullet.critical && b.player.relics.ricochet)
+          for (const side of [-1, 1])
+            emitBullet(
+              b,
+              x,
+              y - 0.015,
+              side * 0.55,
+              bullet.damage * 0.3 * b.player.relics.ricochet,
+              false,
+              0,
+              true,
+              e.id,
+            );
+      }
+      if (bullet.pierceLeft <= 0) {
+        bullet.damage = 0;
+        break;
+      }
+      bullet.pierceLeft--;
+      bullet.damage *= 0.75;
+    }
+    bullet.x = toX;
+    bullet.y = toY;
+  }
+  b.bullets = b.bullets.filter(
+    (p) =>
+      p.damage > 0 &&
+      p.y > VIEW.far - 0.15 &&
+      Math.abs(p.x) < 1.2 &&
+      b.time - p.spawnAt < 3,
   );
 }
 export function activateSkill(b: Battle) {
@@ -777,6 +1104,31 @@ export function stepBattle(b: Battle, dt: number) {
   b.flash = Math.max(0, b.flash - dt);
   b.skillFlash = Math.max(0, b.skillFlash - dt);
   b.effects = b.effects.filter((e) => (e.life -= dt) > 0);
+  const redTrial = b.entities.find((e) => e.trialStep === 1);
+  if (
+    redTrial &&
+    !redTrial.gatePrepared &&
+    redTrial.start <= b.time + VIEW.previewSeconds
+  ) {
+    const forecast = structuredClone(b.player);
+    for (const e of b.entities
+      .filter((e) => e.trialStep)
+      .sort((a, z) => a.trialStep! - z.trialStep!)) {
+      const gate = e.gate![0];
+      if (e.trialFraction)
+        gate.value = Math.max(1, Math.ceil(forecast.squad * e.trialFraction));
+      applyGate(forecast, gate, 0);
+      e.gatePrepared = true;
+    }
+    message(b, '禁术试炼 · 5道红门无法绕开', '#ffb3a4');
+  }
+  for (const e of b.entities) {
+    if (e.gate && !e.gatePrepared && e.start <= b.time + VIEW.previewSeconds) {
+      e.gate = scaleGateNumbers(e.gate, b.player.squad, b.player.floor);
+      e.gatePrepared = true;
+      if (e.trialFinal) message(b, '禁术秘门 · 瞄准极窄平方通道', '#e6c2ff');
+    }
+  }
   b.wave = Math.min(
     b.totalWaves,
     1 + Math.floor(b.time / BALANCE.spacing[Math.floor(b.player.floor / 4)]),
@@ -825,6 +1177,12 @@ export function stepBattle(b: Battle, dt: number) {
   }
   b.threats = b.threats.filter((t) => t.resolveAt > b.time);
   if (b.state !== 'running') return;
+  b.shootTimer -= dt;
+  if (b.shootTimer <= 0) {
+    firePlayerVolley(b);
+    b.shootTimer += 1 / stats(b.player, b.shield).rate;
+  }
+  stepPlayerBullets(b, oldTime);
   for (const e of b.entities) {
     if (e.done || e.start > b.time) continue;
     if (
@@ -838,7 +1196,7 @@ export function stepBattle(b: Battle, dt: number) {
     if (e.done) continue;
     if (
       (e.boss || e.variant === 'archer') &&
-      progress(e, b.time) > 0.2 &&
+      (e.boss || progress(e, b.time) > 0.2) &&
       !b.ritual &&
       b.time - e.lastAttack >
         (e.boss
@@ -858,7 +1216,7 @@ export function stepBattle(b: Battle, dt: number) {
         b.shield = result.shield;
         message(
           b,
-          `${gateLabel(selected)} · 兵力 ${result.delta >= 0 ? '+' : ''}${result.delta}`,
+          `${e.trialStep ? `红门 ${e.trialStep}/5 · ` : ''}${gateLabel(selected)} · 兵力 ${result.delta >= 0 ? '+' : '−'}${formatNumber(Math.abs(result.delta))}`,
           result.delta >= 0 ? '#c2f5a9' : '#ffa89c',
         );
         sound(b, 'gate');
@@ -881,47 +1239,6 @@ export function stepBattle(b: Battle, dt: number) {
       e.done = true;
     }
     if (b.state !== 'running') return;
-  }
-  b.shootTimer -= dt;
-  if (b.shootTimer <= 0) {
-    const targets = b.entities
-      .filter(
-        (e) =>
-          !e.done &&
-          e.hp > 0 &&
-          b.time > e.start + 0.12 &&
-          Math.abs(e.x - b.x) < BALANCE.aimWidth + e.width / 2,
-      )
-      .sort((a, c) => a.arrival - c.arrival);
-    if (targets.length) {
-      const target = targets[0],
-        s = stats(b.player, b.shield),
-        critical = b.random() < s.crit;
-      const damage = attackDamage(b) * (critical ? s.critMult : 1);
-      b.shots++;
-      sound(b, 'shoot');
-      hitEntity(b, target, damage, critical);
-      b.effects.push({
-        type: 'shot',
-        x: b.x,
-        y: 0.8,
-        text: '',
-        color: HEROES.find((h) => h.id === b.player.classId)!.color,
-        life: 0.13,
-        targetX: target.x,
-        targetY: worldY(target, b.time),
-      });
-      if (!target.done && b.player.relics.ember) target.burnUntil = b.time + 3;
-      if (!target.done && b.player.relics.echo && b.shots % 3 === 0)
-        hitEntity(b, target, damage * 0.8 * b.player.relics.echo);
-      if (critical && b.player.relics.ricochet) {
-        const other = b.entities.find(
-          (e) => e !== target && !e.done && e.hp > 0 && e.start < b.time,
-        );
-        if (other) hitEntity(b, other, damage * 0.6 * b.player.relics.ricochet);
-      }
-    }
-    b.shootTimer = 1 / stats(b.player, b.shield).rate;
   }
   if (b.player.hp <= 0) {
     b.state = 'lost';
@@ -955,6 +1272,7 @@ export function stepBattle(b: Battle, dt: number) {
     logRun(b.player, '防线突破 · 选择强化');
     b.threats = [];
     b.projectiles = [];
+    b.bullets = [];
     b.ritual = null;
     b.pressure = null;
   }
