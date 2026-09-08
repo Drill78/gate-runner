@@ -64,9 +64,10 @@ export function ExpeditionResults({
           </nav>
         )}
         <div className="curtain-credit">
-          <h2>恭喜</h2>
-          <p>谢谢</p>
+          <h2>感谢游玩！</h2>
+          <p>你已经到达了门的尽头</p>
           <div className="creator-credit">
+            <p>制作人：</p>
             <strong>绿色咸咸圈&GPT-6 Astra</strong>
           </div>
         </div>

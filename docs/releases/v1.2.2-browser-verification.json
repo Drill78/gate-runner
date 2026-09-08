@@ -15,7 +15,8 @@
     "new muted 390x640 replay starts with original finite army, then displays 无限大",
     "muted replay still running at 73.113 seconds, credits present at 102.361 seconds",
     "phone ending includes accessible exit control",
-    "no error-level console messages observed"
+    "no error-level console messages observed",
+    "final copy revision visually confirmed at 390x640: 感谢游玩！ / 你已经到达了门的尽头 / 制作人： / 绿色咸咸圈&GPT-6 Astra"
   ],
   "limitations": [
     "The observation interval bounds completion, not a millisecond-level measurement of natural audio end. Audio onended and exact duration behavior are covered separately by automated player tests.",
