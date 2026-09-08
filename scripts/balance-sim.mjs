@@ -10,6 +10,8 @@ const {
   ACT_LENGTH,
   TOTAL_FLOORS,
   MAX_LEVEL,
+  MAX_WEAPON_LEVEL,
+  eventChoices,
   createRun,
   availableNodes,
   enterNode,
@@ -56,6 +58,8 @@ export const priorities = {
     'plate',
     'vampire',
     'vitality',
+    'constitution',
+    'lifebloom',
     'velocity',
     'execute',
     'pierce',
@@ -77,6 +81,8 @@ export const priorities = {
     'focus',
     'vampire',
     'vitality',
+    'constitution',
+    'lifebloom',
     'velocity',
     'execute',
     'pierce',
@@ -99,6 +105,8 @@ export const priorities = {
     'focus',
     'vampire',
     'vitality',
+    'constitution',
+    'lifebloom',
     'velocity',
     'execute',
     'pierce',
@@ -132,7 +140,14 @@ function future(b, target, t, stationary = false) {
   if (stationary) return b.x;
   t = Math.max(0, t);
   // Every candidate is a proposed movePlayer command, hence pointer speed.
-  const speed = BALANCE.pointerMaxSpeed;
+  const slowed = b.zones.some(
+    (z) =>
+      z.kind === 'web' &&
+      z.startsAt <= b.time &&
+      z.endsAt > b.time &&
+      Math.abs(b.x - z.x) < z.width / 2,
+  );
+  const speed = BALANCE.pointerMaxSpeed * (slowed ? 0.65 : 1);
   return (
     b.x + Math.sign(target - b.x) * Math.min(Math.abs(target - b.x), t * speed)
   );
@@ -244,10 +259,20 @@ export function pilot(
     }
     if (b.time >= nextDecision) {
       nextDecision = b.time + reaction;
-      const visible = b.entities.filter((e) => !e.done && e.start <= b.time);
+      const visible = b.entities.filter(
+        (e) =>
+          !e.done &&
+          (e.hp > 0
+            ? c.targetVisible(e, b.time)
+            : e.start - VIEW.previewSeconds <= b.time),
+      );
       const targets = visible
         .filter((e) => e.hp > 0)
-        .sort((a, z) => a.arrival - z.arrival);
+        .sort(
+          (a, z) =>
+            Number(z.guardianOf !== undefined) -
+              Number(a.guardianOf !== undefined) || a.arrival - z.arrival,
+        );
       const ritualBoss = b.ritual?.interruptible
         ? targets.find((e) => e.id === b.ritual.bossId)
         : null;
@@ -382,6 +407,13 @@ export function pilot(
           const xx = future(b, x, delay, stationary);
           if (Math.abs(xx - landing.x) < p.radius + 0.07)
             score -= 75 / (0.4 + delay);
+        }
+        for (const zone of b.zones) {
+          if (zone.endsAt <= b.time || zone.startsAt > b.time + 1.3) continue;
+          const delay = Math.max(0.15, zone.startsAt - b.time);
+          const xx = future(b, x, delay, stationary);
+          if (Math.abs(xx - zone.x) < zone.width / 2 + 0.05)
+            score -= (zone.kind === 'web' ? 36 : 65) / (0.4 + delay);
         }
         for (const h of hazards) {
           const delay = h.arrival - b.time;
@@ -653,7 +685,11 @@ export function scoreReward(run, id, mode) {
         : restored * 1.75;
   }
   if (id === 'supply-weapon')
-    return run.weaponTier >= 10 ? -Infinity : mode === 'economy' ? 30 : 80;
+    return run.weaponTier >= MAX_WEAPON_LEVEL
+      ? -Infinity
+      : mode === 'economy'
+        ? 30
+        : 80;
   if (id === 'supply-company')
     return run.squad >= Number.MAX_SAFE_INTEGER
       ? -Infinity
@@ -697,7 +733,7 @@ function visitShop(run, mode) {
 }
 export function expedition(classId, seed, mode = 'coherent', options = {}) {
   if (mode === 'weak') mode = 'economy';
-  let run = createRun(classId, seed);
+  let run = createRun(classId, seed, options.difficulty || 'normal');
   run.phase = 'map';
   const rooms = [];
   const decisions = [];
@@ -776,11 +812,21 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
       run = shop.run;
       decision.purchases = shop.purchases;
       run = completeRoom(run, false);
-    } else if (run.phase === 'event')
-      run = eventAction(
-        run,
-        mode === 'coherent' && run.hp > run.maxHp * 0.85 ? 'blood' : 'leave',
-      );
+    } else if (run.phase === 'event') {
+      const preference =
+        run.hp < run.maxHp * 0.7
+          ? ['mercy', 'oath', 'leave']
+          : mode === 'coherent'
+            ? ['blood', 'forge', 'oath', 'study', 'gold', 'leave']
+            : mode === 'economy'
+              ? ['gold', 'cache', 'forge', 'leave']
+              : ['forge', 'oath', 'leave'];
+      const offers = eventChoices(run).filter((o) => o.available);
+      const chosen =
+        preference.find((id) => offers.some((o) => o.id === id)) || 'leave';
+      decision.eventChosen = chosen;
+      run = eventAction(run, chosen);
+    }
     if (run.phase === 'reward') {
       decision.rewardChoices = [...run.reward];
       const selected = run.reward
@@ -807,12 +853,17 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
   return {
     classId,
     seed,
+    difficulty: run.difficulty,
     mode,
     win: run.phase === 'victory',
     floor: run.floor,
     hp: run.hp,
     squad: run.squad,
     weapon: run.weaponTier,
+    maxHp: run.maxHp,
+    goldEarned: run.goldEarned,
+    doubleBossWins: run.doubleBossWins,
+    flawlessBosses: run.flawlessBosses,
     relics: run.relics,
     squareGateSeen: Boolean(run.squareGateSeen),
     level: g.experience(run).level,
@@ -939,6 +990,7 @@ if (
       for (let i = 0; i < n; i++)
         results.push(
           expedition(classId, 734 + i * 1009, mode, {
+            difficulty: process.env.DIFFICULTY || 'normal',
             reaction: Number(process.env.PILOT_REACTION || 0.15),
             stationary: process.env.STATIONARY === '1',
           }),
@@ -954,7 +1006,7 @@ if (
     }
   }
   const out = {
-    audit: 'v0.6-fifteen-floors-explicit-routes-enchanted-elite',
+    audit: 'v0.7-dual-bosses-zones-growth-drafts',
     createdAt: new Date().toISOString(),
     engineHashes,
     balance: BALANCE,
@@ -968,6 +1020,7 @@ if (
       (squad) => ({ squad, multiplier: g.troopMultiplier(squad) }),
     ),
     options: {
+      difficulty: process.env.DIFFICULTY || 'normal',
       reaction: Number(process.env.PILOT_REACTION || 0.15),
       stationary: process.env.STATIONARY === '1',
       timestep: 0.05,

@@ -90,6 +90,8 @@ import {
   persistCollection,
 } from '@/lib/storage';
 
+import { hardModeUnlocked } from '@/lib/collection';
+
 export default function Home() {
   const [run, setRun] = useState<Run>(() => createRun('knight'));
   const [battle, setBattle] = useState<Battle | null>(null);
@@ -180,12 +182,20 @@ export default function Home() {
   const onPause = useCallback(() => setPaused((p) => !p), []);
   const start = () => {
     const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-    setRun({ ...createRun(run.classId, seed), phase: 'map' });
+    setRun({
+      ...createRun(
+        run.classId,
+        seed,
+        hardModeUnlocked(collection) ? run.difficulty : 'normal',
+      ),
+      phase: 'map',
+    });
     setSnapshot(null);
     setBattle(null);
     setPaused(false);
   };
-  const selectClass = (id: ClassId) => setRun(createRun(id));
+  const selectClass = (id: ClassId) =>
+    setRun(createRun(id, run.seed, run.difficulty));
   const go = (id: string) => {
     const next = enterNode(run, id);
     if (next === run) return;
@@ -221,6 +231,12 @@ export default function Home() {
       {run.phase === 'setup' ? (
         <GateEntrance
           selected={run.classId}
+          difficulty={run.difficulty}
+          hardUnlocked={hardModeUnlocked(collection)}
+          onDifficulty={(mode) => {
+            if (mode === 'normal' || hardModeUnlocked(collection))
+              setRun((r) => ({ ...r, difficulty: mode }));
+          }}
           onSelect={selectClass}
           onStart={start}
           onContinue={
@@ -453,59 +469,64 @@ export default function Home() {
                 onEnd={onEnd}
                 onPause={onPause}
               />
-              {snapshot?.encounter && !snapshot.arriving ? (
-                <div
-                  className="encounter-health"
-                  data-kind={snapshot.encounter.chapterBoss ? 'boss' : 'elite'}
-                >
-                  <div className="encounter-health-heading">
-                    <span className="encounter-health-title">
-                      <small>
-                        {snapshot.encounter.chapterBoss
-                          ? '章节 BOSS'
-                          : '关底精英'}
-                      </small>
-                      <strong>{snapshot.encounter.name}</strong>
-                    </span>
-                    <span className="encounter-health-status">
-                      {snapshot.encounter.status}
-                    </span>
-                  </div>
-                  <meter
-                    className="sr-only"
-                    aria-label={`${snapshot.encounter.name}生命`}
-                    min={0}
-                    max={snapshot.encounter.maxHp}
-                    value={snapshot.encounter.hp}
-                  />
-                  <div className="encounter-health-track" aria-hidden="true">
-                    <span
-                      className="encounter-health-trail"
-                      style={{
-                        width: `${(100 * snapshot.encounter.hp) / snapshot.encounter.maxHp}%`,
-                      }}
-                    />
-                    <span
-                      className="encounter-health-fill"
-                      style={{
-                        width: `${(100 * snapshot.encounter.hp) / snapshot.encounter.maxHp}%`,
-                      }}
-                    />
-                    {snapshot.encounter.phaseThresholds.map((threshold) => (
-                      <i
-                        key={threshold}
-                        className="encounter-health-half"
-                        style={{ left: `${threshold}%` }}
+              {snapshot &&
+              snapshot.encounters.length > 0 &&
+              !snapshot.arriving ? (
+                <div className="encounter-health-stack">
+                  {snapshot.encounters.map((encounter) => (
+                    <div
+                      key={encounter.id}
+                      className="encounter-health"
+                      data-kind={encounter.chapterBoss ? 'boss' : 'elite'}
+                    >
+                      <div className="encounter-health-heading">
+                        <span className="encounter-health-title">
+                          <small>
+                            {encounter.chapterBoss ? '章节 BOSS' : '关底精英'}
+                          </small>
+                          <strong>{encounter.name}</strong>
+                        </span>
+                        <span className="encounter-health-status">
+                          {encounter.status}
+                        </span>
+                      </div>
+                      <meter
+                        className="sr-only"
+                        aria-label={`${encounter.name}生命`}
+                        min={0}
+                        max={encounter.maxHp}
+                        value={encounter.hp}
                       />
-                    ))}
-                    <span className="encounter-health-numbers">
-                      {Math.ceil(snapshot.encounter.hp).toLocaleString('zh-CN')}{' '}
-                      /{' '}
-                      {Math.ceil(snapshot.encounter.maxHp).toLocaleString(
-                        'zh-CN',
-                      )}
-                    </span>
-                  </div>
+                      <div
+                        className="encounter-health-track"
+                        aria-hidden="true"
+                      >
+                        <span
+                          className="encounter-health-trail"
+                          style={{
+                            width: `${(100 * encounter.hp) / encounter.maxHp}%`,
+                          }}
+                        />
+                        <span
+                          className="encounter-health-fill"
+                          style={{
+                            width: `${(100 * encounter.hp) / encounter.maxHp}%`,
+                          }}
+                        />
+                        {encounter.phaseThresholds.map((threshold) => (
+                          <i
+                            key={threshold}
+                            className="encounter-health-half"
+                            style={{ left: `${threshold}%` }}
+                          />
+                        ))}
+                        <span className="encounter-health-numbers">
+                          {Math.ceil(encounter.hp).toLocaleString('zh-CN')} /{' '}
+                          {Math.ceil(encounter.maxHp).toLocaleString('zh-CN')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : null}
               <div className="battle-edge-progress">

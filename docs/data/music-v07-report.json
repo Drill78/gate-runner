@@ -1,0 +1,151 @@
+{
+  "target_lufs": -18,
+  "total_bytes": 4736805,
+  "tracks": [
+    {
+      "title": "铁与誓言",
+      "bpm": 112,
+      "bars": 24,
+      "file": "normal.mp3",
+      "bytes": 1029943,
+      "sha256": "da22ca10a34570daa11b2c83041b5440b23a6d88d16e216f2d441349327b9469",
+      "sample_rate": 44100,
+      "channels": 2,
+      "codec": "MP3 / LAME 160 kbps CBR, Xing/LAME gapless metadata",
+      "decoded": {
+        "samples": 2268000,
+        "seconds": 51.428571,
+        "peak_dbfs": -6.465,
+        "rms_dbfs": -20.369,
+        "clipped_samples": 0,
+        "seam_jump": 0.0147581,
+        "adjacent_step_p99": 0.1761491,
+        "seam_to_p99": 0.084,
+        "edge_20ms_rms_db_delta": 12.623
+      },
+      "loudness": {
+        "lufs": -18.01,
+        "true_peak_db": -6.18,
+        "loudness_range_lu": 1.2
+      },
+      "master": {
+        "samples": 2268000,
+        "seconds": 51.428571,
+        "peak_dbfs": -7.438,
+        "rms_dbfs": -19.941,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.1851563,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 12.559
+      },
+      "decoded_sample_count_matches_master": true
+    },
+    {
+      "title": "王座之前·诸王战歌",
+      "bpm": 112,
+      "bars": 32,
+      "file": "boss.mp3",
+      "bytes": 1372679,
+      "sha256": "f3bbf41ced8bb64c62d937f63b4493b40fb134f9d8c430a6e8eb652910541f7b",
+      "sample_rate": 44100,
+      "channels": 2,
+      "codec": "MP3 / LAME 160 kbps CBR, Xing/LAME gapless metadata",
+      "decoded": {
+        "samples": 3024000,
+        "seconds": 68.571429,
+        "peak_dbfs": -6.567,
+        "rms_dbfs": -19.758,
+        "clipped_samples": 0,
+        "seam_jump": 0.0153001,
+        "adjacent_step_p99": 0.150214,
+        "seam_to_p99": 0.102,
+        "edge_20ms_rms_db_delta": 7.81
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -6.49,
+        "loudness_range_lu": 2.2
+      },
+      "master": {
+        "samples": 3024000,
+        "seconds": 68.571429,
+        "peak_dbfs": -7.012,
+        "rms_dbfs": -19.322,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.1575975,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 7.73
+      },
+      "decoded_sample_count_matches_master": true
+    },
+    {
+      "title": "灰烬终誓·交响王权",
+      "bpm": 112,
+      "bars": 32,
+      "file": "final.mp3",
+      "bytes": 1372679,
+      "sha256": "1401df9b56a0ae0e6cbf67cd4edfeddf4f07ceaf62dddc2f88f3ca2079863444",
+      "sample_rate": 44100,
+      "channels": 2,
+      "codec": "MP3 / LAME 160 kbps CBR, Xing/LAME gapless metadata",
+      "decoded": {
+        "samples": 3024000,
+        "seconds": 68.571429,
+        "peak_dbfs": -6.813,
+        "rms_dbfs": -19.645,
+        "clipped_samples": 0,
+        "seam_jump": 0.0051698,
+        "adjacent_step_p99": 0.1357449,
+        "seam_to_p99": 0.038,
+        "edge_20ms_rms_db_delta": 6.798
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -6.76,
+        "loudness_range_lu": 1.5
+      },
+      "master": {
+        "samples": 3024000,
+        "seconds": 68.571429,
+        "peak_dbfs": -7.17,
+        "rms_dbfs": -19.209,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.1425729,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 6.67
+      },
+      "decoded_sample_count_matches_master": true
+    },
+    {
+      "title": "门后的低语",
+      "bpm": 80,
+      "bars": 16,
+      "file": "forbidden.mp3",
+      "bytes": 961504,
+      "sha256": "cb32248e7bd3edc95737d49fe79273f7a2d6808f8298bc080f9c5394d1312c57",
+      "sample_rate": 44100,
+      "channels": 2,
+      "codec": "MP3 / LAME 160 kbps CBR, Xing/LAME gapless metadata",
+      "decoded": {
+        "samples": 2116800,
+        "seconds": 48.0,
+        "peak_dbfs": -5.881,
+        "rms_dbfs": -19.241,
+        "clipped_samples": 0,
+        "seam_jump": 0.0131461,
+        "adjacent_step_p99": 0.1205716,
+        "seam_to_p99": 0.109,
+        "edge_20ms_rms_db_delta": 13.659
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -5.87,
+        "loudness_range_lu": 0.9
+      }
+    }
+  ],
+  "forbidden_unchanged_from_v06": true
+}

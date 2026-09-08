@@ -3,9 +3,9 @@ import type { Battle } from './combat';
 export type MusicTrack = 'normal' | 'boss' | 'final' | 'forbidden';
 export const MUSIC_TRACKS: Record<MusicTrack, { title: string; src: string }> =
   {
-    normal: { title: '铁与誓言', src: '/audio/normal.mp3' },
-    boss: { title: '王座之前', src: '/audio/boss.mp3' },
-    final: { title: '灰烬终誓', src: '/audio/final.mp3' },
+    normal: { title: '铁与誓言', src: '/audio/normal.mp3?v=0.7' },
+    boss: { title: '王座之前·诸王战歌', src: '/audio/boss.mp3?v=0.7' },
+    final: { title: '灰烬终誓·交响王权', src: '/audio/final.mp3?v=0.7' },
     forbidden: { title: '门后的低语', src: '/audio/forbidden.mp3' },
   };
 

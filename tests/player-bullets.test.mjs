@@ -169,8 +169,8 @@ test('explosive impacts damage nearby bodies without making the original shot pi
   b.shootTimer = Infinity;
   b.bullets.push(round(b, { vy: -40 }));
   stepBattle(b, 0.05);
-  assert.equal(target.hp, 900);
-  assert.equal(neighbor.hp, 970);
+  assert.equal(target.hp, 880);
+  assert.equal(neighbor.hp, 935);
   assert.equal(distant.hp, 1000);
   assert.equal(b.bullets.length, 0);
 });
@@ -202,10 +202,10 @@ test('execute bonuses are evaluated per body, without being baked into ricochet 
   b.shootTimer = Infinity;
   b.bullets.push(round(b, { critical: true, vy: -40 }));
   stepBattle(b, 0.05);
-  assert.equal(target.hp, 60);
+  assert.equal(target.hp, 40);
   assert.equal(
     healthy.hp,
-    970,
+    935,
     'a healthy splash target gets no execute bonus',
   );
   assert.ok(b.bullets.every((p) => p.kind === 'shard' && p.damage === 30));

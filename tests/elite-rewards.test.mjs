@@ -88,7 +88,7 @@ test('fully stacked high-tier relics produce a repeatable epic reward, not a cap
 
 test('even fully exhausted pools present three distinct epic consumables with real effects', () => {
   let run = maxRelics(createRun('knight', 734));
-  run.weaponTier = 10;
+  run.weaponTier = 25;
   run.squad = Number.MAX_SAFE_INTEGER;
   run.phase = 'reward';
   run.reward = rollRewards(run, true);

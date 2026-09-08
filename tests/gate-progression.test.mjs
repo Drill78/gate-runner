@@ -126,7 +126,7 @@ test('entering an enchanted original-map elite inserts five unavoidable red gate
   b.time = red[0].start - VIEW.previewSeconds;
   stepBattle(b, 0.01);
   const values = red.map((e) => e.gate[0].value);
-  assert.deepEqual(values, [180, 1.3, 139, 1.35, 91]);
+  assert.deepEqual(values, [140, 1.22, 120, 1.25, 94]);
   for (const [index, e] of red.entries()) {
     b.time = e.arrival - 0.01;
     b.x = [-0.9, 0, 0.9][index % 3];
@@ -138,12 +138,12 @@ test('entering an enchanted original-map elite inserts five unavoidable red gate
       'the visible prices do not change mid-trial',
     );
   }
-  assert.equal(b.player.squad, 272);
+  assert.equal(b.player.squad, 373);
   const square = secret.gate.find((g) => g.op === '²');
   b.time = secret.arrival - 0.01;
   b.x = (square.left + square.right) / 2;
   stepBattle(b, 0.02);
-  assert.equal(b.player.squad, 272 ** 2);
+  assert.equal(b.player.squad, 373 ** 2);
 });
 
 test('squaring keeps the original army firepower curve at every size', () => {

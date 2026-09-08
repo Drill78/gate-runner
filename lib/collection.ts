@@ -6,6 +6,8 @@ export interface CollectionProgress {
   kills: Record<string, number>;
   wins: Record<ClassId, number>;
   secrets: string[];
+  hardWins: Record<ClassId, number>;
+  records: Record<string, number>;
 }
 
 const CLASS_IDS: readonly ClassId[] = ['knight', 'ranger', 'mage'];
@@ -17,6 +19,8 @@ export function emptyCollection(): CollectionProgress {
     kills: {},
     wins: { knight: 0, ranger: 0, mage: 0 },
     secrets: [],
+    hardWins: { knight: 0, ranger: 0, mage: 0 },
+    records: {},
   };
 }
 
@@ -43,6 +47,24 @@ function normalizeCollection(value: unknown): CollectionProgress {
       if (validCount(count)) result.wins[classId] = count;
     }
   }
+  if (isRecord(value.hardWins))
+    for (const id of CLASS_IDS) {
+      if (validCount(value.hardWins[id]))
+        result.hardWins[id] = value.hardWins[id];
+    }
+  if (isRecord(value.records))
+    for (const key of [
+      'goldEarned',
+      'weaponTier',
+      'maxHp',
+      'chests',
+      'relicKinds',
+      'doubleBossWins',
+      'flawlessBosses',
+    ]) {
+      if (validCount(value.records[key]))
+        result.records[key] = value.records[key];
+    }
   const secrets = value.secrets;
   if (Array.isArray(secrets))
     result.secrets = SECRET_IDS.filter((id) => secrets.includes(id));
@@ -61,7 +83,7 @@ export function parseCollection(raw: string | null): CollectionProgress {
 /** The caller commits each battle delta and completed victory once. */
 export function mergeCollection(
   progress: CollectionProgress,
-  run: Pick<Run, 'classId' | 'phase'> & { secretDiscovered?: boolean },
+  run: Pick<Run, 'classId' | 'phase'> & Partial<Run>,
   earnedEncounterKills: Record<string, number> = {},
 ): CollectionProgress {
   const next = normalizeCollection(progress);
@@ -78,6 +100,27 @@ export function mergeCollection(
       Number.MAX_SAFE_INTEGER,
       next.wins[run.classId] + 1,
     );
+  if (run.phase === 'victory' && run.difficulty === 'hard')
+    next.hardWins[run.classId] = Math.min(
+      Number.MAX_SAFE_INTEGER,
+      next.hardWins[run.classId] + 1,
+    );
+  for (const key of [
+    'goldEarned',
+    'weaponTier',
+    'maxHp',
+    'chests',
+    'doubleBossWins',
+    'flawlessBosses',
+  ] as const) {
+    if (validCount(run[key]))
+      next.records[key] = Math.max(next.records[key] || 0, run[key]);
+  }
+  if (run.relics)
+    next.records.relicKinds = Math.max(
+      next.records.relicKinds || 0,
+      Object.keys(run.relics).length,
+    );
   if (run.secretDiscovered === true && !next.secrets.includes('forbidden-key'))
     next.secrets.push('forbidden-key');
   return next;
@@ -87,6 +130,8 @@ type AchievementRule =
   | { type: 'encounter'; encounterId: string }
   | { type: 'class-win'; classId: ClassId }
   | { type: 'first-win' }
+  | { type: 'hard-win' }
+  | { type: 'record'; metric: string; target: number }
   | { type: 'all-classes' }
   | { type: 'encounter-set'; kind: 'elite' | 'boss' }
   | { type: 'secret'; secretId: string };
@@ -99,7 +144,59 @@ export interface AchievementDefinition {
   rule: AchievementRule;
 }
 
+export function hardModeUnlocked(progress: CollectionProgress) {
+  return CLASS_IDS.some((id) => progress.wins[id] > 0);
+}
 export const ACHIEVEMENTS: readonly AchievementDefinition[] = [
+  {
+    id: 'hard-victory',
+    title: '灰烬再临',
+    description: '完成一次困难模式远征。',
+    rule: { type: 'hard-win' },
+  },
+  ...[
+    [
+      'gold-1500',
+      '渡鸦的金库',
+      '单次远征累计获得1500金币（消费不扣累计）。',
+      'goldEarned',
+      1500,
+    ],
+    ['gold-2200', '黄金王冠', '单次远征累计获得2200金币。', 'goldEarned', 2200],
+    ['weapon-15', '名匠之作', '单次远征将武器提升至15级。', 'weaponTier', 15],
+    ['weapon-25', '神铸兵装', '将一件武器锻造至25级。', 'weaponTier', 25],
+    ['life-240', '不灭之躯', '单次远征生命上限达到240。', 'maxHp', 240],
+    ['chests-15', '秘匣猎人', '单次远征击破15只宝箱。', 'chests', 15],
+    ['relics-15', '行走的宝库', '单次远征收集15种不同遗物。', 'relicKinds', 15],
+    [
+      'duo-first',
+      '一战双王',
+      '在困难模式中赢下一次双首领战。',
+      'doubleBossWins',
+      1,
+    ],
+    [
+      'duo-both',
+      '四王落幕',
+      '单次困难远征击败前两幕的双首领。',
+      'doubleBossWins',
+      2,
+    ],
+    [
+      'flawless',
+      '无伤的誓言',
+      '章节首领登场后未失去生命并获胜（护盾吸收允许）。',
+      'flawlessBosses',
+      1,
+    ],
+  ].map(
+    ([id, title, description, metric, target]): AchievementDefinition => ({
+      id: String(id),
+      title: String(title),
+      description: String(description),
+      rule: { type: 'record', metric: String(metric), target: Number(target) },
+    }),
+  ),
   ...ENCOUNTERS.map(
     (encounter): AchievementDefinition => ({
       id: `defeat-${encounter.id}`,
@@ -164,6 +261,16 @@ function achievementCount(
   progress: CollectionProgress,
 ): { current: number; target: number } {
   switch (rule.type) {
+    case 'hard-win':
+      return {
+        current: CLASS_IDS.some((id) => progress.hardWins[id] > 0) ? 1 : 0,
+        target: 1,
+      };
+    case 'record':
+      return {
+        current: progress.records[rule.metric] || 0,
+        target: rule.target,
+      };
     case 'encounter':
       return { current: progress.kills[rule.encounterId] || 0, target: 1 };
     case 'class-win':

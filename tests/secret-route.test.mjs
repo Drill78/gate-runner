@@ -16,7 +16,7 @@ function keyShop(classId = 'knight', nextKind = 'elite') {
   for (let seed = 0; seed < 100; seed++) {
     const run = createRun(classId, seed);
     run.phase = 'map';
-    run.gold = 500;
+    run.gold = 666;
     for (const first of availableNodes(run)) {
       const next = completeRoom(enterNode(run, first.id), false);
       const shop = availableNodes(next).find((node) => node.kind === 'shop');

@@ -174,11 +174,11 @@ test('a held key enchants a real elite once and adds no side node', () => {
   assert.equal(restored.squareGateSeen, true);
 });
 
-test('key remains shop-only at 500 beside five randomized items', () => {
+test('key remains shop-only at 666 beside five randomized items', () => {
   const run = fresh();
   const stock = shopInventory(run);
   assert.equal(stock.length, 6);
-  assert.equal(stock.find((item) => item.relicId === 'square_key').cost, 500);
+  assert.equal(stock.find((item) => item.relicId === 'square_key').cost, 666);
   assert.equal(new Set(stock.map((item) => item.id)).size, 6);
   for (let seed = 0; seed < 50; seed++) {
     const candidate = fresh(seed);

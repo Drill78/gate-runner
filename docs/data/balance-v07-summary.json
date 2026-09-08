@@ -1,0 +1,1661 @@
+{
+  "normal": {
+    "audit": "v0.7-dual-bosses-zones-growth-drafts",
+    "createdAt": "2026-09-08T02:08:02.076Z",
+    "engineHashes": {
+      "game.ts": "e2eb7aa3c93fbd903bfc2afe1bc9d5e19998f4806e455e59623a40cd10928e37",
+      "combat.ts": "2a5fbc4874f5e869235621e89fe7cb45705f85eb9f9cc1c3ac88e53e2916888b",
+      "view.ts": "12df63bef2e48873c75035d5f283d6361adaa33782b5879bdb5dc54f3dfc148a",
+      "bosses.ts": "392f7f2b2251a24997d4ff5bff91084a9a03a06b804ac60fe01092699417dadf"
+    },
+    "balance": {
+      "moveSpeed": 2.2,
+      "pointerMaxSpeed": 12,
+      "minX": -0.9,
+      "maxX": 0.9,
+      "aimWidth": 0.205,
+      "travel": [
+        3.9,
+        3.5,
+        3.1
+      ],
+      "spacing": [
+        3.15,
+        2.95,
+        2.75
+      ],
+      "waves": [
+        8,
+        10,
+        12
+      ],
+      "hpGrowth": 1.27,
+      "bossGrowth": 1.26,
+      "enemyBaseHp": 110,
+      "bossBaseHp": 3400,
+      "commanderBaseHp": 1580,
+      "eliteCommanderBaseHp": 2250,
+      "laterEnemyHpMultiplier": 1.15,
+      "superEliteHpMultiplier": 1.75,
+      "superEliteCommanderHp": 4100,
+      "enemyActMultiplier": [
+        1,
+        1.05,
+        1.12
+      ],
+      "commanderActMultiplier": [
+        1,
+        1.15,
+        1.5
+      ],
+      "bossActMultiplier": [
+        1.6,
+        2.2,
+        2.15
+      ],
+      "finalBossHpMultiplier": 1.6,
+      "finalBossDamageMultiplier": 1.2,
+      "finalBossAttackIntervals": [
+        4,
+        3.5,
+        3
+      ],
+      "commanderAttackInterval": 3.2,
+      "chapterAttackInterval": 4.4,
+      "pressureGrace": [
+        22,
+        17,
+        17
+      ],
+      "pressureInterval": [
+        8,
+        7,
+        6
+      ],
+      "pressureDamage": [
+        10,
+        16,
+        24
+      ],
+      "pressureRamp": [
+        3,
+        4,
+        6
+      ],
+      "enrageAfter": 22
+    },
+    "route": {
+      "actLength": 5,
+      "totalFloors": 15,
+      "maxLevel": 15
+    },
+    "view": {
+      "far": -0.68,
+      "near": 1.17,
+      "playerY": 0.8,
+      "previewSeconds": 1.5,
+      "controlSpace": 24,
+      "horizontalScale": 0.465
+    },
+    "troopMultipliers": [
+      {
+        "squad": 12,
+        "multiplier": 2
+      },
+      {
+        "squad": 1000,
+        "multiplier": 7.398031073973154
+      },
+      {
+        "squad": 10000,
+        "multiplier": 10.704480074967176
+      },
+      {
+        "squad": 1000000,
+        "multiplier": 17.346623380839635
+      },
+      {
+        "squad": 9007199254740991,
+        "multiplier": 50.415037499278846
+      }
+    ],
+    "options": {
+      "difficulty": "normal",
+      "reaction": 0.15,
+      "stationary": false,
+      "timestep": 0.05,
+      "maxRoomSeconds": 220,
+      "seeds": [
+        734,
+        1743,
+        2752,
+        3761,
+        4770,
+        5779,
+        6788,
+        7797,
+        8806,
+        9815,
+        10824,
+        11833,
+        12842,
+        13851,
+        14860,
+        15869
+      ]
+    },
+    "priorities": {
+      "knight": [
+        "bash",
+        "paladin",
+        "aegis",
+        "bulwark",
+        "split",
+        "steel",
+        "heavy",
+        "focus",
+        "plate",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "mirror",
+        "army",
+        "thorns",
+        "recruit",
+        "bounty"
+      ],
+      "ranger": [
+        "hunter",
+        "quiver",
+        "keen",
+        "deadeye",
+        "split",
+        "steel",
+        "heavy",
+        "focus",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "ricochet",
+        "mirror",
+        "army",
+        "ambush",
+        "recruit",
+        "bounty"
+      ],
+      "mage": [
+        "archmage",
+        "surge",
+        "echo",
+        "split",
+        "ward",
+        "steel",
+        "heavy",
+        "focus",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "ember",
+        "mirror",
+        "army",
+        "summon",
+        "recruit",
+        "bounty"
+      ]
+    },
+    "priorityOverrides": {
+      "square_key": 200
+    },
+    "policy": {
+      "upgrades": "Consume all offered levels through chooseBattleUpgrade; none uses skipBattleUpgrade.",
+      "rewards": "Score offered supplies and relics only; none accepts supplies and uses skipReward otherwise.",
+      "shop": "Actual current stock and real purchase API; none excludes relic and random-relic kinds; key costs the API price.",
+      "route": "Follow explicit next edges only; unused key and HP >= 80% prioritize an available enchanted elite. Every completed node advances one floor.",
+      "ritual": "Aim to interrupt, then move into the announced safeX/safeWidth before resolution."
+    },
+    "summary": [
+      {
+        "classId": "knight",
+        "mode": "coherent",
+        "n": 16,
+        "wins": 16,
+        "winRate": 1,
+        "avgFloor": 15,
+        "avgFinalHp": 219.875,
+        "avgDamagePerRoom": 0,
+        "avgLeaksPerRoom": 0.23668639053254437,
+        "avgBossTime": 17.531249999999424,
+        "maxRoomTime": 83.4999999999974,
+        "avgWeapon": 22.1875,
+        "avgLevel": 10.1875,
+        "projectileHits": 0,
+        "ritualsStarted": 20,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 19,
+        "upgradesChosen": 147,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 20,
+        "enchantedEncounters": 1,
+        "pressurePulses": 31,
+        "pressureDeaths": 0,
+        "waveDeaths": 0,
+        "bossAttackDeaths": 0,
+        "timeoutRuns": 0,
+        "squaresTaken": 1,
+        "rootsTaken": 4,
+        "squareGatesSeen": 1,
+        "squareSeenRuns": 1,
+        "avgFinalSquad": 28173111.75,
+        "cappedRuns": 0,
+        "namedShopPurchases": 50,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 22.056249999999388,
+            "maxKillSeconds": 57.2999999999974,
+            "pressurePulses": 15,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 13.256249999999651,
+            "maxKillSeconds": 30.399999999998677,
+            "pressurePulses": 4,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 15,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 17.281249999999226,
+            "maxKillSeconds": 35.64999999999819,
+            "pressurePulses": 12,
+            "pressureDeaths": 0
+          }
+        ]
+      },
+      {
+        "classId": "knight",
+        "mode": "economy",
+        "n": 16,
+        "wins": 12,
+        "winRate": 0.75,
+        "avgFloor": 14,
+        "avgFinalHp": 259.5,
+        "avgDamagePerRoom": 7.229813664596273,
+        "avgLeaksPerRoom": 0.9192546583850931,
+        "avgBossTime": 43.33888888888687,
+        "maxRoomTime": 129.0499999999951,
+        "avgWeapon": 20.125,
+        "avgLevel": 9.6875,
+        "projectileHits": 0,
+        "ritualsStarted": 35,
+        "ritualsResolved": 13,
+        "ritualsDodged": 11,
+        "ritualsInterrupted": 21,
+        "upgradesChosen": 139,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 14,
+        "enchantedEncounters": 1,
+        "pressurePulses": 182,
+        "pressureDeaths": 3,
+        "waveDeaths": 1,
+        "bossAttackDeaths": 0,
+        "timeoutRuns": 0,
+        "squaresTaken": 1,
+        "rootsTaken": 6,
+        "squareGatesSeen": 1,
+        "squareSeenRuns": 1,
+        "avgFinalSquad": 808616509.375,
+        "cappedRuns": 0,
+        "namedShopPurchases": 50,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 45.359374999998074,
+            "maxKillSeconds": 63.19999999999706,
+            "pressurePulses": 55,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 15,
+            "kills": 14,
+            "avgKillSeconds": 36.77857142856975,
+            "maxKillSeconds": 69.49999999999646,
+            "pressurePulses": 55,
+            "pressureDeaths": 1
+          },
+          {
+            "floor": 15,
+            "attempts": 14,
+            "kills": 12,
+            "avgKillSeconds": 36.03749999999816,
+            "maxKillSeconds": 62.69999999999665,
+            "pressurePulses": 72,
+            "pressureDeaths": 2
+          }
+        ]
+      },
+      {
+        "classId": "knight",
+        "mode": "none",
+        "n": 16,
+        "wins": 0,
+        "winRate": 0,
+        "avgFloor": 9.125,
+        "avgFinalHp": 0,
+        "avgDamagePerRoom": 24.69747899159664,
+        "avgLeaksPerRoom": 2.5294117647058822,
+        "avgBossTime": 72.02931034482468,
+        "maxRoomTime": 145.54999999999885,
+        "avgWeapon": 15.625,
+        "avgLevel": 7.8125,
+        "projectileHits": 0,
+        "ritualsStarted": 3,
+        "ritualsResolved": 2,
+        "ritualsDodged": 2,
+        "ritualsInterrupted": 0,
+        "upgradesChosen": 0,
+        "upgradesSkipped": 109,
+        "suppliesChosen": 46,
+        "enchantedEncounters": 0,
+        "pressurePulses": 227,
+        "pressureDeaths": 9,
+        "waveDeaths": 6,
+        "bossAttackDeaths": 1,
+        "timeoutRuns": 0,
+        "squaresTaken": 0,
+        "rootsTaken": 6,
+        "squareGatesSeen": 0,
+        "squareSeenRuns": 0,
+        "avgFinalSquad": 123437.6875,
+        "cappedRuns": 0,
+        "namedShopPurchases": 0,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 57.66562499999738,
+            "maxKillSeconds": 68.04999999999679,
+            "pressurePulses": 80,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 12,
+            "kills": 4,
+            "avgKillSeconds": 89.93749999999633,
+            "maxKillSeconds": 112.24999999999821,
+            "pressurePulses": 141,
+            "pressureDeaths": 8
+          },
+          {
+            "floor": 15,
+            "attempts": 1,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 6,
+            "pressureDeaths": 1
+          }
+        ]
+      },
+      {
+        "classId": "ranger",
+        "mode": "coherent",
+        "n": 16,
+        "wins": 12,
+        "winRate": 0.75,
+        "avgFloor": 14.75,
+        "avgFinalHp": 148.75,
+        "avgDamagePerRoom": 17.46067415730337,
+        "avgLeaksPerRoom": 0.0449438202247191,
+        "avgBossTime": 25.109374999998995,
+        "maxRoomTime": 81.04999999999754,
+        "avgWeapon": 21.25,
+        "avgLevel": 10.1875,
+        "projectileHits": 0,
+        "ritualsStarted": 28,
+        "ritualsResolved": 3,
+        "ritualsDodged": 3,
+        "ritualsInterrupted": 24,
+        "upgradesChosen": 147,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 24,
+        "enchantedEncounters": 0,
+        "pressurePulses": 72,
+        "pressureDeaths": 3,
+        "waveDeaths": 0,
+        "bossAttackDeaths": 1,
+        "timeoutRuns": 0,
+        "squaresTaken": 0,
+        "rootsTaken": 1,
+        "squareGatesSeen": 0,
+        "squareSeenRuns": 0,
+        "avgFinalSquad": 1326256.5,
+        "cappedRuns": 0,
+        "namedShopPurchases": 24,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 26.749999999999126,
+            "maxKillSeconds": 44.149999999998144,
+            "pressurePulses": 18,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 20.821874999999224,
+            "maxKillSeconds": 31.39999999999862,
+            "pressurePulses": 17,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 15,
+            "attempts": 16,
+            "kills": 12,
+            "avgKillSeconds": 22.9874999999989,
+            "maxKillSeconds": 41.89999999999783,
+            "pressurePulses": 37,
+            "pressureDeaths": 3
+          }
+        ]
+      },
+      {
+        "classId": "ranger",
+        "mode": "economy",
+        "n": 16,
+        "wins": 2,
+        "winRate": 0.125,
+        "avgFloor": 9.5,
+        "avgFinalHp": 105,
+        "avgDamagePerRoom": 31.479674796747968,
+        "avgLeaksPerRoom": 0.1951219512195122,
+        "avgBossTime": 40.388709677417566,
+        "maxRoomTime": 86.79999999999721,
+        "avgWeapon": 13.625,
+        "avgLevel": 8.25,
+        "projectileHits": 0,
+        "ritualsStarted": 8,
+        "ritualsResolved": 2,
+        "ritualsDodged": 2,
+        "ritualsInterrupted": 6,
+        "upgradesChosen": 116,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 13,
+        "enchantedEncounters": 3,
+        "pressurePulses": 105,
+        "pressureDeaths": 4,
+        "waveDeaths": 3,
+        "bossAttackDeaths": 7,
+        "timeoutRuns": 0,
+        "squaresTaken": 1,
+        "rootsTaken": 1,
+        "squareGatesSeen": 1,
+        "squareSeenRuns": 3,
+        "avgFinalSquad": 33126445.1875,
+        "cappedRuns": 0,
+        "namedShopPurchases": 19,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 13,
+            "avgKillSeconds": 43.27692307692127,
+            "maxKillSeconds": 51.9499999999977,
+            "pressurePulses": 50,
+            "pressureDeaths": 1
+          },
+          {
+            "floor": 10,
+            "attempts": 11,
+            "kills": 6,
+            "avgKillSeconds": 37.358333333331615,
+            "maxKillSeconds": 56.29999999999721,
+            "pressurePulses": 41,
+            "pressureDeaths": 1
+          },
+          {
+            "floor": 15,
+            "attempts": 4,
+            "kills": 2,
+            "avgKillSeconds": 28.049999999998615,
+            "maxKillSeconds": 30.64999999999847,
+            "pressurePulses": 14,
+            "pressureDeaths": 2
+          }
+        ]
+      },
+      {
+        "classId": "ranger",
+        "mode": "none",
+        "n": 16,
+        "wins": 0,
+        "winRate": 0,
+        "avgFloor": 6.3125,
+        "avgFinalHp": 0,
+        "avgDamagePerRoom": 30.686046511627907,
+        "avgLeaksPerRoom": 0.3023255813953488,
+        "avgBossTime": 48.442499999997835,
+        "maxRoomTime": 95.09999999999674,
+        "avgWeapon": 11.625,
+        "avgLevel": 6.9375,
+        "projectileHits": 0,
+        "ritualsStarted": 0,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 0,
+        "upgradesChosen": 0,
+        "upgradesSkipped": 95,
+        "suppliesChosen": 39,
+        "enchantedEncounters": 0,
+        "pressurePulses": 83,
+        "pressureDeaths": 4,
+        "waveDeaths": 2,
+        "bossAttackDeaths": 10,
+        "timeoutRuns": 0,
+        "squaresTaken": 0,
+        "rootsTaken": 1,
+        "squareGatesSeen": 0,
+        "squareSeenRuns": 0,
+        "avgFinalSquad": 2503.625,
+        "cappedRuns": 0,
+        "namedShopPurchases": 0,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 12,
+            "avgKillSeconds": 54.21249999999757,
+            "maxKillSeconds": 68.89999999999674,
+            "pressurePulses": 72,
+            "pressureDeaths": 2
+          },
+          {
+            "floor": 10,
+            "attempts": 3,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 11,
+            "pressureDeaths": 2
+          },
+          {
+            "floor": 15,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          }
+        ]
+      },
+      {
+        "classId": "mage",
+        "mode": "coherent",
+        "n": 16,
+        "wins": 16,
+        "winRate": 1,
+        "avgFloor": 15,
+        "avgFinalHp": 157.0625,
+        "avgDamagePerRoom": 6.796511627906977,
+        "avgLeaksPerRoom": 0.0755813953488372,
+        "avgBossTime": 21.358333333332542,
+        "maxRoomTime": 74.04999999999794,
+        "avgWeapon": 21.9375,
+        "avgLevel": 10.1875,
+        "projectileHits": 0,
+        "ritualsStarted": 24,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 24,
+        "upgradesChosen": 147,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 19,
+        "enchantedEncounters": 1,
+        "pressurePulses": 50,
+        "pressureDeaths": 0,
+        "waveDeaths": 0,
+        "bossAttackDeaths": 0,
+        "timeoutRuns": 0,
+        "squaresTaken": 1,
+        "rootsTaken": 1,
+        "squareGatesSeen": 1,
+        "squareSeenRuns": 1,
+        "avgFinalSquad": 51241497.875,
+        "cappedRuns": 0,
+        "namedShopPurchases": 44,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 20.056249999999505,
+            "maxKillSeconds": 30.59999999999891,
+            "pressurePulses": 6,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 17.774999999999395,
+            "maxKillSeconds": 32.64999999999855,
+            "pressurePulses": 12,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 15,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 26.24374999999872,
+            "maxKillSeconds": 40.04999999999794,
+            "pressurePulses": 32,
+            "pressureDeaths": 0
+          }
+        ]
+      },
+      {
+        "classId": "mage",
+        "mode": "economy",
+        "n": 16,
+        "wins": 3,
+        "winRate": 0.1875,
+        "avgFloor": 9.25,
+        "avgFinalHp": 49.666666666666664,
+        "avgDamagePerRoom": 28.17391304347826,
+        "avgLeaksPerRoom": 0.1826086956521739,
+        "avgBossTime": 34.30483870967598,
+        "maxRoomTime": 82.54999999999745,
+        "avgWeapon": 12.8125,
+        "avgLevel": 8.0625,
+        "projectileHits": 0,
+        "ritualsStarted": 8,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 7,
+        "upgradesChosen": 113,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 9,
+        "enchantedEncounters": 4,
+        "pressurePulses": 82,
+        "pressureDeaths": 7,
+        "waveDeaths": 2,
+        "bossAttackDeaths": 4,
+        "timeoutRuns": 0,
+        "squaresTaken": 2,
+        "rootsTaken": 2,
+        "squareGatesSeen": 2,
+        "squareSeenRuns": 4,
+        "avgFinalSquad": 3315420615.75,
+        "cappedRuns": 0,
+        "namedShopPurchases": 27,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 13,
+            "avgKillSeconds": 35.07307692307558,
+            "maxKillSeconds": 49.79999999999782,
+            "pressurePulses": 35,
+            "pressureDeaths": 1
+          },
+          {
+            "floor": 10,
+            "attempts": 11,
+            "kills": 4,
+            "avgKillSeconds": 25.57499999999895,
+            "maxKillSeconds": 45.79999999999781,
+            "pressurePulses": 37,
+            "pressureDeaths": 6
+          },
+          {
+            "floor": 15,
+            "attempts": 4,
+            "kills": 3,
+            "avgKillSeconds": 28.949999999998564,
+            "maxKillSeconds": 34.54999999999825,
+            "pressurePulses": 10,
+            "pressureDeaths": 0
+          }
+        ]
+      },
+      {
+        "classId": "mage",
+        "mode": "none",
+        "n": 16,
+        "wins": 0,
+        "winRate": 0,
+        "avgFloor": 7.5,
+        "avgFinalHp": 0,
+        "avgDamagePerRoom": 26.43,
+        "avgLeaksPerRoom": 0.2,
+        "avgBossTime": 38.61999999999833,
+        "maxRoomTime": 86.29999999999724,
+        "avgWeapon": 12.8125,
+        "avgLevel": 7.5625,
+        "projectileHits": 0,
+        "ritualsStarted": 0,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 0,
+        "upgradesChosen": 0,
+        "upgradesSkipped": 105,
+        "suppliesChosen": 42,
+        "enchantedEncounters": 0,
+        "pressurePulses": 79,
+        "pressureDeaths": 8,
+        "waveDeaths": 3,
+        "bossAttackDeaths": 5,
+        "timeoutRuns": 0,
+        "squaresTaken": 0,
+        "rootsTaken": 1,
+        "squareGatesSeen": 0,
+        "squareSeenRuns": 0,
+        "avgFinalSquad": 6660,
+        "cappedRuns": 0,
+        "namedShopPurchases": 0,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 14,
+            "avgKillSeconds": 45.90357142856947,
+            "maxKillSeconds": 60.09999999999724,
+            "pressurePulses": 52,
+            "pressureDeaths": 1
+          },
+          {
+            "floor": 10,
+            "attempts": 7,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 27,
+            "pressureDeaths": 7
+          },
+          {
+            "floor": 15,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          }
+        ]
+      }
+    ]
+  },
+  "hard": {
+    "audit": "v0.7-dual-bosses-zones-growth-drafts",
+    "createdAt": "2026-09-08T02:08:00.203Z",
+    "engineHashes": {
+      "game.ts": "e2eb7aa3c93fbd903bfc2afe1bc9d5e19998f4806e455e59623a40cd10928e37",
+      "combat.ts": "2a5fbc4874f5e869235621e89fe7cb45705f85eb9f9cc1c3ac88e53e2916888b",
+      "view.ts": "12df63bef2e48873c75035d5f283d6361adaa33782b5879bdb5dc54f3dfc148a",
+      "bosses.ts": "392f7f2b2251a24997d4ff5bff91084a9a03a06b804ac60fe01092699417dadf"
+    },
+    "balance": {
+      "moveSpeed": 2.2,
+      "pointerMaxSpeed": 12,
+      "minX": -0.9,
+      "maxX": 0.9,
+      "aimWidth": 0.205,
+      "travel": [
+        3.9,
+        3.5,
+        3.1
+      ],
+      "spacing": [
+        3.15,
+        2.95,
+        2.75
+      ],
+      "waves": [
+        8,
+        10,
+        12
+      ],
+      "hpGrowth": 1.27,
+      "bossGrowth": 1.26,
+      "enemyBaseHp": 110,
+      "bossBaseHp": 3400,
+      "commanderBaseHp": 1580,
+      "eliteCommanderBaseHp": 2250,
+      "laterEnemyHpMultiplier": 1.15,
+      "superEliteHpMultiplier": 1.75,
+      "superEliteCommanderHp": 4100,
+      "enemyActMultiplier": [
+        1,
+        1.05,
+        1.12
+      ],
+      "commanderActMultiplier": [
+        1,
+        1.15,
+        1.5
+      ],
+      "bossActMultiplier": [
+        1.6,
+        2.2,
+        2.15
+      ],
+      "finalBossHpMultiplier": 1.6,
+      "finalBossDamageMultiplier": 1.2,
+      "finalBossAttackIntervals": [
+        4,
+        3.5,
+        3
+      ],
+      "commanderAttackInterval": 3.2,
+      "chapterAttackInterval": 4.4,
+      "pressureGrace": [
+        22,
+        17,
+        17
+      ],
+      "pressureInterval": [
+        8,
+        7,
+        6
+      ],
+      "pressureDamage": [
+        10,
+        16,
+        24
+      ],
+      "pressureRamp": [
+        3,
+        4,
+        6
+      ],
+      "enrageAfter": 22
+    },
+    "route": {
+      "actLength": 5,
+      "totalFloors": 15,
+      "maxLevel": 15
+    },
+    "view": {
+      "far": -0.68,
+      "near": 1.17,
+      "playerY": 0.8,
+      "previewSeconds": 1.5,
+      "controlSpace": 24,
+      "horizontalScale": 0.465
+    },
+    "troopMultipliers": [
+      {
+        "squad": 12,
+        "multiplier": 2
+      },
+      {
+        "squad": 1000,
+        "multiplier": 7.398031073973154
+      },
+      {
+        "squad": 10000,
+        "multiplier": 10.704480074967176
+      },
+      {
+        "squad": 1000000,
+        "multiplier": 17.346623380839635
+      },
+      {
+        "squad": 9007199254740991,
+        "multiplier": 50.415037499278846
+      }
+    ],
+    "options": {
+      "difficulty": "hard",
+      "reaction": 0.15,
+      "stationary": false,
+      "timestep": 0.05,
+      "maxRoomSeconds": 220,
+      "seeds": [
+        734,
+        1743,
+        2752,
+        3761,
+        4770,
+        5779,
+        6788,
+        7797,
+        8806,
+        9815,
+        10824,
+        11833,
+        12842,
+        13851,
+        14860,
+        15869
+      ]
+    },
+    "priorities": {
+      "knight": [
+        "bash",
+        "paladin",
+        "aegis",
+        "bulwark",
+        "split",
+        "steel",
+        "heavy",
+        "focus",
+        "plate",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "mirror",
+        "army",
+        "thorns",
+        "recruit",
+        "bounty"
+      ],
+      "ranger": [
+        "hunter",
+        "quiver",
+        "keen",
+        "deadeye",
+        "split",
+        "steel",
+        "heavy",
+        "focus",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "ricochet",
+        "mirror",
+        "army",
+        "ambush",
+        "recruit",
+        "bounty"
+      ],
+      "mage": [
+        "archmage",
+        "surge",
+        "echo",
+        "split",
+        "ward",
+        "steel",
+        "heavy",
+        "focus",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "ember",
+        "mirror",
+        "army",
+        "summon",
+        "recruit",
+        "bounty"
+      ]
+    },
+    "priorityOverrides": {
+      "square_key": 200
+    },
+    "policy": {
+      "upgrades": "Consume all offered levels through chooseBattleUpgrade; none uses skipBattleUpgrade.",
+      "rewards": "Score offered supplies and relics only; none accepts supplies and uses skipReward otherwise.",
+      "shop": "Actual current stock and real purchase API; none excludes relic and random-relic kinds; key costs the API price.",
+      "route": "Follow explicit next edges only; unused key and HP >= 80% prioritize an available enchanted elite. Every completed node advances one floor.",
+      "ritual": "Aim to interrupt, then move into the announced safeX/safeWidth before resolution."
+    },
+    "summary": [
+      {
+        "classId": "knight",
+        "mode": "coherent",
+        "n": 16,
+        "wins": 16,
+        "winRate": 1,
+        "avgFloor": 15,
+        "avgFinalHp": 212.5625,
+        "avgDamagePerRoom": 0.25443786982248523,
+        "avgLeaksPerRoom": 0.46153846153846156,
+        "avgBossTime": 23.40312499999909,
+        "maxRoomTime": 124.44999999999507,
+        "avgWeapon": 21.9375,
+        "avgLevel": 10.3125,
+        "projectileHits": 0,
+        "ritualsStarted": 22,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 21,
+        "upgradesChosen": 149,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 21,
+        "enchantedEncounters": 1,
+        "pressurePulses": 45,
+        "pressureDeaths": 0,
+        "waveDeaths": 0,
+        "bossAttackDeaths": 0,
+        "timeoutRuns": 0,
+        "squaresTaken": 1,
+        "rootsTaken": 6,
+        "squareGatesSeen": 1,
+        "squareSeenRuns": 1,
+        "avgFinalSquad": 33882814.0625,
+        "cappedRuns": 0,
+        "namedShopPurchases": 50,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 28.871874999999008,
+            "maxKillSeconds": 98.24999999999507,
+            "pressurePulses": 17,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 20.265624999999254,
+            "maxKillSeconds": 55.09999999999728,
+            "pressurePulses": 8,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 15,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 21.07187499999901,
+            "maxKillSeconds": 43.44999999999774,
+            "pressurePulses": 20,
+            "pressureDeaths": 0
+          }
+        ]
+      },
+      {
+        "classId": "ranger",
+        "mode": "coherent",
+        "n": 16,
+        "wins": 6,
+        "winRate": 0.375,
+        "avgFloor": 9.8125,
+        "avgFinalHp": 181.66666666666666,
+        "avgDamagePerRoom": 27.341463414634145,
+        "avgLeaksPerRoom": 0.24390243902439024,
+        "avgBossTime": 34.72424242424093,
+        "maxRoomTime": 102.24999999999633,
+        "avgWeapon": 14.25,
+        "avgLevel": 8.3125,
+        "projectileHits": 0,
+        "ritualsStarted": 12,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 11,
+        "upgradesChosen": 117,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 8,
+        "enchantedEncounters": 0,
+        "pressurePulses": 67,
+        "pressureDeaths": 6,
+        "waveDeaths": 0,
+        "bossAttackDeaths": 4,
+        "timeoutRuns": 0,
+        "squaresTaken": 0,
+        "rootsTaken": 1,
+        "squareGatesSeen": 0,
+        "squareSeenRuns": 0,
+        "avgFinalSquad": 475288.875,
+        "cappedRuns": 0,
+        "namedShopPurchases": 19,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 11,
+            "avgKillSeconds": 36.79999999999856,
+            "maxKillSeconds": 59.449999999997274,
+            "pressurePulses": 39,
+            "pressureDeaths": 4
+          },
+          {
+            "floor": 10,
+            "attempts": 10,
+            "kills": 8,
+            "avgKillSeconds": 26.262499999998916,
+            "maxKillSeconds": 35.04999999999842,
+            "pressurePulses": 15,
+            "pressureDeaths": 1
+          },
+          {
+            "floor": 15,
+            "attempts": 7,
+            "kills": 6,
+            "avgKillSeconds": 23.94999999999884,
+            "maxKillSeconds": 39.14999999999799,
+            "pressurePulses": 13,
+            "pressureDeaths": 1
+          }
+        ]
+      },
+      {
+        "classId": "mage",
+        "mode": "coherent",
+        "n": 16,
+        "wins": 15,
+        "winRate": 0.9375,
+        "avgFloor": 14.9375,
+        "avgFinalHp": 150.06666666666666,
+        "avgDamagePerRoom": 9.258620689655173,
+        "avgLeaksPerRoom": 0.08045977011494253,
+        "avgBossTime": 26.29166666666559,
+        "maxRoomTime": 75.04999999999788,
+        "avgWeapon": 21.1875,
+        "avgLevel": 10.5625,
+        "projectileHits": 0,
+        "ritualsStarted": 24,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 24,
+        "upgradesChosen": 153,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 14,
+        "enchantedEncounters": 1,
+        "pressurePulses": 56,
+        "pressureDeaths": 1,
+        "waveDeaths": 0,
+        "bossAttackDeaths": 0,
+        "timeoutRuns": 0,
+        "squaresTaken": 1,
+        "rootsTaken": 2,
+        "squareGatesSeen": 1,
+        "squareSeenRuns": 1,
+        "avgFinalSquad": 408126009.75,
+        "cappedRuns": 0,
+        "namedShopPurchases": 39,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 27.749999999999073,
+            "maxKillSeconds": 46.44999999999801,
+            "pressurePulses": 10,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 16,
+            "kills": 16,
+            "avgKillSeconds": 24.768749999998995,
+            "maxKillSeconds": 43.89999999999792,
+            "pressurePulses": 14,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 15,
+            "attempts": 16,
+            "kills": 15,
+            "avgKillSeconds": 25.376666666665436,
+            "maxKillSeconds": 39.04999999999799,
+            "pressurePulses": 32,
+            "pressureDeaths": 1
+          }
+        ]
+      }
+    ]
+  },
+  "stationary": {
+    "audit": "v0.7-dual-bosses-zones-growth-drafts",
+    "createdAt": "2026-09-08T02:08:00.340Z",
+    "engineHashes": {
+      "game.ts": "e2eb7aa3c93fbd903bfc2afe1bc9d5e19998f4806e455e59623a40cd10928e37",
+      "combat.ts": "2a5fbc4874f5e869235621e89fe7cb45705f85eb9f9cc1c3ac88e53e2916888b",
+      "view.ts": "12df63bef2e48873c75035d5f283d6361adaa33782b5879bdb5dc54f3dfc148a",
+      "bosses.ts": "392f7f2b2251a24997d4ff5bff91084a9a03a06b804ac60fe01092699417dadf"
+    },
+    "balance": {
+      "moveSpeed": 2.2,
+      "pointerMaxSpeed": 12,
+      "minX": -0.9,
+      "maxX": 0.9,
+      "aimWidth": 0.205,
+      "travel": [
+        3.9,
+        3.5,
+        3.1
+      ],
+      "spacing": [
+        3.15,
+        2.95,
+        2.75
+      ],
+      "waves": [
+        8,
+        10,
+        12
+      ],
+      "hpGrowth": 1.27,
+      "bossGrowth": 1.26,
+      "enemyBaseHp": 110,
+      "bossBaseHp": 3400,
+      "commanderBaseHp": 1580,
+      "eliteCommanderBaseHp": 2250,
+      "laterEnemyHpMultiplier": 1.15,
+      "superEliteHpMultiplier": 1.75,
+      "superEliteCommanderHp": 4100,
+      "enemyActMultiplier": [
+        1,
+        1.05,
+        1.12
+      ],
+      "commanderActMultiplier": [
+        1,
+        1.15,
+        1.5
+      ],
+      "bossActMultiplier": [
+        1.6,
+        2.2,
+        2.15
+      ],
+      "finalBossHpMultiplier": 1.6,
+      "finalBossDamageMultiplier": 1.2,
+      "finalBossAttackIntervals": [
+        4,
+        3.5,
+        3
+      ],
+      "commanderAttackInterval": 3.2,
+      "chapterAttackInterval": 4.4,
+      "pressureGrace": [
+        22,
+        17,
+        17
+      ],
+      "pressureInterval": [
+        8,
+        7,
+        6
+      ],
+      "pressureDamage": [
+        10,
+        16,
+        24
+      ],
+      "pressureRamp": [
+        3,
+        4,
+        6
+      ],
+      "enrageAfter": 22
+    },
+    "route": {
+      "actLength": 5,
+      "totalFloors": 15,
+      "maxLevel": 15
+    },
+    "view": {
+      "far": -0.68,
+      "near": 1.17,
+      "playerY": 0.8,
+      "previewSeconds": 1.5,
+      "controlSpace": 24,
+      "horizontalScale": 0.465
+    },
+    "troopMultipliers": [
+      {
+        "squad": 12,
+        "multiplier": 2
+      },
+      {
+        "squad": 1000,
+        "multiplier": 7.398031073973154
+      },
+      {
+        "squad": 10000,
+        "multiplier": 10.704480074967176
+      },
+      {
+        "squad": 1000000,
+        "multiplier": 17.346623380839635
+      },
+      {
+        "squad": 9007199254740991,
+        "multiplier": 50.415037499278846
+      }
+    ],
+    "options": {
+      "difficulty": "normal",
+      "reaction": 0.15,
+      "stationary": true,
+      "timestep": 0.05,
+      "maxRoomSeconds": 220,
+      "seeds": [
+        734,
+        1743,
+        2752,
+        3761
+      ]
+    },
+    "priorities": {
+      "knight": [
+        "bash",
+        "paladin",
+        "aegis",
+        "bulwark",
+        "split",
+        "steel",
+        "heavy",
+        "focus",
+        "plate",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "mirror",
+        "army",
+        "thorns",
+        "recruit",
+        "bounty"
+      ],
+      "ranger": [
+        "hunter",
+        "quiver",
+        "keen",
+        "deadeye",
+        "split",
+        "steel",
+        "heavy",
+        "focus",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "ricochet",
+        "mirror",
+        "army",
+        "ambush",
+        "recruit",
+        "bounty"
+      ],
+      "mage": [
+        "archmage",
+        "surge",
+        "echo",
+        "split",
+        "ward",
+        "steel",
+        "heavy",
+        "focus",
+        "vampire",
+        "vitality",
+        "constitution",
+        "lifebloom",
+        "velocity",
+        "execute",
+        "pierce",
+        "blast",
+        "ember",
+        "mirror",
+        "army",
+        "summon",
+        "recruit",
+        "bounty"
+      ]
+    },
+    "priorityOverrides": {
+      "square_key": 200
+    },
+    "policy": {
+      "upgrades": "Consume all offered levels through chooseBattleUpgrade; none uses skipBattleUpgrade.",
+      "rewards": "Score offered supplies and relics only; none accepts supplies and uses skipReward otherwise.",
+      "shop": "Actual current stock and real purchase API; none excludes relic and random-relic kinds; key costs the API price.",
+      "route": "Follow explicit next edges only; unused key and HP >= 80% prioritize an available enchanted elite. Every completed node advances one floor.",
+      "ritual": "Aim to interrupt, then move into the announced safeX/safeWidth before resolution."
+    },
+    "summary": [
+      {
+        "classId": "knight",
+        "mode": "coherent",
+        "n": 4,
+        "wins": 0,
+        "winRate": 0,
+        "avgFloor": 3,
+        "avgFinalHp": 0,
+        "avgDamagePerRoom": 48.30769230769231,
+        "avgLeaksPerRoom": 8.846153846153847,
+        "avgBossTime": 44.07499999999803,
+        "maxRoomTime": 99.3999999999965,
+        "avgWeapon": 2,
+        "avgLevel": 2.25,
+        "projectileHits": 37,
+        "ritualsStarted": 0,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 0,
+        "upgradesChosen": 5,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 1,
+        "enchantedEncounters": 0,
+        "pressurePulses": 7,
+        "pressureDeaths": 0,
+        "waveDeaths": 0,
+        "bossAttackDeaths": 4,
+        "timeoutRuns": 0,
+        "squaresTaken": 0,
+        "rootsTaken": 2,
+        "squareGatesSeen": 0,
+        "squareSeenRuns": 0,
+        "avgFinalSquad": 94,
+        "cappedRuns": 0,
+        "namedShopPurchases": 0,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 1,
+            "kills": 1,
+            "avgKillSeconds": 58.049999999997354,
+            "maxKillSeconds": 58.049999999997354,
+            "pressurePulses": 5,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 1,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 2,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 15,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          }
+        ]
+      },
+      {
+        "classId": "ranger",
+        "mode": "coherent",
+        "n": 4,
+        "wins": 0,
+        "winRate": 0,
+        "avgFloor": 0,
+        "avgFinalHp": 0,
+        "avgDamagePerRoom": 90,
+        "avgLeaksPerRoom": 9.25,
+        "avgBossTime": 0,
+        "maxRoomTime": 28.50000000000027,
+        "avgWeapon": 1,
+        "avgLevel": 1,
+        "projectileHits": 0,
+        "ritualsStarted": 0,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 0,
+        "upgradesChosen": 0,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 0,
+        "enchantedEncounters": 0,
+        "pressurePulses": 0,
+        "pressureDeaths": 0,
+        "waveDeaths": 3,
+        "bossAttackDeaths": 1,
+        "timeoutRuns": 0,
+        "squaresTaken": 0,
+        "rootsTaken": 1,
+        "squareGatesSeen": 0,
+        "squareSeenRuns": 0,
+        "avgFinalSquad": 14.5,
+        "cappedRuns": 0,
+        "namedShopPurchases": 0,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 15,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          }
+        ]
+      },
+      {
+        "classId": "mage",
+        "mode": "coherent",
+        "n": 4,
+        "wins": 0,
+        "winRate": 0,
+        "avgFloor": 0,
+        "avgFinalHp": 0,
+        "avgDamagePerRoom": 80,
+        "avgLeaksPerRoom": 8,
+        "avgBossTime": 0,
+        "maxRoomTime": 23.800000000000203,
+        "avgWeapon": 1,
+        "avgLevel": 1,
+        "projectileHits": 0,
+        "ritualsStarted": 0,
+        "ritualsResolved": 0,
+        "ritualsDodged": 0,
+        "ritualsInterrupted": 0,
+        "upgradesChosen": 0,
+        "upgradesSkipped": 0,
+        "suppliesChosen": 0,
+        "enchantedEncounters": 0,
+        "pressurePulses": 0,
+        "pressureDeaths": 0,
+        "waveDeaths": 4,
+        "bossAttackDeaths": 0,
+        "timeoutRuns": 0,
+        "squaresTaken": 0,
+        "rootsTaken": 1,
+        "squareGatesSeen": 0,
+        "squareSeenRuns": 0,
+        "avgFinalSquad": 17.25,
+        "cappedRuns": 0,
+        "namedShopPurchases": 0,
+        "bosses": [
+          {
+            "floor": 5,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 10,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          },
+          {
+            "floor": 15,
+            "attempts": 0,
+            "kills": 0,
+            "avgKillSeconds": null,
+            "maxKillSeconds": null,
+            "pressurePulses": 0,
+            "pressureDeaths": 0
+          }
+        ]
+      }
+    ]
+  }
+}

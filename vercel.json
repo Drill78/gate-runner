@@ -6,7 +6,7 @@
   "installCommand": "npm ci",
   "rewrites": [
     {
-      "source": "/((?!assets/|art/|audio/|favicon.svg).*)",
+      "source": "/((?!assets/|art/|audio/|fonts/|favicon.svg).*)",
       "destination": "/index.html"
     }
   ],

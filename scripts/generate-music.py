@@ -29,8 +29,8 @@ TAU = 2 * np.pi
 ROOT = Path(__file__).resolve().parents[1]
 TRACKS = {
     "normal": {"title": "铁与誓言", "bpm": 112, "bars": 24, "seed": 71801},
-    "boss": {"title": "王座之前", "bpm": 136, "bars": 24, "seed": 71802},
-    "final": {"title": "灰烬终誓", "bpm": 164, "bars": 32, "seed": 71803},
+    "boss": {"title": "王座之前·诸王战歌", "bpm": 112, "bars": 32, "seed": 71802},
+    "final": {"title": "灰烬终誓·交响王权", "bpm": 112, "bars": 32, "seed": 71803},
     "forbidden": {"title": "门后的低语", "bpm": 80, "bars": 16, "seed": 71804},
 }
 
@@ -226,6 +226,51 @@ def bell(note: int, variant: int = 0):
     return finish_voice(edges(raw, .003, .2), .8)
 
 
+@lru_cache(maxsize=256)
+def strings(note: int, duration: float, short: bool = False, variant: int = 0):
+    """Five detuned bow voices, evolving upper harmonics and a soft rosined attack."""
+    t = np.arange(int((duration + (.11 if short else .48)) * FS)) / FS
+    rng = np.random.default_rng(19011 + note * 13 + variant)
+    raw = np.zeros_like(t)
+    for player in range(5):
+        f = hz(note + (player - 2) * .035 + variant * .008)
+        phase = TAU * f * t + .045 * np.sin(TAU * (4.4 + player * .13) * t)
+        for harmonic in range(1, min(22, int(9000 / f))):
+            body = 1 + .5 * np.exp(-((harmonic * f - 1800) / 850) ** 2)
+            raw += body * np.sin(phase * harmonic + player * .7) / harmonic ** 1.35
+    raw += filter_audio(rng.normal(0, 1, len(t)), [1200, 6000], 'bandpass') * .06
+    attack = .012 if short else .13
+    envelope = (1 - np.exp(-t / attack)) * np.exp(-np.maximum(0, t - duration * (.72 if short else .9)) / (.05 if short else .15))
+    return finish_voice(edges(filter_audio(raw * envelope, 6800), .007, .07))
+
+
+@lru_cache(maxsize=256)
+def brass(note: int, duration: float, variant: int = 0):
+    """Horn/trombone section: breath-shaped spectral bloom rather than a pad."""
+    t = np.arange(int((duration + .19) * FS)) / FS
+    raw = np.zeros_like(t)
+    envelope = (1 - np.exp(-t / .055)) * np.exp(-np.maximum(0, t - duration * .92) / .055)
+    for player, cents in enumerate((-.055, 0, .047)):
+        f = hz(note + cents)
+        phase = TAU * f * t + .024 * np.sin(TAU * (4.6 + player * .17) * t) * (1 - np.exp(-t / .3))
+        for harmonic in range(1, min(20, int(7500 / f))):
+            brightness = envelope ** (1 + harmonic * .045)
+            raw += np.sin(phase * harmonic + player * .15) * brightness / harmonic ** (1.04 + variant * .09)
+    return finish_voice(edges(filter_audio(raw, 5100), .012, .07))
+
+
+@lru_cache(maxsize=64)
+def timpani(note: int, variant: int = 0):
+    t = np.arange(int(1.8 * FS)) / FS
+    rng = np.random.default_rng(27000 + note + variant)
+    raw = np.zeros_like(t)
+    for ratio, gain in [(1, 1), (1.5, .36), (2.05, .18), (2.8, .07)]:
+        phase = TAU * hz(note) * ratio * (t + .0018 * (1 - np.exp(-t / .03)))
+        raw += gain * np.sin(phase) * np.exp(-t / (.63 / ratio))
+    raw += filter_audio(rng.normal(0, 1, len(t)), 1600) * np.exp(-t / .024) * .2
+    return finish_voice(edges(raw, .002, .14))
+
+
 class Arrangement:
     def __init__(self, key: str):
         self.key = key
@@ -235,7 +280,7 @@ class Arrangement:
         self.n = round(self.seconds * FS)
         self.rng = np.random.default_rng(self.config["seed"])
         self.buses = {name: np.zeros((self.n, 2), dtype=np.float32)
-                      for name in ("guitar", "bass", "drums", "melody", "pad", "bell")}
+                      for name in ("guitar", "bass", "drums", "melody", "pad", "bell", "strings", "brass", "orchestra-drums")}
 
     def add(self, bus: str, voice, beat: float, gain=1.0, pan=0.0, jitter=0.0):
         """Circular placement carries every release across the loop boundary."""
@@ -263,7 +308,7 @@ class Arrangement:
         elif mode == "boss":
             riff = [(0, .22), (.25, .2), (.75, .2), (1, .45), (1.5, .22), (1.75, .2), (2, .22), (2.25, .2), (2.75, .2), (3, .45), (3.5, .22), (3.75, .2)]
         else:
-            riff = [(i / 4, .215 if i % 4 else .24) for i in range(16) if not (bar % 4 == 1 and i in (6, 14))]
+            riff = [(0, .7), (1, .22), (1.25, .22), (1.5, .22), (2, .7), (3, .22), (3.25, .22), (3.5, .22)] if bar % 16 < 4 else [(i / 4, .215) for i in range(16) if i not in (6, 14)]
         for index, (position, length) in enumerate(riff):
             accented = position in (0, 2)
             pitch = root
@@ -272,6 +317,7 @@ class Arrangement:
             muted = not (position == 0 and bar % 4 == 0)
             duration = round(length * self.beat, 4)
             gain = .42 if accented else .31
+            if mode != "normal" and bar % 16 in (0, 1, 2, 3): gain *= .55
             for side, pan in enumerate((-.79, .79)):
                 self.add("guitar", guitar(pitch, duration, muted, (side + bar) % 4), start + position,
                          gain, pan, .002 + side * .006 + float(self.rng.uniform(-.0015, .0015)))
@@ -292,7 +338,7 @@ class Arrangement:
         }[mode]
         for p in kick_positions:
             self.hit("kick", start + p, .67 if p % 1 == 0 else .52)
-        for p in (1, 3):
+        for p in ((2,) if mode != "normal" and bar % 16 < 4 else (1, 3)):
             self.hit("snare", start + p, .67, -.08)
         if mode != "normal" or bar % 2:
             self.hit("snare", start + 2.75, .1, -.08)
@@ -312,27 +358,47 @@ class Arrangement:
                 self.hit(kind, start + p, .47, pan)
 
     def theme(self, bar: int, root: int, third: int):
-        start, repetition = bar * 4, bar // 8
-        middle_break = self.key == "normal" and repetition == 1
-        voice = "lute" if middle_break else ("reed" if self.key == "normal" else "vielle")
+        start, section = bar * 4, bar // 8
+        mode = self.key
+        # Common D-minor motif, with orchestral call/response and a half-time bridge.
         position = 0
         for index, (note, length) in enumerate(THEME[bar % 8]):
-            duration = round(length * self.beat * .91, 4)
-            pitch = note - 12 if middle_break else note
-            self.add("melody", melody(pitch, duration, voice, index % 3), start + position,
-                     .19 if self.key == "normal" else .21, -.1 if index % 2 else .1)
-            if self.key == "final" and repetition % 2 == 1:
-                self.add("melody", melody(note - 12, duration, "vielle", 2), start + position + .012,
-                         .105, .27)
+            duration = round(length * self.beat * .94, 4)
+            if mode == 'normal':
+                self.add('melody', melody(note - (12 if section == 1 else 0), duration, 'lute' if section == 1 else 'reed', index % 3), start + position, .18, -.14)
+            elif mode == 'boss':
+                self.add('brass', brass(note - 12, duration, 1), start + position, .19, -.2)
+                if section % 2:
+                    self.add('strings', strings(note, duration, False, 1), start + position + .02, .16, .25)
+            else:
+                self.add('strings', strings(note, duration, False, 2), start + position, .22, -.34)
+                self.add('brass', brass(note - 12, duration, 0), start + position + .015, .18 if section % 2 else .12, .28)
+                if index % 2 == 0:
+                    self.add('melody', melody(note + 12, duration, 'lute', 1), start + position, .055, .48)
             position += length
-        # Broken lute chords sit between the lead phrases.
-        for index, interval in enumerate((0, 7, 12, third + 12, 7, 12, third + 12, 19)):
-            self.add("melody", melody(root + 24 + interval, round(self.beat * .38, 4), "lute", index % 3),
-                     start + index * .5, .047 if self.key == "normal" else .033, -.43 if index % 2 else .43)
-        if bar % 2 == 0 or self.key == "final":
+        # Wide sustained strings give bosses harmonic scale instead of extra tempo.
+        for index, interval in enumerate((0, third, 7, 12)):
+            pitch = root + 24 + interval
+            self.add('strings', strings(pitch, round(self.beat * 3.65, 4), False, index % 3), start, .048 if mode == 'normal' else .095, [-.68, .5, -.25, .68][index])
+        if mode == 'normal':
+            for index, interval in enumerate((0, 7, 12, third + 12, 7, 12, third + 12, 19)):
+                self.add('melody', melody(root + 24 + interval, round(self.beat * .37, 4), 'lute', index % 3), start + index * .5, .05, -.5 if index % 2 else .5)
+            return
+        # Fanfare answers the theme in long notes; final score also has cello/violin ostinati.
+        for beat, interval in ((0, 0), (2, 7), (3, third + 12)):
+            self.add('brass', brass(root + 12 + interval, round(self.beat * (1.65 if beat == 0 else .8), 4), 2), start + beat, .1 if mode == 'boss' else .15, .05)
+            self.add('orchestra-drums', timpani(root - 12, bar % 3), start + beat, .19 if mode == 'boss' else .29, -.12)
+        if mode == 'final':
+            for step, interval in enumerate((0, 7, 12, 7, third + 12, 7, 12, 7)):
+                pitch = root + (12 if section == 2 else 24) + interval
+                self.add('strings', strings(pitch, round(self.beat * .32, 4), True, step % 3), start + step * .5, .12, -.55 if step % 2 else .55)
             for index, interval in enumerate((0, third, 7)):
-                self.add("pad", choir(root + 24 + interval, round(self.beat * 3.75, 4), index), start,
-                         .075 if self.key == "normal" else .102, (index - 1) * .45)
+                self.add('pad', choir(root + 24 + interval, round(self.beat * 3.8, 4), index), start, .11 if section % 2 else .075, (index - 1) * .48)
+            if bar % 4 == 0:
+                self.add('bell', bell(root + 24, bar % 3), start, .095, .4)
+        elif bar % 8 >= 4:
+            for index, interval in enumerate((0, third, 7)):
+                self.add('pad', choir(root + 24 + interval, round(self.beat * 3.8, 4), index), start, .06, (index - 1) * .4)
 
     def forbidden(self):
         roots = [38, 38, 34, 39, 38, 39, 36, 33]
@@ -416,6 +482,10 @@ class Arrangement:
         lead_bus += .13 * np.roll(self.buses["melody"][:, ::-1], delay, axis=0)
         lead_bus += .055 * np.roll(self.buses["melody"], delay * 2, axis=0)
         mix = guitar_bus + self.buses["bass"] + drum_bus + lead_bus + pad_bus + bell_bus
+        if self.key != 'forbidden':
+            mix += self.room(self.buses['strings'], 1.8, .5, 2301)
+            mix += self.room(self.buses['brass'], 1.5, .4, 2302)
+            mix += self.room(self.buses['orchestra-drums'], 1.6, .45, 2303)
         # Periodic pre-roll gives the master HP/LP filters their steady state.
         padded = np.concatenate((mix[-FS * 2:], mix), axis=0)
         sos = signal.butter(2, [28, 16000], btype="bandpass", fs=FS, output="sos")
@@ -512,7 +582,7 @@ def encode_track(ffmpeg: str, key: str, work_dir: Path, output_dir: Path, valida
         report["master"] = pcm_stats(master_pcm, master_rate)
         report["decoded_sample_count_matches_master"] = len(master_pcm) == len(pcm)
     assert rate == FS and pcm.shape[1] == 2
-    assert 40 <= len(pcm) / rate <= 60
+    assert 40 <= len(pcm) / rate <= 90
     assert report["decoded"]["clipped_samples"] == 0
     assert report["loudness"]["true_peak_db"] <= -1.0
     assert abs(report["loudness"]["lufs"] - (-18)) <= .5

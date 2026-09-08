@@ -116,7 +116,7 @@ test('post-room supplies share shop effects, preserve the build and are never of
       ...run,
       seed,
       hp: run.maxHp,
-      weaponTier: 10,
+      weaponTier: 25,
       squad: Number.MAX_SAFE_INTEGER,
     });
     assert.ok(full.every((id) => !id.startsWith('supply-')));

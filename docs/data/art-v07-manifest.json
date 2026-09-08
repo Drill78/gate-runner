@@ -1,0 +1,49 @@
+{
+  "mode": "built-in image_gen",
+  "assets": [
+    {
+      "name": "thorn-frontier",
+      "prompt": "Use case: stylized-concept. Asset type: production raster terrain background for vertically scrolling medieval dark-fantasy shooter. Generate one image, 1024 x 1536 pixels, portrait 2:3. Camera: strictly overhead, top-down orthographic, no angle, no horizon, constant scale and no vanishing point. Style: premium hand-painted realistic game-environment texture, tactile natural materials and polished dark stone, dense material detail but thoughtfully restrained contrast. Composition: the central 75% of image width is flat, walkable, unobstructed ground with low contrast surface detail so tiny heroes, projectiles, and danger warnings remain readable. Richer atmospheric architecture and scenery confined to outermost left and right edges. Ground continues naturally past top and bottom; those edges have reasonably compatible tone and texture for slow vertical scrolling, no end wall. No people, characters, creatures, weapons, text, typography, symbols resembling lettering, UI, borders, logos or watermarks. No geometric grid, SVG, vector-art look, checkerboard, isometric perspective, horizon, hero object or central obstruction. Lighting remains softly distributed and dark enough for luminous game sprites. Scene: Thorn Frontier. Forgotten ruined forest causeway. Flat, moss-covered cracked irregular slate terrain with subtly varied organic stone shapes. Desaturated pine green and cold grey stone palette. Tangled thorn roots and broken ancient temple masonry at the far left and right borders. Sparse tiny warm fireflies restricted to border vegetation. Ground is muted and legible. Haunted woodland atmosphere with high-quality weathering, damp stone, and natural materials.",
+      "file": "public/art/battlefield-1.webp",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "bytes": 352852,
+      "sha256": "9b2b798b5de8cb623eaa4ade98a72fb454fa57301c7ea8f9dfabe7e74ccb8458",
+      "encoding": "Pillow WebP quality86 method6, original dimensions"
+    },
+    {
+      "name": "eclipsed-cloister",
+      "prompt": "Use case: stylized-concept. Asset type: production raster terrain background for vertically scrolling medieval dark-fantasy shooter. Generate one image, 1024 x 1536 pixels, portrait 2:3. Camera: strictly overhead, top-down orthographic, no angle, no horizon, constant scale and no vanishing point. Style: premium hand-painted realistic game-environment texture, tactile natural materials and polished dark stone, dense material detail but thoughtfully restrained contrast. Composition: the central 75% of image width is flat, walkable, unobstructed ground with low contrast surface detail so tiny heroes, projectiles, and danger warnings remain readable. Richer atmospheric architecture and scenery confined to outermost left and right edges. Ground continues naturally past top and bottom; those edges have reasonably compatible tone and texture for slow vertical scrolling, no end wall. No people, characters, creatures, weapons, text, typography, symbols resembling lettering, UI, borders, logos or watermarks. No geometric grid, SVG, vector-art look, checkerboard, isometric perspective, horizon, hero object or central obstruction. Lighting remains softly distributed and dark enough for luminous game sprites. Scene: Eclipsed Cloister. Ancient moonlit gothic crypt promenade. Flat, weathered stone floors with subtly curved worn engravings, not a repetitive square tile grid. Spectral blue and violet moonlight with restrained silver accents. Shattered gothic columns, grave architectural fragments and cold wisps confined to the far left and right borders. Central floor stays gently lit, subdued, continuous and readable. Atmospheric, ancient, solemn, premium dark-fantasy art.",
+      "file": "public/art/battlefield-2.webp",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "bytes": 344632,
+      "sha256": "ee9a283327e175e87b841e205d4d3342338740b266ae9ab7bd71d9c4c93b3204",
+      "encoding": "Pillow WebP quality86 method6, original dimensions"
+    },
+    {
+      "name": "ember-throne",
+      "prompt": "Use case: stylized-concept. Asset type: production raster terrain background for vertically scrolling medieval dark-fantasy shooter. Generate one image, 1024 x 1536 pixels, portrait 2:3. Camera: strictly overhead, top-down orthographic, no angle, no horizon, constant scale and no vanishing point. Style: premium hand-painted realistic game-environment texture, tactile natural materials and polished dark stone, dense material detail but thoughtfully restrained contrast. Composition: the central 75% of image width is flat, walkable, unobstructed ground with low contrast surface detail so tiny heroes, projectiles, and danger warnings remain readable. Richer atmospheric architecture and scenery confined to outermost left and right edges. Ground continues naturally past top and bottom; those edges have reasonably compatible tone and texture for slow vertical scrolling, no end wall. No people, characters, creatures, weapons, text, typography, symbols resembling lettering, UI, borders, logos or watermarks. No geometric grid, SVG, vector-art look, checkerboard, isometric perspective, horizon, hero object or central obstruction. Lighting remains softly distributed and dark enough for luminous game sprites. Scene: Ember Throne. Black basalt citadel courtyard with an ashen throne atmosphere, but no throne or obstruction in the walkable center. Flat dark ground of irregular worn basalt, soot and faint ember cracks. Monumental dark carved architectural borders only at far left and right edges, restrained copper fire and sparse drifting ash at edges. Muted charcoal central ground, tiny low-intensity copper seams. Majestic threatening atmosphere. Continuous open courtyard terrain top to bottom.",
+      "file": "public/art/battlefield-3.webp",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "bytes": 271860,
+      "sha256": "fdb18ff441160cdcea7b4ac08eeec3b873a2f28701122696aac8542acd601f22",
+      "encoding": "Pillow WebP quality86 method6, original dimensions"
+    },
+    {
+      "name": "black-flame-strip",
+      "prompt": "Mode: built-in image_gen; one call, no retries.\n\nUse case: stylized-concept. Asset type: production transparent PNG VFX border overlay for enchanted map-node cards in a dark fantasy game. Generate exactly one image, 1536 x 1024 pixels, landscape. Primary request: a continuous horizontal LOW strip of curling obsidian-black magical flames anchored along the very bottom edge of the image, occupying only the bottom quarter (approximately y=768 to 1024), with irregular flame tips and organic thin smoke wisps rising a little into otherwise completely transparent negative space. Actual transparent background with real alpha channel; the upper three quarters is empty transparent space. Flames are predominantly rich obsidian black, with thin restrained amethyst and plum luminous edges that remain visible against near-black UI. Organic fluid curled flame tongues, sophisticated cinematic dark fantasy visual effect, delicate violet rim light, restrained glow, highly detailed but legible when cropped to a low strip. Continuous horizontal flame bed reaches both left and right image edges so it can span a card border. No environment or scenic backdrop, no opaque black background, no checkerboard drawn into the image. Not a rectangular frame, no circles, no runes, no text, no UI, no symbols, no logo, no watermark, no objects or people. Preserve the appearance of black flame when cropped to the low bottom strip.\n",
+      "file": "public/art/black-flame.webp",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "bytes": 229166,
+      "sha256": "2c6a50d80b1cc94ebb70c2e6fc52b3e8a01eab532f24982752a48570f24fa825",
+      "encoding": "Pillow WebP quality86 method6, original dimensions"
+    }
+  ]
+}

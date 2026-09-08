@@ -3667,26 +3667,43 @@ body.expedition-active {
 .enchanted-node:after {
   content: '';
   position: absolute;
-  inset: -5px;
-  border: 4px solid transparent;
-  border-top-color: #020105;
-  border-left-color: #24122c;
-  border-radius: inherit;
+  left: -12px;
+  right: -12px;
+  bottom: -10px;
+  height: 70px;
+  background: url('/art/black-flame.webp') center bottom / 100% 190% no-repeat;
   pointer-events: none;
-  animation: forbidden-orbit 2.8s linear infinite;
-  filter: drop-shadow(0 0 4px #040108);
+  opacity: 0.95;
+  animation: forbidden-breathe 2.6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 5px #3e164e);
   z-index: -1;
 }
 .enchanted-node:after {
-  inset: -9px;
-  opacity: 0.75;
-  animation-duration: 4.2s;
-  animation-direction: reverse;
-  border-width: 3px;
+  top: -12px;
+  bottom: auto;
+  height: 52px;
+  transform: scaleY(-1);
+  opacity: 0.65;
+  animation-delay: -1.2s;
 }
-@keyframes forbidden-orbit {
+.branch-node.enchanted-node:before {
+  height: 55px;
+  left: -17px;
+  right: -17px;
+}
+.branch-node.enchanted-node:after {
+  height: 40px;
+}
+@keyframes forbidden-breathe {
+  from {
+    opacity: 0.55;
+    background-position: 43% bottom;
+    filter: drop-shadow(0 0 2px #351644);
+  }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    background-position: 57% bottom;
+    filter: drop-shadow(0 0 8px #653374);
   }
 }
 .room-map .room-heading {
@@ -3709,6 +3726,168 @@ body.expedition-active {
   color: #a9b49e;
   line-height: 1.6;
 }
+@media (prefers-reduced-motion: reduce) {
+  .enchanted-node:before,
+  .enchanted-node:after {
+    animation: none;
+  }
+}
+
+/* v0.7: engraved typography, chapter terrain and quieter game-native surfaces. */
+@font-face {
+  font-family: 'Ashen Serif';
+  src: url('/fonts/ashen-serif-sc.woff') format('woff');
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+}
+:root {
+  --font-chronicle: 'Ashen Serif', 'Noto Serif SC', 'Songti SC', SimSun, serif;
+}
+h1,
+h2,
+h3,
+.entrance-brand h1,
+.entrance-class-heading h1,
+.room-heading h2 {
+  font-family: var(--font-chronicle);
+  letter-spacing: 0.06em;
+}
+.room-screen {
+  --act-terrain: url('/art/battlefield-1.webp');
+  background:
+    linear-gradient(#080d0dee, #090e0ecc),
+    var(--act-terrain) center / cover;
+}
+.room-screen.act-1 {
+  --act-terrain: url('/art/battlefield-2.webp');
+}
+.room-screen.act-2 {
+  --act-terrain: url('/art/battlefield-3.webp');
+}
+.room-screen.room-map {
+  background:
+    linear-gradient(#080d0dbe, #090d0ee8),
+    var(--act-terrain) center / cover;
+}
+.room-screen.is-forbidden {
+  background:
+    linear-gradient(#050209eb, #090310ed),
+    var(--act-terrain) center / cover;
+}
+.is-forbidden .branch-map line {
+  stroke: #494151;
+}
+.is-forbidden .branch-node:not(.enchanted-node) {
+  background: #101015;
+  border-color: #49424a;
+}
+.is-forbidden .route-choice:not(.enchanted-node) {
+  background: #0c0a10df;
+}
+.room-heading .eyebrow {
+  letter-spacing: 0.24em;
+  color: #b29b70;
+}
+.room-heading p,
+.room-options p,
+.event-choices small {
+  color: #c0beb0;
+  line-height: 1.65;
+}
+.route-choice,
+.room-options > button,
+.event-choices > button,
+.shop-grid > button {
+  border-radius: 5px;
+  border-color: #7f6d443b;
+  background-color: #0e1314eb;
+  box-shadow:
+    inset 0 1px #d8bf8520,
+    0 10px 30px #0003;
+}
+.event-choices > button {
+  min-height: 90px;
+  padding: 20px;
+}
+.event-choices b {
+  font-family: var(--font-chronicle);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+}
+.event-choices small {
+  font-size: 14px;
+}
+.encounter-health-stack {
+  position: absolute;
+  z-index: 7;
+  top: calc(max(8px, env(safe-area-inset-top)) + 78px);
+  left: 14px;
+  right: 14px;
+  display: grid;
+  gap: 12px;
+  pointer-events: none;
+}
+.encounter-health-stack .encounter-health {
+  position: relative;
+  inset: auto;
+  min-width: 0;
+}
+.encounter-health-stack:has(.encounter-health:nth-child(2)) {
+  gap: 7px;
+}
+.encounter-health-stack:has(.encounter-health:nth-child(2))
+  .encounter-health-heading {
+  min-height: 16px;
+  margin-bottom: 4px;
+}
+.encounter-health-stack:has(.encounter-health:nth-child(2))
+  .encounter-health-title
+  small {
+  display: none;
+}
+.difficulty-choice {
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.difficulty-choice button {
+  min-height: 43px;
+  border: 1px solid #8e794c60;
+  border-radius: 3px;
+  color: #beb9a7;
+  background: #0b1013c9;
+  font-size: 14px;
+}
+.difficulty-choice button[aria-pressed='true'] {
+  border-color: #d2ad68;
+  color: #f6dfac;
+  background: #392d1cbb;
+}
+.difficulty-choice button:disabled {
+  opacity: 0.45;
+}
+.difficulty-choice small {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #b6afa0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 560px) {
+  .encounter-health-stack {
+    left: 10px;
+    right: 10px;
+  }
+  .entrance-class-controls {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .enchanted-node:before,
   .enchanted-node:after {

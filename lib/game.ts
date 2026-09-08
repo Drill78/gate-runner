@@ -2,6 +2,10 @@ export type ClassId = 'knight' | 'ranger' | 'mage';
 export const ACT_LENGTH = 5;
 export const TOTAL_FLOORS = ACT_LENGTH * 3;
 export const MAX_LEVEL = 15;
+export const MAX_WEAPON_LEVEL = 25;
+export const MAX_HP = 1200;
+export const HP_PER_LEVEL = 6;
+export type Difficulty = 'normal' | 'hard';
 export type Phase =
   | 'setup'
   | 'map'
@@ -50,7 +54,7 @@ export const HEROES: Hero[] = [
     squad: 12,
     weapon: '卫士长剑',
     skill: '不破誓约',
-    skillDesc: '获得 18 护盾，6 秒内伤害提高 50%。',
+    skillDesc: '获得 18 + 生命上限10%的护盾，6 秒内伤害提高 50%。',
     passive: '每场战斗获得 15 护盾；护甲减伤 12%。',
   },
   {
@@ -124,7 +128,10 @@ export const NODE_INFO: Record<NodeKind, { name: string; desc: string }> = {
   },
   rest: { name: '旅人营火', desc: '恢复生命，或磨砺武器。' },
   shop: { name: '渡鸦商人', desc: '用金币购买补给、队员或遗物。' },
-  event: { name: '命运邂逅', desc: '一座无人供奉的祭坛，等待你做出选择。' },
+  event: {
+    name: '命运邂逅',
+    desc: '从命运递来的两份契约中选一份，或带走旅费。',
+  },
   boss: { name: '守关首领', desc: '击败这一幕的守护者，前往更高处。' },
 };
 export interface Relic {
@@ -138,6 +145,26 @@ export interface Relic {
   icon: string;
 }
 export const RELICS: Relic[] = [
+  {
+    id: 'constitution',
+    name: '不灭心脏',
+    family: 'all',
+    tag: '生存',
+    rarity: '稀有',
+    desc: '当前生命上限提高12%，并恢复等量生命。',
+    max: 3,
+    icon: 'heart',
+  },
+  {
+    id: 'lifebloom',
+    name: '余烬生息',
+    family: 'all',
+    tag: '生存',
+    rarity: '史诗',
+    desc: '每完成一关，生命上限+3/层，并恢复等量生命。',
+    max: 2,
+    icon: 'heart',
+  },
   {
     id: 'recruit',
     name: '集结号角',
@@ -244,7 +271,7 @@ export const RELICS: Relic[] = [
     family: 'all',
     tag: '爆裂',
     rarity: '稀有',
-    desc: '命中时，对周围其他目标造成弹体伤害 30% 的范围伤害。',
+    desc: '命中额外造成 20% 弹体伤害，周围目标受到 65%/层范围伤害。',
     max: 3,
     icon: 'flame',
   },
@@ -264,7 +291,7 @@ export const RELICS: Relic[] = [
     family: 'all',
     tag: '稳准',
     rarity: '普通',
-    desc: '弹体半径 +30%，伤害 +10%。',
+    desc: '弹体半径 +65%，伤害 +10%。',
     max: 2,
     icon: 'target',
   },
@@ -324,7 +351,7 @@ export const RELICS: Relic[] = [
     family: 'knight',
     tag: '圣盾',
     rarity: '稀有',
-    desc: '受到攻击时，对全部可见敌人反击 40 伤害。',
+    desc: '受到攻击时，对全部可见敌人反击 80%/层基础齐射伤害。',
     max: 3,
     icon: 'spark',
   },
@@ -414,7 +441,7 @@ export const RELICS: Relic[] = [
     family: 'mage',
     tag: '奥术',
     rarity: '普通',
-    desc: '攻击使目标灼烧，每秒造成 14 伤害，持续 3 秒。',
+    desc: '攻击使目标灼烧，每秒造成 32%/层基础齐射伤害，持续 3 秒。',
     max: 3,
     icon: 'flame',
   },
@@ -482,6 +509,10 @@ export interface RouteNode {
 }
 export interface Run {
   version: 4;
+  difficulty: Difficulty;
+  goldEarned: number;
+  doubleBossWins: number;
+  flawlessBosses: number;
   phase: Phase;
   classId: ClassId;
   seed: number;
@@ -566,10 +597,18 @@ export function createMap(seed: number): RouteNode[][] {
     }));
   });
 }
-export function createRun(classId: ClassId, seed = 12345): Run {
+export function createRun(
+  classId: ClassId,
+  seed = 12345,
+  difficulty: Difficulty = 'normal',
+): Run {
   const h = HEROES.find((h) => h.id === classId)!;
   return {
     version: 4,
+    difficulty,
+    goldEarned: 0,
+    doubleBossWins: 0,
+    flawlessBosses: 0,
     phase: 'setup',
     classId,
     seed,
@@ -598,6 +637,15 @@ export function createRun(classId: ClassId, seed = 12345): Run {
 }
 export function logRun(run: Run, message: string) {
   run.log = [message, ...run.log].slice(0, 8);
+}
+export function grantGold(run: Run, amount: number) {
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  const earned = Math.floor(amount);
+  run.gold = Math.min(Number.MAX_SAFE_INTEGER, run.gold + earned);
+  run.goldEarned = Math.min(
+    Number.MAX_SAFE_INTEGER,
+    (run.goldEarned || 0) + earned,
+  );
 }
 export function availableNodes(run: Run): RouteNode[] {
   if (run.floor >= TOTAL_FLOORS || run.floor < 0) return [];
@@ -662,8 +710,8 @@ export function grantExperience(run: Run, amount: number) {
   const before = experience(run).level;
   run.xp = Math.min(Number.MAX_SAFE_INTEGER, run.xp + Math.floor(amount));
   const gained = experience(run).level - before;
-  run.maxHp += gained * 2;
-  run.hp = Math.min(run.maxHp, run.hp + gained * 2);
+  run.maxHp = Math.min(MAX_HP, run.maxHp + gained * HP_PER_LEVEL);
+  run.hp = Math.min(run.maxHp, run.hp + gained * HP_PER_LEVEL);
   return gained;
 }
 export function stats(run: Run, shield = 0) {
@@ -673,9 +721,11 @@ export function stats(run: Run, shield = 0) {
   const ranger = run.classId === 'ranger';
   return {
     damage:
-      (warrior ? 7.2 : ranger ? 5.4 : 8.8) *
+      (warrior ? 7.2 : ranger ? 5.9 : 8.8) *
       (1 + (experience(run).level - 1) * 0.02) *
-      (1 + (run.weaponTier - 1) * 0.1) *
+      (1 +
+        (Math.min(10, run.weaponTier) - 1) * 0.1 +
+        Math.max(0, run.weaponTier - 10) * 0.055) *
       (1 + r('steel') * 0.2 + r('surge') * 0.25) *
       (1 + r('heavy') * 0.25 + r('focus') * 0.1) *
       (1 + shield * r('bash') * 0.005) *
@@ -699,7 +749,7 @@ export function stats(run: Run, shield = 0) {
     summon: (run.classId === 'mage' ? 2 : 0) + r('summon') * 3 + r('army') * 3,
     cooldown: 12 - (r('paladin') + r('hunter') + r('archmage')) * 4,
     bulletSpeed: 1.7 * (1 + r('velocity') * 0.25),
-    bulletRadius: 0.025 * (1 + r('focus') * 0.3),
+    bulletRadius: 0.025 * (1 + r('focus') * 0.65),
     extraPairs: r('split'),
     pierceCount: r('pierce'),
     blast: r('blast'),
@@ -792,7 +842,7 @@ export const ELITE_FALLBACK_REWARDS: Relic[] = [
     family: 'all',
     tag: '精英战利品',
     rarity: '史诗',
-    desc: '最大生命 +8（上限 500），立即恢复 50 生命。',
+    desc: '最大生命 +8（上限 1200），立即恢复 50 生命。',
     max: 1,
     icon: 'heart',
   },
@@ -818,7 +868,7 @@ export function rollRewards(run: Run, elite = false): string[] {
     r.id === 'supply-potion'
       ? run.hp < run.maxHp
       : r.id === 'supply-weapon'
-        ? run.weaponTier < 10
+        ? run.weaponTier < MAX_WEAPON_LEVEL
         : run.squad < Number.MAX_SAFE_INTEGER,
   );
   const random = rng(run.seed + run.floor * 439 + run.gold + 617);
@@ -875,11 +925,16 @@ export function addRelic(run: Run, id: string): Run {
   const n = structuredClone(run);
   n.relics[id] = (n.relics[id] || 0) + 1;
   if (id === 'vitality') {
-    n.maxHp += 20;
+    n.maxHp = Math.min(MAX_HP, n.maxHp + 20);
     n.hp = Math.min(n.maxHp, n.hp + 20);
   }
   if (id === 'army') n.squad = safeTroops(n.squad + 20);
-  if (id === 'bounty') n.gold += 30;
+  if (id === 'bounty') grantGold(n, 30);
+  if (id === 'constitution') {
+    const growth = Math.ceil(n.maxHp * 0.12);
+    n.maxHp = Math.min(MAX_HP, n.maxHp + growth);
+    n.hp = Math.min(n.maxHp, n.hp + growth);
+  }
   logRun(n, `获得强化 · ${relic.name}`);
   return n;
 }
@@ -887,6 +942,11 @@ export function completeRoom(run: Run, reward = true): Run {
   const n = structuredClone(run);
   if (!n.node || n.node.floor !== n.floor) return run;
   n.path.push(n.node.id);
+  if (n.relics.lifebloom) {
+    const growth = n.relics.lifebloom * 3;
+    n.maxHp = Math.min(MAX_HP, n.maxHp + growth);
+    n.hp = Math.min(n.maxHp, n.hp + growth);
+  }
   n.floor++;
   if (n.floor === TOTAL_FLOORS) {
     n.phase = 'victory';
@@ -908,17 +968,18 @@ export function chooseReward(run: Run, id: string): Run {
     n = structuredClone(run);
     if (id === 'supply-potion') n.hp = Math.min(n.maxHp, n.hp + 40);
     if (id === 'supply-company') n.squad = safeTroops(n.squad + 50);
-    if (id === 'supply-weapon') n.weaponTier = Math.min(10, n.weaponTier + 1);
+    if (id === 'supply-weapon')
+      n.weaponTier = Math.min(MAX_WEAPON_LEVEL, n.weaponTier + 1);
     if (id === 'supply-epic-cache') {
-      n.gold = Math.min(Number.MAX_SAFE_INTEGER, n.gold + 120);
+      grantGold(n, 120);
       n.hp = Math.min(n.maxHp, n.hp + 50);
     }
     if (id === 'supply-epic-vigor') {
-      n.maxHp = Math.min(500, n.maxHp + 8);
+      n.maxHp = Math.min(MAX_HP, n.maxHp + 8);
       n.hp = Math.min(n.maxHp, n.hp + 50);
     }
     if (id === 'supply-epic-company') {
-      n.gold = Math.min(Number.MAX_SAFE_INTEGER, n.gold + 60);
+      grantGold(n, 60);
       n.squad = safeTroops(n.squad + 100);
     }
     logRun(n, `获得补给 · ${REWARD_BY_ID[id].name}`);
@@ -936,7 +997,7 @@ export function restAction(run: Run, action: 'heal' | 'forge'): Run {
     n.hp += amount;
     logRun(n, `营火休整 · 恢复 ${amount} 生命`);
   } else {
-    n.weaponTier = Math.min(10, n.weaponTier + 1);
+    n.weaponTier = Math.min(MAX_WEAPON_LEVEL, n.weaponTier + 1);
     logRun(n, '磨砺武器 · 武器等级 +1');
   }
   return completeRoom(n, false);
@@ -1045,7 +1106,7 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   relicWare('bash', 145, '职业'),
   relicWare('deadeye', 145, '职业'),
   relicWare('echo', 145, '职业'),
-  relicWare('square_key', 500, '补给'),
+  relicWare('square_key', 666, '补给'),
 ];
 
 export function shopInventory(
@@ -1084,7 +1145,7 @@ export function shopItemAvailability(
   if (run.purchases.includes(id)) return unavailable('本店已购买');
   if (item.kind === 'heal' && run.hp >= run.maxHp)
     return unavailable('生命已满');
-  if (item.kind === 'weapon' && run.weaponTier >= 10)
+  if (item.kind === 'weapon' && run.weaponTier >= MAX_WEAPON_LEVEL)
     return unavailable('武器已满级');
   if (
     item.kind === 'recruits' &&
@@ -1130,30 +1191,148 @@ export function shopBuy(run: Run, id: string): Run {
   logRun(n, `购买 · ${item.name}`);
   return n;
 }
-export function eventAction(run: Run, action: 'blood' | 'gold' | 'leave'): Run {
-  if (
-    run.phase !== 'event' ||
-    (action === 'blood' && run.hp <= 18) ||
-    (action === 'gold' && run.gold < 35)
-  )
-    return run;
+export type EventId =
+  | 'blood'
+  | 'gold'
+  | 'leave'
+  | 'forge'
+  | 'oath'
+  | 'cache'
+  | 'study'
+  | 'mercy';
+export interface EventChoice {
+  id: EventId;
+  name: string;
+  description: string;
+  icon: string;
+  available: boolean;
+  goldCost: number;
+  hpCost: number;
+  value: number;
+}
+export function eventChoices(run: Run): EventChoice[] {
+  const act = Math.min(2, Math.floor(run.floor / ACT_LENGTH));
+  const blood = Math.ceil(run.maxHp * (0.12 + act * 0.02));
+  const recruits = Math.max(
+    24 + act * 24,
+    Math.ceil(run.squad * (0.15 + act * 0.04)),
+  );
+  const coins = 75 + run.floor * 12;
+  const pool: EventChoice[] = [
+    {
+      id: 'blood',
+      name: '血誓遗藏',
+      description: `献出${blood}生命，从三份珍藏中选一份，必含史诗或传说。`,
+      icon: 'heart',
+      available: run.hp > blood,
+      goldCost: 0,
+      hpCost: blood,
+      value: 0,
+    },
+    {
+      id: 'gold',
+      name: '沉眠军团',
+      description: `支付${45 + act * 30}金币，招募${formatNumber(recruits)}兵力（随现有军团成长）。`,
+      icon: 'users',
+      available: run.gold >= 45 + act * 30,
+      goldCost: 45 + act * 30,
+      hpCost: 0,
+      value: recruits,
+    },
+    {
+      id: 'forge',
+      name: '流浪铸剑师',
+      description: `支付${65 + act * 30}金币，武器提升2级。`,
+      icon: 'sword',
+      available: run.gold >= 65 + act * 30 && run.weaponTier < MAX_WEAPON_LEVEL,
+      goldCost: 65 + act * 30,
+      hpCost: 0,
+      value: 2,
+    },
+    {
+      id: 'oath',
+      name: '生命之井',
+      description: `支付${60 + act * 25}金币，生命上限+${18 + act * 12}，并恢复等量生命。`,
+      icon: 'heart',
+      available: run.gold >= 60 + act * 25 && run.maxHp < MAX_HP,
+      goldCost: 60 + act * 25,
+      hpCost: 0,
+      value: 18 + act * 12,
+    },
+    {
+      id: 'cache',
+      name: '烙印宝库',
+      description: `承受${blood}伤害，带走${coins}金币。`,
+      icon: 'coins',
+      available: run.hp > blood,
+      goldCost: 0,
+      hpCost: blood,
+      value: coins,
+    },
+    {
+      id: 'study',
+      name: '无名贤者',
+      description: `支付${35 + act * 20}金币，获得${50 + act * 65}经验，后续战斗可研习升级强化。`,
+      icon: 'star',
+      available: run.gold >= 35 + act * 20 && experience(run).level < MAX_LEVEL,
+      goldCost: 35 + act * 20,
+      hpCost: 0,
+      value: 50 + act * 65,
+    },
+    {
+      id: 'mercy',
+      name: '旅人的回礼',
+      description: `支付${30 + act * 20}金币，恢复${Math.ceil(run.maxHp * 0.45)}生命。`,
+      icon: 'heart',
+      available: run.gold >= 30 + act * 20 && run.hp < run.maxHp,
+      goldCost: 30 + act * 20,
+      hpCost: 0,
+      value: Math.ceil(run.maxHp * 0.45),
+    },
+  ];
+  const random = rng(run.seed + run.floor * 8191 + (run.node?.col || 0) * 97);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return [
+    ...pool.slice(0, 2),
+    {
+      id: 'leave',
+      name: '拾取旅费',
+      description: `带走${18 + run.floor * 4}金币，继续前行。`,
+      icon: 'coins',
+      available: true,
+      goldCost: 0,
+      hpCost: 0,
+      value: 18 + run.floor * 4,
+    },
+  ];
+}
+export function eventAction(run: Run, action: EventId): Run {
+  if (run.phase !== 'event') return run;
+  const choice = eventChoices(run).find((item) => item.id === action);
+  if (!choice?.available) return run;
   let n = structuredClone(run);
+  n.gold -= choice.goldCost;
+  n.hp -= choice.hpCost;
+  if (action === 'gold') n.squad = safeTroops(n.squad + choice.value);
+  if (action === 'forge')
+    n.weaponTier = Math.min(MAX_WEAPON_LEVEL, n.weaponTier + choice.value);
+  if (action === 'oath') {
+    n.maxHp = Math.min(MAX_HP, n.maxHp + choice.value);
+    n.hp = Math.min(n.maxHp, n.hp + choice.value);
+  }
+  if (action === 'mercy') n.hp = Math.min(n.maxHp, n.hp + choice.value);
+  if (action === 'study') grantExperience(n, choice.value);
+  if (action === 'cache' || action === 'leave') grantGold(n, choice.value);
+  logRun(n, `命运之约 · ${choice.name}`);
+  n = completeRoom(n, false);
   if (action === 'blood') {
-    n.hp -= 18;
-    const choice = rollRelicRewards(n, true)[0];
-    if (choice) n = addRelic(n, choice);
-    logRun(n, '血誓祭坛 · 付出 18 生命，获得遗物');
+    n.reward = rollRewards(n, true);
+    n.phase = 'reward';
   }
-  if (action === 'gold') {
-    n.gold -= 35;
-    n.squad = safeTroops(n.squad + 22);
-    logRun(n, '唤醒沉眠者 · 获得 22 名队员');
-  }
-  if (action === 'leave') {
-    n.gold += 12;
-    logRun(n, '拾取祭坛边的 12 金币，安然离去');
-  }
-  return completeRoom(n, false);
+  return n;
 }
 export function weaponName(run: Run) {
   const base = HEROES.find((h) => h.id === run.classId)!.weapon;
@@ -1242,6 +1421,12 @@ export function restoreRun(text: string): Run | null {
     if (!Object.hasOwn(raw, 'squareGateSeen')) raw.squareGateSeen = false;
     if (!Object.hasOwn(raw, 'encountersDefeated')) raw.encountersDefeated = {};
     if (!Object.hasOwn(raw, 'secretDiscovered')) raw.secretDiscovered = false;
+    if (!Object.hasOwn(raw, 'difficulty')) raw.difficulty = 'normal';
+    for (const field of ['goldEarned', 'doubleBossWins', 'flawlessBosses']) {
+      if (!Object.hasOwn(raw, field)) raw[field] = 0;
+      if (!Number.isSafeInteger(raw[field]) || raw[field] < 0) return null;
+    }
+    if (!['normal', 'hard'].includes(raw.difficulty)) return null;
     if (!Object.hasOwn(raw, 'talentPicks'))
       raw.talentPicks = experience({ xp: Number(raw.xp) || 0 }).level - 1;
     // The old three-column graph has no lossless mapping to explicit edges.
@@ -1328,11 +1513,11 @@ export function restoreRun(text: string): Run | null {
       r.talentPicks > MAX_LEVEL - 1 ||
       r.hp <= 0 ||
       r.hp > r.maxHp ||
-      r.maxHp > 500 ||
+      r.maxHp > MAX_HP ||
       r.squad < 1 ||
       !Number.isSafeInteger(r.squad) ||
       r.weaponTier < 1 ||
-      r.weaponTier > 10 ||
+      r.weaponTier > MAX_WEAPON_LEVEL ||
       !Number.isInteger(r.weaponTier) ||
       !['gold', 'kills', 'chests', 'gates'].every((key) =>
         Number.isSafeInteger(r[key as 'gold' | 'kills' | 'chests' | 'gates']),

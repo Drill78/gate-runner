@@ -19,6 +19,7 @@ function encounter(phase = 1, attack = 0) {
   for (const e of b.entities) if (e !== king) e.done = true;
   king.hp = king.maxHp * [1, 0.7, 0.35][phase - 1];
   king.attackIndex = attack;
+  king.phase = phase; // isolate attacks from the separately tested phase transition
   b.time = king.start + 0.6;
   b.shootTimer = Infinity;
   b.pressure = null;

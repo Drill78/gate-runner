@@ -16,6 +16,7 @@ export function drawBattle(
   h: number,
   b: Battle,
   reducedMotion = false,
+  background?: HTMLImageElement,
 ) {
   const hero = HEROES.find((v) => v.id === b.player.classId)!;
   const scale = Math.max(0.86, Math.min(1.18, w / 520));
@@ -34,73 +35,19 @@ export function drawBattle(
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = '#202a28';
   ctx.fillRect(0, 0, w, h);
-  const tile = 70 * scale;
-  const scrollDistance = reducedMotion
-    ? 0
-    : (b.time * (Y(0.9) - Y(0))) /
-      (b.entities[0].arrival - b.entities[0].start);
-  const scroll = scrollDistance % tile;
-  const rowOffset = Math.floor(scrollDistance / tile);
-  for (let row = -1; row < h / tile + 1; row++)
-    for (let col = -1; col < w / tile + 1; col++) {
-      const worldRow = row - rowOffset;
-      const x = col * tile + (worldRow & 1 ? tile / 2 : 0),
-        y = row * tile + scroll;
-      ctx.fillStyle = (worldRow + col) % 3 === 0 ? '#29332f' : '#252f2c';
-      ctx.fillRect(x + 1, y + 1, tile - 3, tile - 3);
-      ctx.strokeStyle = '#75807017';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 3, y + 3, tile - 7, tile - 7);
-    }
-  // Narrow cut-stone rails stay outside the world lanes and behind all units.
-  const stoneHeight = tile * 0.62;
-  const wallScroll = scrollDistance % stoneHeight;
-  const wallOffset = Math.floor(scrollDistance / stoneHeight);
-  for (const side of [-1, 1]) {
-    const edge = X(side);
-    const left = side < 0 ? 0 : edge;
-    const wallWidth = side < 0 ? edge : w - edge;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(left, 0, wallWidth, h);
-    ctx.clip();
-    ctx.fillStyle = '#111b18';
-    ctx.fillRect(left, 0, wallWidth, h);
-    for (let row = -1; row < h / stoneHeight + 1; row++) {
-      const worldRow = row - wallOffset;
-      const y = row * stoneHeight + wallScroll;
-      ctx.fillStyle = worldRow % 3 === 0 ? '#3a4137' : '#303a32';
-      ctx.fillRect(left + 2, y + 1, wallWidth - 4, stoneHeight - 3);
-      ctx.strokeStyle = '#a6a38135';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(left + 3, y + 3);
-      ctx.lineTo(left + wallWidth - 3, y + 3);
-      ctx.lineTo(left + wallWidth - 3, y + stoneHeight - 3);
-      ctx.stroke();
-      if (worldRow % 4 === 0) {
-        const cx = left + wallWidth / 2;
-        const cy = y + stoneHeight / 2;
-        const radius = Math.min(3.5 * scale, wallWidth * 0.23);
-        ctx.strokeStyle = '#a7b99070';
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - radius * 2);
-        ctx.lineTo(cx + radius, cy);
-        ctx.lineTo(cx, cy + radius * 2);
-        ctx.lineTo(cx - radius, cy);
-        ctx.closePath();
-        ctx.moveTo(cx, cy - radius * 2.7);
-        ctx.lineTo(cx, cy + radius * 2.7);
-        ctx.stroke();
-      }
-    }
-    ctx.restore();
-    ctx.strokeStyle = '#a09f7660';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(edge, 0);
-    ctx.lineTo(edge, h);
-    ctx.stroke();
+  if (background?.complete && background.naturalWidth > 0) {
+    const factor = Math.max(
+      w / background.naturalWidth,
+      (h + 48) / background.naturalHeight,
+    );
+    const bw = background.naturalWidth * factor,
+      bh = background.naturalHeight * factor;
+    const drift = reducedMotion ? 0 : Math.sin(b.time * 0.07) * 18;
+    ctx.drawImage(background, (w - bw) / 2, (h - bh) / 2 + drift, bw, bh);
+  }
+  if (b.player.node?.enchanted) {
+    ctx.fillStyle = '#07031172';
+    ctx.fillRect(0, 0, w, h);
   }
   const fog = ctx.createLinearGradient(0, 0, 0, h);
   fog.addColorStop(0, '#0a161a70');
@@ -109,6 +56,38 @@ export function drawBattle(
   fog.addColorStop(1, '#09120da0');
   ctx.fillStyle = fog;
   ctx.fillRect(0, 0, w, h);
+  for (const zone of b.zones) {
+    const left = X(zone.x - zone.width / 2),
+      width = X(zone.width) - X(0);
+    const active = b.time >= zone.startsAt;
+    const color =
+      zone.kind === 'ember'
+        ? '#ff9265'
+        : zone.kind === 'shadow'
+          ? '#bd92f7'
+          : zone.kind === 'web'
+            ? '#b9dba7'
+            : '#b4c787';
+    ctx.save();
+    ctx.fillStyle = color + (active ? '35' : '16');
+    ctx.fillRect(left, Y(-0.13), width, playerY + 32 - Y(-0.13));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.setLineDash(active ? [] : [7, 7]);
+    ctx.strokeRect(left, Y(-0.13), width, playerY + 32 - Y(-0.13));
+    ctx.setLineDash([]);
+    const pulse = reducedMotion ? 0 : Math.sin(b.time * 4 + zone.id) * 3;
+    ctx.globalAlpha = active ? 0.8 : 0.5;
+    for (let i = 0; i < 7; i++) {
+      const y = playerY - i * 44 + pulse;
+      ctx.beginPath();
+      ctx.moveTo(left + 4, y + 8);
+      ctx.lineTo(left + width / 2, y);
+      ctx.lineTo(left + width - 4, y + 8);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   const label = (
     text: string,
     x: number,
@@ -117,7 +96,7 @@ export function drawBattle(
     color: string,
     weight = '500',
   ) => {
-    ctx.font = `${weight} ${size}px 'Segoe UI','Microsoft YaHei',sans-serif`;
+    ctx.font = `${weight} ${size}px 'Ashen Serif','Microsoft YaHei',serif`;
     const halfText = Math.min(w / 2 - 8, ctx.measureText(text).width / 2 + 4);
     x = Math.max(halfText + 4, Math.min(w - halfText - 4, x));
     ctx.textAlign = 'center';
@@ -319,19 +298,17 @@ export function drawBattle(
         squared ? '#ffdeb0' : color,
         '700',
       );
-      if (gw > 65 || squared || g.op === '√')
+      if (!e.trialStep && (gw > 65 || squared || g.op === '√'))
         label(
-          e.trialStep
-            ? `必经红门 ${e.trialStep}/5`
-            : squared
-              ? '平方'
-              : g.op === '√'
-                ? '开方'
-                : pos
-                  ? g.op === '×'
-                    ? '倍增'
-                    : '招募'
-                  : '损耗',
+          squared
+            ? '平方'
+            : g.op === '√'
+              ? '开方'
+              : pos
+                ? g.op === '×'
+                  ? '倍增'
+                  : '招募'
+                : '损耗',
           (x + right) / 2,
           y - 19 * scale,
           Math.max(12, 12 * scale),
@@ -378,6 +355,56 @@ export function drawBattle(
       ctx.fillRect(x - 13 * scale, y - ch / 2, 4 * scale, ch);
       ctx.fillRect(x + 9 * scale, y - ch / 2, 4 * scale, ch);
       round(x - 4, y - 6, 8, 11, 1, '#f9db8b');
+      ctx.restore();
+      captions.push({ entity: e, x, y });
+      return;
+    }
+    if (e.guardianOf !== undefined) {
+      const owner = b.entities.find((v) => v.id === e.guardianOf && !v.done);
+      ctx.save();
+      ctx.strokeStyle = '#c1a1ec';
+      ctx.lineWidth = 1.5;
+      if (owner) {
+        ctx.globalAlpha = 0.38;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(
+          (x + X(owner.x)) / 2,
+          y - 42 * scale,
+          X(owner.x),
+          Y(worldY(owner, b.time)),
+        );
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.shadowColor = '#bc8fe8';
+      ctx.shadowBlur = reducedMotion ? 0 : 12;
+      ctx.fillStyle = '#160c24';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 15 * scale, 22 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      const flicker = reducedMotion ? 0 : Math.sin(b.time * 5 + e.id) * 3;
+      ctx.fillStyle = '#d8bbff';
+      ctx.beginPath();
+      ctx.moveTo(x, y - (14 + flicker) * scale);
+      ctx.bezierCurveTo(
+        x + 19 * scale,
+        y,
+        x + 6 * scale,
+        y + 13 * scale,
+        x,
+        y + 11 * scale,
+      );
+      ctx.bezierCurveTo(
+        x - 13 * scale,
+        y + 8 * scale,
+        x - 7 * scale,
+        y - 6 * scale,
+        x,
+        y - (14 + flicker) * scale,
+      );
+      ctx.fill();
       ctx.restore();
       captions.push({ entity: e, x, y });
       return;
@@ -722,7 +749,7 @@ export function drawBattle(
     const dx = X(bullet.vx) - X(0),
       dy = Y(bullet.vy) - Y(0);
     const angle = Math.atan2(dy, dx);
-    const radius = Math.max(3, bullet.radius * w * VIEW.horizontalScale);
+    const radius = Math.max(3.5, bullet.radius * w * VIEW.horizontalScale);
     const color =
       bullet.kind === 'blade'
         ? '#f4d58a'
@@ -950,10 +977,10 @@ export function drawBattle(
     ctx.strokeRect(left, 80, right - left, playerY + 30 - 80);
     ctx.setLineDash([]);
     label(
-      `! ${countdown.toFixed(1)}s`,
+      `${threat.name} · ${countdown.toFixed(1)}s`,
       (left + right) / 2,
       playerY - 55,
-      18,
+      13,
       '#ffd0a6',
       '700',
     );

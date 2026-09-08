@@ -85,7 +85,7 @@ function exhaustRelics(run) {
       run.relics[relic.id] = relic.max;
 }
 
-test('each seeded shop shows five unique eligible items plus its separate 500-gold key', () => {
+test('each seeded shop shows five unique eligible items plus its separate 666-gold key', () => {
   assert.equal(
     new Set(SHOP_ITEMS.map((item) => item.id)).size,
     SHOP_ITEMS.length,
@@ -99,7 +99,7 @@ test('each seeded shop shows five unique eligible items plus its separate 500-go
       assert.equal(inventory.length, 6);
       assert.equal(new Set(ids).size, 6);
       assert.equal(ids.at(-1), 'relic-square_key');
-      assert.equal(inventory.at(-1).cost, 500);
+      assert.equal(inventory.at(-1).cost, 666);
       assert.deepEqual(shopInventory(run), inventory);
       assert.deepEqual(
         shopInventory({ ...run, hp: 1, gold: 0, purchases: [ids[0]] }),
@@ -183,7 +183,7 @@ test('stocked but unusable or unaffordable goods never charge the player', () =>
     assert.equal(shopItemAvailability(full, id).reason, '生命已满');
     assert.equal(shopBuy(full, id), full);
   }
-  const maxWeapon = { ...stockedShop(['weapon']), weaponTier: 10 };
+  const maxWeapon = { ...stockedShop(['weapon']), weaponTier: 25 };
   assert.equal(shopItemAvailability(maxWeapon, 'weapon').reason, '武器已满级');
   assert.equal(shopBuy(maxWeapon, 'weapon'), maxWeapon);
   for (const id of ['soldiers', 'company']) {
@@ -258,7 +258,7 @@ test('projectile traits bought from real later assortments retain their stated s
     }
     if (id === 'focus') {
       assert.ok(Math.abs(result.damage / base.damage - 1.2) < 1e-10);
-      assert.ok(Math.abs(result.bulletRadius - 0.04) < 1e-10);
+      assert.ok(Math.abs(result.bulletRadius - 0.0575) < 1e-10);
     }
     if (id === 'execute') assert.equal(result.execute, 2);
     if (id === 'pierce') assert.equal(result.pierceCount, 3);
@@ -291,12 +291,12 @@ function legacyReward(seed = 42) {
   return run;
 }
 
-test('the square key costs exactly 500 and is additional stock until owned or used', () => {
-  assert.equal(RELICS.length, 33);
+test('the square key costs exactly 666 and is additional stock until owned or used', () => {
+  assert.equal(RELICS.length, 35);
   assert.equal(RELIC_BY_ID.square_key.max, 1);
-  const run = { ...shop(), gold: 500 };
+  const run = { ...shop(), gold: 666 };
   const ordinaryStock = shopInventory(run).slice(0, 5);
-  const poor = { ...run, gold: 499 };
+  const poor = { ...run, gold: 665 };
   assert.equal(
     shopItemAvailability(poor, 'relic-square_key').reason,
     '金币不足',

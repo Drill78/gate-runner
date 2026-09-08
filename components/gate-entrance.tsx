@@ -7,7 +7,7 @@ import {
   BowArrow,
   WandSparkles,
 } from 'lucide-react';
-import { HEROES, type ClassId } from '@/lib/game';
+import { HEROES, type ClassId, type Difficulty } from '@/lib/game';
 import './gate-entrance.css';
 
 export function GateEntrance({
@@ -16,12 +16,18 @@ export function GateEntrance({
   onStart,
   onContinue,
   onSettings,
+  difficulty,
+  hardUnlocked,
+  onDifficulty,
 }: {
   selected: ClassId;
   onSelect: (id: ClassId) => void;
   onStart: () => void;
   onContinue?: () => void;
   onSettings: () => void;
+  difficulty: Difficulty;
+  hardUnlocked: boolean;
+  onDifficulty: (mode: Difficulty) => void;
 }) {
   const [stage, setStage] = useState<'closed' | 'opening' | 'classes'>(
     'closed',
@@ -87,6 +93,29 @@ export function GateEntrance({
               <strong>{hero.skill}</strong>
               <span>{hero.skillDesc}</span>
             </p>
+            <fieldset className="difficulty-choice">
+              <legend className="sr-only">远征难度</legend>
+              <button
+                aria-pressed={difficulty === 'normal'}
+                onClick={() => onDifficulty('normal')}
+              >
+                普通远征
+              </button>
+              <button
+                aria-pressed={difficulty === 'hard'}
+                disabled={!hardUnlocked}
+                onClick={() => onDifficulty('hard')}
+              >
+                困难 · 灰烬再临
+              </button>
+              <small>
+                {hardUnlocked
+                  ? difficulty === 'hard'
+                    ? '敌人略强 · 前两幕双首领 · 独立成就'
+                    : '完成十五关，征服余烬王座'
+                  : '首次通关后解锁困难模式'}
+              </small>
+            </fieldset>
             <button className="entrance-start" onClick={onStart}>
               以此誓约启程 <ArrowRight size={20} />
             </button>

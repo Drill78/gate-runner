@@ -1,6 +1,9 @@
 import {
   HEROES,
   ACT_LENGTH,
+  MAX_WEAPON_LEVEL,
+  HP_PER_LEVEL,
+  grantGold,
   stats,
   firepower,
   applyGate,
@@ -16,7 +19,7 @@ import {
   type GateChoice,
 } from './game.ts';
 import { VIEW } from './view.ts';
-import { bossProfile } from './bosses.ts';
+import { bossProfile, ENCOUNTERS } from './bosses.ts';
 
 export const BALANCE = {
   moveSpeed: 2.2,
@@ -31,14 +34,14 @@ export const BALANCE = {
   bossGrowth: 1.26,
   enemyBaseHp: 110,
   bossBaseHp: 3400,
-  commanderBaseHp: 1290,
-  eliteCommanderBaseHp: 1650,
+  commanderBaseHp: 1580,
+  eliteCommanderBaseHp: 2250,
   laterEnemyHpMultiplier: 1.15,
   superEliteHpMultiplier: 1.75,
-  superEliteCommanderHp: 3300,
+  superEliteCommanderHp: 4100,
   enemyActMultiplier: [1, 1.05, 1.12],
-  commanderActMultiplier: [1, 1.1, 1.2],
-  bossActMultiplier: [1.25, 1.65, 2.15],
+  commanderActMultiplier: [1, 1.15, 1.5],
+  bossActMultiplier: [1.6, 2.2, 2.15],
   finalBossHpMultiplier: 1.6,
   finalBossDamageMultiplier: 1.2,
   finalBossAttackIntervals: [4, 3.5, 3],
@@ -90,6 +93,9 @@ export interface Entity {
   wave: number;
   attackIndex: number;
   guardUntil: number;
+  anchorX?: number;
+  guardianOf?: number;
+  stationary?: boolean;
 }
 export interface Threat {
   id: number;
@@ -98,6 +104,19 @@ export interface Threat {
   resolveAt: number;
   damage: number;
   name: string;
+  push?: number;
+  kind?: 'cleave' | 'meteor' | 'rune';
+}
+export interface GroundZone {
+  id: number;
+  ownerId: number;
+  x: number;
+  width: number;
+  startsAt: number;
+  endsAt: number;
+  nextTick: number;
+  damage: number;
+  kind: 'thorn' | 'web' | 'ember' | 'shadow';
 }
 export interface Projectile {
   id: number;
@@ -175,6 +194,8 @@ export interface Battle {
   entities: Entity[];
   effects: Effect[];
   threats: Threat[];
+  zones: GroundZone[];
+  bossDamageTaken: number;
   projectiles: Projectile[];
   bullets: PlayerBullet[];
   bulletSeq: number;
@@ -329,7 +350,8 @@ export function createBattle(run: Run): Battle {
     Math.pow(BALANCE.hpGrowth, player.floor) *
     (elite ? 1.24 : 1) *
     (superElite ? BALANCE.superEliteHpMultiplier : 1) *
-    (treasure ? 0.85 : 1);
+    (treasure ? 0.85 : 1) *
+    (player.difficulty === 'hard' ? 1.1 : 1);
   const profile = bossProfile(player);
   const entities: Entity[] = [];
   function put(
@@ -374,7 +396,8 @@ export function createBattle(run: Run): Battle {
         : variant === 'archer'
           ? start - 2.7
           : start + 1.5,
-      volleyDamage: 8 + player.floor * 1.3,
+      volleyDamage:
+        (8 + player.floor * 1.3) * (player.difficulty === 'hard' ? 1.08 : 1),
       reward: 'gold',
       wave,
       attackIndex: 0,
@@ -445,11 +468,11 @@ export function createBattle(run: Run): Battle {
     const trialStart =
       Math.max(...entities.map((e) => e.arrival)) + VIEW.previewSeconds + 0.25;
     const steps = [
-      { op: '-' as const, value: 1, fraction: 0.18 },
-      { op: '÷' as const, value: 1.3, fraction: 0 },
-      { op: '-' as const, value: 1, fraction: 0.22 },
-      { op: '÷' as const, value: 1.35, fraction: 0 },
-      { op: '-' as const, value: 1, fraction: 0.25 },
+      { op: '-' as const, value: 1, fraction: 0.14 },
+      { op: '÷' as const, value: 1.22, fraction: 0 },
+      { op: '-' as const, value: 1, fraction: 0.17 },
+      { op: '÷' as const, value: 1.25, fraction: 0 },
+      { op: '-' as const, value: 1, fraction: 0.2 },
     ];
     steps.forEach((s, index) => {
       const g = put(
@@ -493,17 +516,46 @@ export function createBattle(run: Run): Battle {
       (bossRoom
         ? BALANCE.bossActMultiplier[act]
         : BALANCE.commanderActMultiplier[act]) *
-      (profile.id === 'king' ? BALANCE.finalBossHpMultiplier : 1),
+      (profile.id === 'king' ? BALANCE.finalBossHpMultiplier : 1) *
+      (player.difficulty === 'hard' ? 1.1 : 1),
     'boss',
     profile.name,
     waves,
     true,
   );
   final.encounterId = profile.id;
+  if (!bossRoom && act === 2) final.attackIndex = 2;
   final.phase = 1;
   final.volleyDamage =
     (bossRoom ? 17 + player.floor * 1.6 : 12 + player.floor * 1.4) *
-    (profile.id === 'king' ? BALANCE.finalBossDamageMultiplier : 1);
+    (profile.id === 'king' ? BALANCE.finalBossDamageMultiplier : 1.1) *
+    (player.difficulty === 'hard' ? 1.08 : 1);
+  if (player.difficulty === 'hard' && bossRoom && act < 2) {
+    const partner = ENCOUNTERS.find(
+      (e) => e.kind === 'boss' && e.act === act && e.id !== profile.id,
+    )!;
+    // Shared encounter budget, separate health pools and attack identities.
+    final.x = final.anchorX = -0.46;
+    final.hp = final.maxHp = final.maxHp * 0.6;
+    final.width = 0.42;
+    final.volleyDamage *= 0.78;
+    const second = put(
+      'enemy',
+      finalStart,
+      0.46,
+      final.maxHp,
+      'boss',
+      partner.name,
+      waves,
+      true,
+    );
+    second.anchorX = 0.46;
+    second.encounterId = partner.id;
+    second.phase = 1;
+    second.width = 0.42;
+    second.volleyDamage = final.volleyDamage;
+    second.lastAttack += 2.2;
+  }
   player.squad = safeTroops(player.squad + (player.relics.ambush || 0) * 8);
   return {
     player,
@@ -517,6 +569,8 @@ export function createBattle(run: Run): Battle {
     entities,
     effects: [],
     threats: [],
+    zones: [],
+    bossDamageTaken: 0,
     projectiles: [],
     bullets: [],
     bulletSeq: 0,
@@ -530,7 +584,10 @@ export function createBattle(run: Run): Battle {
                 ? '命运收束'
                 : ['荆棘蚀血', '蚀月凋零', '王权震荡'][act],
           bossId: final.id,
-          nextAt: finalStart + BALANCE.pressureGrace[act],
+          nextAt:
+            finalStart +
+            BALANCE.pressureGrace[act] +
+            (player.difficulty === 'hard' && act < 2 ? 6 : 0),
           interval: BALANCE.pressureInterval[act],
           baseDamage: BALANCE.pressureDamage[act],
           ramp: BALANCE.pressureRamp[act],
@@ -562,7 +619,18 @@ export function createBattle(run: Run): Battle {
   };
 }
 export function progress(e: Entity, time: number) {
-  return Math.min(e.boss ? 0 : 1.12, (time - e.start) / (e.arrival - e.start));
+  return Math.min(
+    e.boss || e.stationary ? 0 : 1.12,
+    (time - e.start) / (e.arrival - e.start),
+  );
+}
+export function targetVisible(e: Entity, time: number) {
+  return (
+    !e.done &&
+    e.hp > 0 &&
+    time >= e.start - (e.boss ? 0 : VIEW.previewSeconds) &&
+    worldY(e, time) >= VIEW.far - 0.08
+  );
 }
 export function worldY(e: Entity, time: number) {
   return -0.1 + progress(e, time) * 0.9;
@@ -630,7 +698,11 @@ function hitEntity(
 ) {
   if (e.done || e.hp <= 0) return;
   const frontalShield = e.guardUntil > b.time && Math.abs(sourceX - e.x) < 0.16;
-  const actual = damage * (1 - e.armor) * (frontalShield ? 0.3 : 1);
+  const soulWard = b.entities.some(
+    (other) => other.guardianOf === e.id && !other.done && other.hp > 0,
+  );
+  const actual =
+    damage * (1 - e.armor) * (frontalShield ? 0.3 : 1) * (soulWard ? 0.55 : 1);
   e.hp -= actual;
   if (b.ritual?.interruptible && b.ritual.bossId === e.id) {
     b.ritual.breakRemaining -= actual;
@@ -663,12 +735,15 @@ function hitEntity(
   if (e.kind === 'chest') {
     b.player.chests++;
     if (e.reward === 'weapon') {
-      b.player.weaponTier = Math.min(10, b.player.weaponTier + 1);
+      b.player.weaponTier = Math.min(MAX_WEAPON_LEVEL, b.player.weaponTier + 1);
       message(b, `兵装秘匣 · 武器 Lv.${b.player.weaponTier}`);
     } else {
-      b.player.gold += 22;
+      grantGold(b.player, 22 + Math.floor(b.player.floor / ACT_LENGTH) * 12);
       b.player.squad = safeTroops(b.player.squad + 4);
-      message(b, '宝箱击破 · +22 金币 / +4 兵力');
+      message(
+        b,
+        `宝箱击破 · +${22 + Math.floor(b.player.floor / ACT_LENGTH) * 12} 金币 / +4 兵力`,
+      );
     }
     logRun(
       b.player,
@@ -683,7 +758,7 @@ function hitEntity(
       b.player.encountersDefeated[e.encounterId] =
         (b.player.encountersDefeated[e.encounterId] || 0) + 1;
     }
-    b.player.gold += 4;
+    grantGold(b.player, 4 + Math.floor(b.player.floor / ACT_LENGTH) * 2);
     b.player.hp = Math.min(
       b.player.maxHp,
       b.player.hp + (b.player.relics.vampire || 0) * 3,
@@ -702,14 +777,14 @@ function hitEntity(
       type: 'text',
       x: e.x,
       y: worldY(e, b.time) + 0.07,
-      text: `+4 金 · +${xp} XP`,
+      text: `+${4 + Math.floor(b.player.floor / ACT_LENGTH) * 2} 金 · +${xp} XP`,
       color: '#acdfba',
       life: 1.2,
     });
     if (gained) {
       message(
         b,
-        `升至 Lv.${experience(b.player).level} · 攻击 +${gained * 2}% / 生命 +${gained * 2}`,
+        `升至 Lv.${experience(b.player).level} · 攻击 +${gained * 2}% / 生命上限 +${gained * HP_PER_LEVEL}`,
         '#d4eeb8',
       );
       sound(b, 'level');
@@ -720,6 +795,7 @@ export function damagePlayer(b: Battle, amount: number, troopLoss = 0.08) {
   if (b.state !== 'running') return;
   const reduced = Math.ceil(amount * (1 - stats(b.player, b.shield).armor));
   const absorbed = Math.min(reduced, b.shield);
+  if (b.time >= b.finalStart) b.bossDamageTaken += reduced - absorbed;
   b.shield -= absorbed;
   b.player.hp = Math.max(0, b.player.hp - reduced + absorbed);
   const lost =
@@ -744,8 +820,8 @@ export function damagePlayer(b: Battle, amount: number, troopLoss = 0.08) {
   }
   if (b.player.relics.thorns)
     for (const e of b.entities)
-      if (e.kind === 'enemy' && !e.done && e.start < b.time)
-        hitEntity(b, e, 40 * b.player.relics.thorns);
+      if (e.kind === 'enemy' && targetVisible(e, b.time))
+        hitEntity(b, e, attackDamage(b) * 0.8 * b.player.relics.thorns);
 }
 export function attackDamage(b: Battle) {
   return (
@@ -847,11 +923,12 @@ function segmentHit(
   }
   return enter;
 }
-function enemyXAt(b: Battle, e: Entity, time: number) {
+export function enemyXAt(b: Battle, e: Entity, time: number) {
   return e.boss &&
     b.player.node?.kind === 'boss' &&
     Math.floor(b.player.floor / ACT_LENGTH) === 1
-    ? Math.sin((time - e.start) * 0.8) * 0.18
+    ? (e.anchorX || 0) +
+        Math.sin((time - e.start) * 0.8) * (e.anchorX ? 0.1 : 0.18)
     : e.x;
 }
 function stepPlayerBullets(b: Battle, oldTime: number) {
@@ -878,8 +955,14 @@ function stepPlayerBullets(b: Battle, oldTime: number) {
       )
         continue;
       // The entrance frame belongs to the portrait pause, before combat resumes.
-      const activeFrom = Math.max(fromTime, e.start + 1e-6);
-      const activeTo = Math.min(b.time, e.boss ? b.time : e.arrival);
+      const activeFrom = Math.max(
+        fromTime,
+        e.start - (e.boss ? 0 : VIEW.previewSeconds) + 1e-6,
+      );
+      const activeTo = Math.min(
+        b.time,
+        e.boss || e.stationary ? b.time : e.arrival,
+      );
       if (activeFrom > activeTo) continue;
       const begin = (activeFrom - fromTime) / elapsed,
         end = (activeTo - fromTime) / elapsed;
@@ -911,23 +994,33 @@ function stepPlayerBullets(b: Battle, oldTime: number) {
         if (!e.done && b.player.relics.ember) e.burnUntil = b.time + 3;
         if (s.blast) {
           b.effects.push({ type: 'burst', x, y, color, text: '', life: 0.4 });
+          if (!e.done)
+            hitEntity(
+              b,
+              e,
+              bullet.damage * s.blast * 0.2,
+              false,
+              false,
+              bullet.originX,
+            );
           for (const other of b.entities)
             if (
               other !== e &&
               !other.done &&
               other.hp > 0 &&
-              other.start <= b.time &&
+              targetVisible(other, b.time) &&
               Math.hypot(
                 enemyXAt(b, other, b.time) - x,
                 (worldY(other, b.time) - y) * 1.5,
-              ) < 0.26
+              ) <
+                0.38 + s.blast * 0.03
             )
               hitEntity(
                 b,
                 other,
                 bullet.damage *
                   s.blast *
-                  0.3 *
+                  0.65 *
                   (other.hp / other.maxHp < 0.3 ? 1 + s.execute * 0.2 : 1),
                 false,
                 true,
@@ -980,13 +1073,16 @@ export function activateSkill(b: Battle) {
   if (b.player.classId === 'knight') {
     b.shield = Math.min(
       250,
-      b.shield + 18 + (b.player.relics.paladin || 0) * 12,
+      b.shield +
+        18 +
+        Math.floor(b.player.maxHp * 0.1) +
+        (b.player.relics.paladin || 0) * 12,
     );
     b.buffUntil = b.time + 6;
     message(b, '不破誓约 · 护盾 / 伤害 +50%');
   } else {
     for (const e of b.entities)
-      if (!e.done && e.hp > 0 && e.start < b.time)
+      if (targetVisible(e, b.time))
         hitEntity(
           b,
           e,
@@ -1083,6 +1179,135 @@ function ritual(b: Battle, e: Entity) {
   };
   message(b, `${b.ritual.name} · 集火打断或移入绿色安全区`, '#ffd0a1');
 }
+function groundZone(
+  b: Battle,
+  e: Entity,
+  x: number,
+  width: number,
+  kind: GroundZone['kind'],
+  delay = 1.3,
+  duration = 2.8,
+) {
+  b.zones.push({
+    id: b.threatSeq++,
+    ownerId: e.id,
+    x,
+    width,
+    kind,
+    startsAt: b.time + delay,
+    endsAt: b.time + delay + duration,
+    nextTick: b.time + delay,
+    damage: e.volleyDamage * 0.22,
+  });
+}
+function summonGuard(b: Battle, e: Entity, x: number, stationary = false) {
+  if (b.entities.filter((v) => v.guardianOf === e.id && !v.done).length >= 2)
+    return;
+  const hp = e.maxHp * (stationary ? 0.018 : 0.024);
+  b.entities.push({
+    ...e,
+    id: b.entities.length,
+    boss: false,
+    encounterId: undefined,
+    kind: 'enemy',
+    variant: stationary ? 'guard' : 'archer',
+    x,
+    anchorX: undefined,
+    hp,
+    maxHp: hp,
+    armor: 0,
+    done: false,
+    name: stationary ? '蚀月魂灯' : '铁誓援军',
+    start: b.time + 0.35,
+    arrival: b.time + 5,
+    lastAttack: b.time,
+    volleyDamage: e.volleyDamage * 0.3,
+    width: 0.23,
+    guardUntil: 0,
+    guardianOf: stationary ? e.id : undefined,
+    stationary,
+    burnUntil: 0,
+  });
+}
+function signatureAttack(
+  b: Battle,
+  e: Entity,
+  index: number,
+  damage: number,
+): boolean {
+  if (index % 3 !== 2 || e.encounterId === 'king') return false;
+  const side = index % 2 ? -1 : 1;
+  switch (e.encounterId) {
+    case 'executioner':
+      [-0.65, 0, 0.65].forEach((x, i) =>
+        warn(b, x * side, 0.42, 1.1 + i * 0.55, damage * 0.8, '处刑巡礼'),
+      );
+      volley(
+        b,
+        e,
+        'axe',
+        [-0.75, -0.25, 0.25, 0.75],
+        1.7,
+        1.8,
+        damage * 0.45,
+        -side * 0.8,
+      );
+      message(b, '处刑巡礼 · 顺着斧痕移动，留意回旋斧');
+      break;
+    case 'commander':
+      summonGuard(b, e, -0.56);
+      summonGuard(b, e, 0.56);
+      e.guardUntil = b.time + 2.4;
+      warn(b, 0, 0.45, 1.4, damage * 0.8, '军阵突刺');
+      message(b, '铁誓军阵 · 清除弓手援军，侧击统领');
+      break;
+    case 'hexblade':
+      groundZone(b, e, b.x, 0.42, 'shadow', 1.25, 3.2);
+      warn(b, -b.x, 0.42, 2.2, damage * 0.9, '镜界处决');
+      e.x = side * 0.48;
+      message(b, '镜界裂隙 · 咒刃换位，影痕会持续灼伤');
+      break;
+    case 'stonewarden':
+      groundZone(b, e, side * 0.6, 0.62, 'thorn', 1.5, 3.1);
+      warn(b, -side * 0.4, 0.34, 2.4, damage * 0.9, '石心震荡');
+      e.guardUntil = b.time + 1.4;
+      message(b, '断层之誓 · 先离开碎石，再躲开震心');
+      break;
+    case 'broodmother':
+      groundZone(b, e, -0.62, 0.42, 'web', 1.4, 3.4);
+      groundZone(b, e, 0.62, 0.42, 'web', 1.4, 3.4);
+      volley(b, e, 'star', [-0.24, 0.24], 0.75, 1.9, damage * 0.55);
+      message(b, '蛛巢围猎 · 蛛网减速，中央毒弹留有缺口');
+      break;
+    case 'watcher':
+      groundZone(b, e, side * 0.54, 0.82, 'thorn', 1.45, 3.0);
+      warn(b, -side * 0.58, 0.32, 2.5, damage * 0.7, '荆棘追猎');
+      message(b, '荆棘围城 · 根墙持续生长，别停在追猎印记上');
+      break;
+    case 'wyvern': {
+      warn(b, 0, 1.35, 1.5, damage * 0.45, '暴风推击');
+      b.threats[b.threats.length - 1].push = side * 0.34;
+      groundZone(b, e, side * 0.72, 0.34, 'ember', 1.8, 2.6);
+      message(b, '暴风推击 · 向风暴侧翼躲避，别被推入龙焰');
+      break;
+    }
+    case 'lich':
+      summonGuard(b, e, -0.61, true);
+      summonGuard(b, e, 0.61, true);
+      volley(b, e, 'star', [-0.8, -0.4, 0, 0.4, 0.8], 0.5, 2.1, damage * 0.5);
+      message(b, '蚀月魂灯 · 击破两盏魂灯，解除巫妖护佑');
+      break;
+    case 'oracle':
+      groundZone(b, e, b.x, 0.42, 'shadow', 1.5, 2.6);
+      warn(b, -b.x, 0.4, 2.1, damage * 0.8, '逆命回响');
+      volley(b, e, 'star', [-0.72, 0, 0.72], 1.1, 2, damage * 0.45);
+      message(b, '逆命星盘 · 预言留下裂痕，下一击来自镜像');
+      break;
+    default:
+      return false;
+  }
+  return true;
+}
 function enemyAttack(b: Battle, e: Entity) {
   if (!e.boss) {
     warn(b, b.x, 0.29, 1.05, e.volleyDamage, '弓手狙击');
@@ -1093,6 +1318,7 @@ function enemyAttack(b: Battle, e: Entity) {
     index = e.attackIndex++;
   const damage = e.volleyDamage * (b.enrage ? 1.75 : 1),
     secondPhase = e.hp < e.maxHp * 0.5;
+  if (signatureAttack(b, e, index, damage)) return;
   if (!isActBoss) {
     if (e.encounterId === 'hexblade') {
       warn(b, b.x, 0.34, 1.1, damage * 0.75, '咒刃烙印');
@@ -1241,7 +1467,13 @@ function enemyAttack(b: Battle, e: Entity) {
       secondPhase ? '蚀月盛放 · 双重星雨' : '星环绽放 · 交错弹幕',
       '#d9c7ff',
     );
-  } else if (index % 4 === 0) {
+  } else if (index % 5 === 4) {
+    const side = index % 2 ? -1 : 1;
+    groundZone(b, e, side * 0.6, 0.62, 'ember', 1.5, 3.5);
+    groundZone(b, e, -side * 0.65, 0.4, 'ember', 2.8, 2.2);
+    warn(b, 0, 0.35, 2.2, damage * 0.8, '王座断界');
+    message(b, '王座断界 · 黑焰依次封路，穿过裂隙');
+  } else if (index % 5 === 0) {
     const phase = kingPhase(e);
     const force = damage * (1 + (phase - 1) * 0.12);
     volley(
@@ -1268,8 +1500,8 @@ function enemyAttack(b: Battle, e: Entity) {
       phase >= 2 ? '碎日王冠 · 第二轮火环即将降临' : '碎日王冠 · 穿过七重火环',
       '#ffcf88',
     );
-  } else if (index % 4 === 1) ritual(b, e);
-  else if (index % 4 === 2) {
+  } else if (index % 5 === 1) ritual(b, e);
+  else if (index % 5 === 2) {
     const phase = kingPhase(e);
     const order = phase === 3 ? [0, -0.7, 0.7] : [-0.7, 0, 0.7];
     for (const [i, x] of order.entries())
@@ -1315,11 +1547,22 @@ export function stepBattle(b: Battle, dt: number) {
   const oldTime = b.time,
     oldX = b.x;
   b.time += dt;
+  const slowed = b.zones.some(
+    (z) =>
+      z.kind === 'web' &&
+      z.startsAt <= b.time &&
+      z.endsAt > b.time &&
+      Math.abs(b.x - z.x) < z.width / 2,
+  );
+  const mobility = slowed ? 0.65 : 1;
   const dx =
     b.targetX === null
-      ? b.inputAxis * BALANCE.moveSpeed * dt
+      ? b.inputAxis * BALANCE.moveSpeed * mobility * dt
       : Math.sign(b.targetX - b.x) *
-        Math.min(Math.abs(b.targetX - b.x), BALANCE.pointerMaxSpeed * dt);
+        Math.min(
+          Math.abs(b.targetX - b.x),
+          BALANCE.pointerMaxSpeed * mobility * dt,
+        );
   b.x = Math.max(BALANCE.minX, Math.min(BALANCE.maxX, b.x + dx));
   b.cooldown = Math.max(0, b.cooldown - dt);
   b.flash = Math.max(0, b.flash - dt);
@@ -1388,9 +1631,11 @@ export function stepBattle(b: Battle, dt: number) {
   if (b.state !== 'running') return;
   for (const threat of b.threats) {
     if (threat.resolveAt > b.time) continue;
-    if (Math.abs(b.x - threat.x) < threat.width / 2 + 0.035)
+    if (Math.abs(b.x - threat.x) < threat.width / 2 + 0.035) {
       damagePlayer(b, threat.damage, 0.1);
-    else
+      if (threat.push)
+        b.x = Math.max(BALANCE.minX, Math.min(BALANCE.maxX, b.x + threat.push));
+    } else
       b.effects.push({
         type: 'burst',
         x: threat.x,
@@ -1402,6 +1647,16 @@ export function stepBattle(b: Battle, dt: number) {
   }
   b.threats = b.threats.filter((t) => t.resolveAt > b.time);
   if (b.state !== 'running') return;
+  b.zones = b.zones.filter(
+    (z) => z.endsAt > b.time && !b.entities[z.ownerId]?.done,
+  );
+  for (const zone of b.zones) {
+    if (zone.nextTick > b.time) continue;
+    zone.nextTick += 0.8;
+    if (Math.abs(b.x - zone.x) < zone.width / 2 + 0.035)
+      damagePlayer(b, zone.damage, 0.025);
+  }
+  if (b.state !== 'running') return;
   b.shootTimer -= dt;
   if (b.shootTimer <= 0) {
     firePlayerVolley(b);
@@ -1409,15 +1664,24 @@ export function stepBattle(b: Battle, dt: number) {
   }
   stepPlayerBullets(b, oldTime);
   for (const e of b.entities) {
+    if (e.guardianOf !== undefined && b.entities[e.guardianOf]?.done)
+      e.done = true;
+    if (e.done) continue;
+    if (e.burnUntil > b.time && targetVisible(e, b.time))
+      hitEntity(
+        b,
+        e,
+        attackDamage(b) * 0.32 * (b.player.relics.ember || 0) * dt,
+        false,
+        false,
+      );
     if (e.done || e.start > b.time) continue;
     if (
       e.boss &&
       b.player.node?.kind === 'boss' &&
       Math.floor(b.player.floor / ACT_LENGTH) === 1
     )
-      e.x = Math.sin((b.time - e.start) * 0.8) * 0.18;
-    if (e.burnUntil > b.time && e.hp > 0)
-      hitEntity(b, e, 14 * (b.player.relics.ember || 0) * dt, false, false);
+      e.x = enemyXAt(b, e, b.time);
     if (e.done) continue;
     if (e.encounterId === 'king' && e.phase !== kingPhase(e)) {
       e.phase = kingPhase(e);
@@ -1428,6 +1692,9 @@ export function stepBattle(b: Battle, dt: number) {
           : '终焉燃尽 · 最后的王权',
         '#ffcf88',
       );
+      const side = e.phase === 2 ? -1 : 1;
+      groundZone(b, e, side * 0.65, 0.5, 'ember', 1.8, 3);
+      groundZone(b, e, -side * 0.65, 0.5, 'ember', 2.6, 2.4);
       b.effects.push({
         type: 'burst',
         x: e.x,
@@ -1453,7 +1720,7 @@ export function stepBattle(b: Battle, dt: number) {
       e.lastAttack = b.time;
       enemyAttack(b, e);
     }
-    if (b.time < e.arrival) continue;
+    if (b.time < e.arrival || e.stationary) continue;
     if (e.kind === 'gate') {
       const selected = gateAt(e.gate!, b.x);
       if (selected) {
@@ -1492,6 +1759,10 @@ export function stepBattle(b: Battle, dt: number) {
   }
   // Resolve pressure after attacks: a kill at the deadline prevents the pulse.
   const pressure = b.pressure;
+  if (pressure && b.entities[pressure.bossId].done) {
+    const survivor = b.entities.find((e) => e.boss && !e.done);
+    if (survivor) pressure.bossId = survivor.id;
+  }
   if (
     pressure &&
     b.time >= pressure.nextAt &&
@@ -1505,9 +1776,17 @@ export function stepBattle(b: Battle, dt: number) {
     if (b.state !== 'running') return;
     message(b, `${pressure.name} · 第 ${pressure.pulses} 次冲击`, '#ffc5ab');
   }
-  if (b.entities.find((e) => e.boss)!.done) {
+  if (b.entities.filter((e) => e.boss).every((e) => e.done)) {
     b.state = 'won';
-    b.player.gold +=
+    if (b.player.node?.kind === 'boss' && b.bossDamageTaken === 0)
+      b.player.flawlessBosses++;
+    if (
+      b.player.node?.kind === 'boss' &&
+      b.entities.filter((e) => e.boss).length === 2
+    )
+      b.player.doubleBossWins++;
+    grantGold(
+      b.player,
       (b.player.node?.enchanted
         ? 90
         : b.player.node?.kind === 'elite'
@@ -1515,9 +1794,11 @@ export function stepBattle(b: Battle, dt: number) {
           : b.player.node?.kind === 'boss'
             ? 80
             : 28) +
-      (b.player.relics.bounty || 0) * 20;
+        (b.player.relics.bounty || 0) * 20,
+    );
     logRun(b.player, '防线突破 · 选择强化');
     b.threats = [];
+    b.zones = [];
     b.projectiles = [];
     b.bullets = [];
     b.ritual = null;

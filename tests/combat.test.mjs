@@ -223,7 +223,7 @@ test('active skills respect cooldown and class effects, including the tuned knig
   const b = battle();
   const before = b.shield;
   assert.equal(activateSkill(b), true);
-  assert.equal(b.shield, before + 18);
+  assert.equal(b.shield, before + 30);
   assert.equal(activateSkill(b), false);
   assert.ok(attackDamage(b) > firepower(b.player, b.shield).volley);
   const mage = battle('mage');
@@ -279,8 +279,8 @@ test('experience grows attributes modestly, never restores a whole health bar', 
   assert.equal(grantExperience(r, 29), 0);
   assert.equal(grantExperience(r, 1), 1);
   assert.equal(experience(r).level, 2);
-  assert.equal(r.maxHp, 122);
-  assert.equal(r.hp, 52);
+  assert.equal(r.maxHp, 126);
+  assert.equal(r.hp, 56);
   assert.ok(Math.abs(stats(r).damage - damage * 1.02) < 1e-9);
   assert.equal(grantExperience(r, Infinity), 0);
   assert.equal(r.xp, 30);
@@ -496,10 +496,10 @@ test('first gatekeeper pressures the player with five axes and a second half-hea
   b.x = 0.9;
   b.time = boss.start;
   advance(b, 1.01);
-  assert.equal(boss.maxHp, 1290);
+  assert.equal(boss.maxHp, 1580);
   assert.equal(b.projectiles.length, 5);
   boss.hp = boss.maxHp * 0.49;
-  boss.attackIndex = 2;
+  boss.attackIndex = 0;
   boss.lastAttack = b.time - 4;
   b.projectiles = [];
   stepBattle(b, 0.01);
@@ -510,7 +510,10 @@ test('later boss scaling is stronger without inflating first-floor common enemie
   const first = battle(),
     later = battle('knight', 14);
   assert.equal(BALANCE.enemyActMultiplier[0], 1);
-  assert.ok(BALANCE.bossActMultiplier[2] > BALANCE.bossActMultiplier[1]);
+  assert.ok(
+    BALANCE.bossActMultiplier[2] * BALANCE.finalBossHpMultiplier >
+      BALANCE.bossActMultiplier[1],
+  );
   assert.ok(later.entities.find((e) => e.boss).maxHp > 45000);
   assert.equal(first.entities.find((e) => e.kind === 'chest').hp, 60);
 });

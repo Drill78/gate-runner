@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { type Run, RELIC_BY_ID, experience } from '@/lib/game';
+import { type Run, RELIC_BY_ID, experience, ACT_LENGTH } from '@/lib/game';
 import {
   type Battle,
   stepBattle,
@@ -23,7 +23,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { drawBattle } from '@/lib/renderer';
-import { bossProfile } from '@/lib/bosses';
+import { bossProfile, ENCOUNTERS } from '@/lib/bosses';
 import { BossArrival } from '@/components/boss-arrival';
 import { battleMusic, musicPlayer } from '@/lib/music';
 
@@ -41,7 +41,9 @@ export interface BattleSnapshot {
   arriving: boolean;
   pressure: BossPressure | null;
   ritual: Ritual | null;
+  encounters: NonNullable<BattleSnapshot['encounter']>[];
   encounter: {
+    id: number;
     name: string;
     hp: number;
     maxHp: number;
@@ -72,7 +74,19 @@ export function BattleCanvas({
   const [arrival, setArrival] = useState(false);
   const [levelChoices, setLevelChoices] = useState(battle.levelChoices);
   const skipArrival = useRef(false);
-  const profile = bossProfile(battle.player);
+  const primaryProfile = bossProfile(battle.player);
+  const partner = battle.entities.find(
+    (e) => e.boss && e.encounterId !== primaryProfile.id,
+  );
+  const partnerProfile = ENCOUNTERS.find((e) => e.id === partner?.encounterId);
+  const profile = partnerProfile
+    ? {
+        ...primaryProfile,
+        name: `${primaryProfile.name} · ${partnerProfile.name}`,
+        title: '困难远征 · 双王会猎',
+        hint: '击败两位首领才可前行 · 双方轮流进攻，共享压力计时',
+      }
+    : primaryProfile;
   const current = useRef({
     paused,
     muted,
@@ -106,6 +120,8 @@ export function BattleCanvas({
       lastSound = 0,
       introRemaining = 0,
       introShown = false;
+    const background = new Image();
+    background.src = `/art/battlefield-${Math.floor(battle.player.floor / ACT_LENGTH) + 1}.webp`;
     const portrait = new Image();
     portrait.src = bossProfile(battle.player).portrait;
     let audio: AudioContext | null = null;
@@ -314,7 +330,7 @@ export function BattleCanvas({
           play(battle.lastSound);
         }
       }
-      drawBattle(ctx, w, h, battle, reducedMotion);
+      drawBattle(ctx, w, h, battle, reducedMotion, background);
       musicPlayer.setState(
         battleMusic(battle),
         current.current.paused ||
@@ -328,12 +344,33 @@ export function BattleCanvas({
         setLevelChoices((previous) =>
           previous === battle.levelChoices ? previous : battle.levelChoices,
         );
-        const target = battle.entities.find(
-          (e) => e.boss && !e.done && e.start <= battle.time,
-        );
         const chapterBoss = battle.player.node?.kind === 'boss';
-        const hasSecondPhase = true;
-        const finalKing = target?.encounterId === 'king';
+        const encounters = battle.entities
+          .filter((e) => e.boss && e.start <= battle.time)
+          .map((target) => ({
+            id: target.id,
+            name: target.name,
+            hp: Math.max(0, target.hp),
+            maxHp: target.maxHp,
+            chapterBoss,
+            hasSecondPhase: true,
+            phaseThresholds: target.encounterId === 'king' ? [70, 35] : [50],
+            status: target.done
+              ? '已击败'
+              : battle.entities.some(
+                    (v) => v.guardianOf === target.id && !v.done,
+                  )
+                ? '魂灯护佑'
+                : target.encounterId === 'king'
+                  ? `${['余烬王座', '王冠破碎', '终焉燃尽'][kingPhase(target) - 1]}${battle.enrage ? ' · 狂暴' : ''}`
+                  : battle.enrage
+                    ? '狂暴'
+                    : target.guardUntil > battle.time
+                      ? '正面举盾'
+                      : target.hp < target.maxHp * 0.5
+                        ? '第二阶段'
+                        : '交战中',
+          }));
         current.current.onSnapshot({
           run: { ...battle.player },
           shield: battle.shield,
@@ -348,27 +385,8 @@ export function BattleCanvas({
           arriving: introRemaining > 0,
           pressure: battle.pressure ? { ...battle.pressure } : null,
           ritual: battle.ritual ? { ...battle.ritual } : null,
-          encounter: target
-            ? {
-                name: target.name,
-                hp: Math.max(0, target.hp),
-                maxHp: target.maxHp,
-                chapterBoss,
-                hasSecondPhase,
-                phaseThresholds: finalKing ? [70, 35] : [50],
-                status: finalKing
-                  ? `${['余烬王座', '王冠破碎', '终焉燃尽'][kingPhase(target) - 1]}${battle.enrage ? ' · 狂暴' : ''}`
-                  : battle.enrage
-                    ? '狂暴'
-                    : target.guardUntil > battle.time
-                      ? '正面举盾'
-                      : battle.ritual?.bossId === target.id
-                        ? '正在吟唱'
-                        : hasSecondPhase && target.hp < target.maxHp * 0.5
-                          ? '第二阶段'
-                          : '交战中',
-              }
-            : null,
+          encounters,
+          encounter: encounters.find((e) => e.hp > 0) || null,
         });
       }
       if (

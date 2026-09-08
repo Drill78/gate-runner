@@ -34,6 +34,9 @@ import {
   ACT_LENGTH,
   TOTAL_FLOORS,
   MAX_LEVEL,
+  MAX_WEAPON_LEVEL,
+  eventChoices,
+  type EventId,
   ACTS,
   RELICS,
   RELIC_BY_ID,
@@ -338,7 +341,7 @@ export function BuildPanel({
             : `${xp.current}/${xp.needed} XP`}
         </span>
         <Progress value={xp.progress} aria-label="冒险等级经验" />
-        <p>击杀获得经验。每级攻击 +2%，生命上限 +2。</p>
+        <p>击杀获得经验。每级攻击 +2%，生命上限 +6。</p>
       </div>
       <div className="health-section">
         <div className="stat-label">
@@ -581,14 +584,16 @@ export function RoomScreen({
   onRest: (action: 'heal' | 'forge') => void;
   onBuy: (id: string) => void;
   onLeaveShop: () => void;
-  onEvent: (action: 'blood' | 'gold' | 'leave') => void;
+  onEvent: (action: EventId) => void;
   onRestart: () => void;
 }) {
   const phase = run.phase;
   const act = ACTS[Math.min(2, Math.floor(run.floor / ACT_LENGTH))];
   const [shopFilter, setShopFilter] = useState<ShopCategory | '全部'>('全部');
   return (
-    <div className={`room-screen room-${phase}`}>
+    <div
+      className={`room-screen room-${phase} act-${Math.min(2, Math.floor(run.floor / ACT_LENGTH))} ${run.relics.square_key && !run.squareGateSeen ? 'is-forbidden' : ''}`}
+    >
       {phase === 'map' ? (
         <>
           <div className="room-heading">
@@ -686,13 +691,13 @@ export function RoomScreen({
             </button>
             <button
               onClick={() => onRest('forge')}
-              disabled={run.weaponTier >= 10}
+              disabled={run.weaponTier >= MAX_WEAPON_LEVEL}
             >
               <Anvil size={28} />
               <h3>磨砺武器</h3>
               <p>永久提高本局武器等级</p>
               <span>
-                {run.weaponTier >= 10
+                {run.weaponTier >= MAX_WEAPON_LEVEL
                   ? '武器已满级'
                   : `Lv.${run.weaponTier} → Lv.${run.weaponTier + 1}`}
               </span>
@@ -797,38 +802,28 @@ export function RoomScreen({
               <Star size={43} />
             </span>
             <span className="eyebrow">WHISPERS OF FATE</span>
-            <h2>无人供奉的祭坛</h2>
+            <h2>命运之约</h2>
             <p>
-              残破石碑上刻着一句古语：
+              三份契约，一次抉择。
               <br />
-              “凡有所求，必有所献。”
+              代价与馈赠，随你的远征一同成长。
             </p>
           </div>
           <div className="event-choices">
-            <button disabled={run.hp <= 18} onClick={() => onEvent('blood')}>
-              <Heart size={20} />
-              <span>
-                <b>献上鲜血</b>
-                <small>失去 18 生命，获得随机职业强化</small>
-              </span>
-              <ChevronRight size={16} />
-            </button>
-            <button disabled={run.gold < 35} onClick={() => onEvent('gold')}>
-              <Users size={20} />
-              <span>
-                <b>唤醒沉眠者</b>
-                <small>支付 35 金币，招募 22 名队员</small>
-              </span>
-              <ChevronRight size={16} />
-            </button>
-            <button onClick={() => onEvent('leave')}>
-              <Coins size={20} />
-              <span>
-                <b>拾取散落的钱币</b>
-                <small>获得 12 金币，安然离去</small>
-              </span>
-              <ChevronRight size={16} />
-            </button>
+            {eventChoices(run).map((choice) => (
+              <button
+                key={choice.id}
+                disabled={!choice.available}
+                onClick={() => onEvent(choice.id)}
+              >
+                <RelicIcon name={choice.icon} />
+                <span>
+                  <b>{choice.name}</b>
+                  <small>{choice.description}</small>
+                </span>
+                <ChevronRight size={16} />
+              </button>
+            ))}
           </div>
         </>
       ) : null}
@@ -936,7 +931,8 @@ export function Help() {
         <p>
           三层各 5 关，每幕战斗分别有 8 / 10 / 12
           波敌军，越往上节奏越快。关底精英和章节首领的普通技能都可躲避。荆棘守望者投掷散斧，举盾时需要侧翼攻击；蚀月巫妖释放交错魔法弹幕；前两幕另有岚翼古龙与命运先知轮换登场。灰烬之王有三阶段火环、陨火和焚风，吟唱可持续攻击打断，也可移入绿色安全区躲避。只有每幕的章节首领在交战一段时间后开始周期性全屏伤害，拖得越久伤害越高，需要尽快击败；该伤害可被职业护盾与护甲减免，不损失兵力。首领登场
-          22 秒后狂暴。生命归零则本局结束，所有职业始终可选。
+          22
+          秒后狂暴。生命归零则本局结束，所有职业始终可选。首次通关解锁困难模式，前两幕同时迎战双首领。
         </p>
       </section>
       <section>
