@@ -1,6 +1,16 @@
 # 试玩版部署
 
-## 当前线上版本（v0.6）
+## 当前线上版本（v0.7）
+
+**[打开灰烬之门](https://gate-runner-seven.vercel.app)**。v0.7于2026-09-08 02:21:44 UTC达到READY，原域名已指向生产部署`dpl_3ocFb7EMRnSZM2Ex4hA2fixPbSc6`。内容提交`1ef41a9647e77f066707d6e7e115f3b02ccf2697`已推送GitHub main。完整改动见[v0.7说明](V0_7_UPDATE.md)。
+
+134项机制测试、TypeScript、lint与Vite生产构建通过；204局难度模拟见[审计](BALANCE_AUDIT.md)。本版包含困难双首领、25级武器、生命成长、事件轮抽、29项成就、三幕AI地形与同主题交响金属配乐。存档继续兼容v4，旧通关收藏解锁困难。
+
+2026-09-08T02:22:12.470Z完成匿名HTTP检查：首页、脚本、样式、19张WebP、四首MP3、字体、授权文件与favicon，共29项运行资源全部200且MIME正确。27项SHA256完全一致；首页仅构建文件名不同，CSS仅已确认的OKLab微小舍入差异。精确比较没有忽略其他内容，完整结果见[v0.7验证记录](releases/v0.7-verification.json)。前三首音乐使用v0.7查询标识，禁忌音乐与v0.6逐字节相同。未执行浏览器或真机试玩；本部署error/fatal日志查询无记录，不代表浏览器错误检测。
+
+通过两个小型构建文件部署，Vercel检出固定公开Git提交，执行npm ci与npm run build，发布release/dist。首次尝试`dpl_FP2eND1NhNxPifcgDDhM33qJkuwo`因旧缓存中release目录已存在而失败；最终构建入口改成git init、固定SHA浅抓取与检出，可复用缓存目录，重试成功。工作区保留`artifacts/vercel-v07-bootstrap/`与`artifacts/verify-release-vercel-v07.mjs`。当前仍未接通Git自动部署，后续源码推送不会自动替换线上版本。
+
+## 历史部署（v0.6）
 
 2026-09-07，v0.6 全部代码、15 张页面 WebP 与四首 MP3 已推送到 GitHub `main`，提交 `680a91afc1327a0ee4b850d3d4f17a674e85e566`。114 项机制测试、TypeScript、lint 与生产构建全部通过。最终数值烟测与音乐编码检查分别见 [平衡审计](BALANCE_AUDIT.md) 和 [配乐文档](MUSIC.md)。
 
