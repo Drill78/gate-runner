@@ -1,4 +1,30 @@
-# 灰烬之门 · 1.1 发布交接已完成
+# 灰烬之门 · 1.1.1 发布交接已完成
+
+2026-09-08。当前正式版为 **1.1.1 · 誓术觉醒与无垠军势**，已在原地址上线。
+
+- 正式游戏：https://gate-runner-seven.vercel.app
+- GitHub：https://github.com/Drill78/gate-runner；内容提交 `51a1cc7de96a8c29c89008a295812829ff7e912c`，发布标签 `v1.1.1`。
+- Vercel 部署 `dpl_8L6VJDmbjd2VopdKYyNksTrMHxBt`，READY，原域名已绑定。
+- 公共史册与同版镜像：https://ashen-gates-zhour.green-salnut.chatgpt.site，访问模式 public。
+- Sites 版本 4：`appgprj_6a9e636d67b0819191dcf937245fdd08~appgver_15fb3f679d008191a3fbd276cf247f46`；部署 `appgdep_6a9fbf64fff48191bc308a54b780f3a9`，succeeded。两端均使用上述内容提交。
+
+本次完成三职业主动技能及强化符文、实际门倍率显示、事件收益与新奇遇、私人战绩收藏、超大兵力算术与战绩排序。无尽单位严格采用用户确认的 **一层五关、三层十五关**；难度以十五关为一档，初期平缓，中后期递增。兵力采用约十五位有效数字的尾数和指数；兼容字段的 `1e300` 不是实际兵力上限。保留 v4 存档和八首音乐。完整内容见 [1.1.1 说明](V1_1_1_RELEASE.md)。
+
+用户调试入口：[数值调试册](BALANCE_REFERENCE.md)、[交互查看器](balance/lab.html)、[75 项奖励 CSV](balance/rewards.csv)、[兵力曲线](balance/troop-curve.csv)、[前 150 关曲线](balance/endless-curve.csv)、[完整 JSON](balance/catalog.json)。运行 `node scripts/export-balance.mjs` 可按实际代码重新导出。兵力伤害公式仍是 `1 + log2(1 + N / 12)`；高兵力翻倍仅让倍率增加约 1，平方则约翻倍。
+
+验证：160 项测试、TypeScript、lint、静态与 Worker 生产构建通过。12 次普通/困难回归、12 次无尽 150 关对照和 12 次固定起点的 15 关平方窗口探针全部达到目标；平方组后三层的章节首领交战时间合计减少 45.5%。这是自动驾驶对照，不是玩家胜率，也没有浏览器交互或真人试玩。线上 33/33 资源通过；31 项 SHA-256 完全一致，HTML 仅映射构建文件名，CSS 仅已确认的 Windows/Linux OKLab 舍入差异。13 项在线接口检查通过，包括收藏的归属权限、筛选、取消与旧战绩请求的科学计数存储。
+
+报告：[资源核验](releases/v1.1.1-verification.json)、[接口核验](releases/v1.1.1-chronicle-verification.json)、[平衡样本](releases/v1.1.1-balance.json)。线上校验只写入明确标注的零关陨落记录，不进入公共排行。
+
+部署架构仍为 Vercel 静态前端代理 Sites Worker/D1。已增量应用 `0001` 收藏迁移和 `0002` 兵力尾数/指数迁移，旧数据保留；不得修改已应用的迁移。下次可复用 `artifacts/vercel-v111-bootstrap/` 固定 SHA 构建入口、`artifacts/verify-release-vercel-v111.mjs` 与 `artifacts/verify-chronicle-live-v111.mjs`。先发布兼容 API，再发布前端；Sites 保存前必须推送对应源码，并以官方脚本打包 Worker 和全部迁移。保留两个固定的 `@emnapi` 跨平台依赖。Git 推送不会自动部署；后续文档归档提交不改变本次内容 SHA。
+
+3D 重构文档仍是独立项目的历史原型交接；若新项目需要吸收最新玩法，应同时阅读本节与数值调试册。
+
+---
+
+## 1.1 历史发布记录
+
+以下为历史归档，当前部署以本文顶部的 1.1.1 为准。
 
 2026-09-08。当前正式游戏为 **1.1 · 长夜无尽与灰烬史册**，已完成部署与匿名核验。
 
@@ -25,7 +51,7 @@
 
 ## 1.0 历史发布记录
 
-以下是上一正式版的归档，当前部署以本文顶部的 1.1 为准。
+以下是旧正式版的归档，当前部署以本文顶部的 1.1.1 为准。
 
 > 后续方向：用户决定以 1.0 为原型，在独立文件夹、Git 仓库与新对话中开展完整 3D 重构。请阅读 [3D 重构交接](3D_REBUILD_HANDOFF.md)、[美术与模型清单](3D_ASSET_PLAN.md) 和 [新对话启动指令](3D_NEW_THREAD_PROMPT.md)。这不改变本文件记录的已发布 1.0 状态。
 

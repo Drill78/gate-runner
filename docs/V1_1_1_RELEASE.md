@@ -13,7 +13,7 @@
 
 ## 数值调试
 
-完整列表由源代码导出： [数值调试册](BALANCE_REFERENCE.md)、[75项奖励CSV](balance/rewards.csv)、[兵力加成CSV](balance/troop-curve.csv)、[前150关CSV](balance/endless-curve.csv)、[完整JSON](balance/catalog.json)。本地查看器为 artifacts/balance-lab.html，支持搜索、来源筛选与兵力指数试算。重新导出用 node scripts/export-balance.mjs。
+完整列表由源代码导出： [数值调试册](BALANCE_REFERENCE.md)、[交互查看器](balance/lab.html)、[75项奖励CSV](balance/rewards.csv)、[兵力加成CSV](balance/troop-curve.csv)、[前150关CSV](balance/endless-curve.csv)、[完整JSON](balance/catalog.json)。查看器支持搜索、来源筛选与兵力指数试算。重新导出用 node scripts/export-balance.mjs。
 
 ## 兼容与限制
 
