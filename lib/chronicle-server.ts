@@ -1,4 +1,10 @@
 // The public API keeps personal credentials and unfinished runs out of public queries.
+import {
+  magnitude,
+  validMagnitude,
+  projectMagnitude,
+  ARMY_PROJECTION_LIMIT,
+} from './army.ts';
 const MODES = ['normal', 'hard', 'endless'];
 const CLASSES = ['knight', 'ranger', 'mage'];
 const UUID = /^[a-f0-9-]{36}$/i;
@@ -67,10 +73,21 @@ export function validateResult(
   if (
     !numeric(data.depth, 0, run.mode === 'endless' ? 999999 : 15, true) ||
     !numeric(data.duration, 0, 1e9) ||
-    !numeric(data.peakSquad, 1, Number.MAX_SAFE_INTEGER, true) ||
+    !numeric(data.peakSquad, 1, ARMY_PROJECTION_LIMIT) ||
     !numeric(data.gold, 0, Number.MAX_SAFE_INTEGER, true)
   )
     fail('战绩数值无效。');
+  const peakMagnitude =
+    data.peakMagnitude == null
+      ? magnitude(Number(data.peakSquad))
+      : validMagnitude(data.peakMagnitude)
+        ? data.peakMagnitude
+        : fail('军势印记无效。');
+  if (
+    Math.abs(projectMagnitude(peakMagnitude) / Number(data.peakSquad) - 1) >
+    1e-12
+  )
+    fail('军势印记无效。');
   if (
     status === 'won' &&
     (run.mode === 'endless' || data.depth !== 15 || Number(data.duration) < 20)
@@ -144,6 +161,7 @@ export function validateResult(
   );
   return {
     ranked: ranked ? 1 : 0,
+    peakMagnitude,
     details: JSON.stringify(safe),
     title: cleanName(data.title ?? '', 24),
   };
@@ -176,7 +194,7 @@ export async function chronicleHandler(
     const action = url.pathname.split('/').filter(Boolean).at(-1);
     if (request.method === 'GET' && action === 'health') {
       await env.DB.prepare('SELECT id FROM travellers LIMIT 1').all();
-      return reply({ ready: true, version: '1.1.0' });
+      return reply({ ready: true, version: '1.1.1' });
     }
     const page =
       Math.max(0, Math.min(10000, Number(url.searchParams.get('page')) || 0)) |
@@ -195,13 +213,13 @@ export async function chronicleHandler(
       const orders: Record<string, string> = {
         duration: 'duration ASC, depth DESC',
         depth: 'depth DESC, duration ASC',
-        army: 'peak_squad DESC, depth DESC',
+        army: 'peak_exponent DESC, peak_mantissa DESC, depth DESC',
         gold: 'gold DESC, depth DESC',
       };
       const order = orders[metric];
       if (!order || (mode === 'endless' && metric === 'duration'))
         fail('未知的史册排序。');
-      const query = `WITH ranked_runs AS (SELECT e.id, p.name, e.title, e.mode, e.class_id, e.depth, e.duration, e.peak_squad, e.gold, e.finished_at, e.details, e.seed, e.status, e.ranked, ROW_NUMBER() OVER (PARTITION BY e.traveller_id ORDER BY ${order}, e.finished_at ASC, e.id ASC) AS best FROM expeditions e JOIN travellers p ON p.id = e.traveller_id WHERE e.mode = ? AND e.ranked = 1 AND ${mode === 'endless' ? "e.status IN ('lost','retired') AND e.depth >= 5" : "e.status = 'won'"} ${classId === 'all' ? '' : 'AND e.class_id = ?'}) SELECT * FROM ranked_runs WHERE best = 1 ORDER BY ${order}, finished_at ASC, id ASC LIMIT 21 OFFSET ?`;
+      const query = `WITH ranked_runs AS (SELECT e.id, p.name, e.title, e.mode, e.class_id, e.depth, e.duration, e.peak_squad, e.peak_mantissa, e.peak_exponent, e.gold, e.finished_at, e.details, e.seed, e.status, e.ranked, ROW_NUMBER() OVER (PARTITION BY e.traveller_id ORDER BY ${order}, e.finished_at ASC, e.id ASC) AS best FROM expeditions e JOIN travellers p ON p.id = e.traveller_id WHERE e.mode = ? AND e.ranked = 1 AND ${mode === 'endless' ? "e.status IN ('lost','retired') AND e.depth >= 5" : "e.status = 'won'"} ${classId === 'all' ? '' : 'AND e.class_id = ?'}) SELECT * FROM ranked_runs WHERE best = 1 ORDER BY ${order}, finished_at ASC, id ASC LIMIT 21 OFFSET ?`;
       const params =
         classId === 'all' ? [mode, page * 20] : [mode, classId, page * 20];
       const { results } = await env.DB.prepare(query)
@@ -226,8 +244,9 @@ export async function chronicleHandler(
       return traveller ? reply(traveller) : fail('尚未登记旅人之名。', 404);
     if (request.method === 'GET' && action === 'history') {
       if (!traveller) fail('尚未登记旅人之名。', 401);
+      const favoritesOnly = url.searchParams.get('favorite') === '1';
       const { results } = await env.DB.prepare(
-        "SELECT e.id, p.name, e.title, e.mode, e.class_id, e.depth, e.duration, e.peak_squad, e.gold, e.finished_at, e.details, e.seed, e.status, e.ranked FROM expeditions e JOIN travellers p ON p.id=e.traveller_id WHERE e.traveller_id = ? AND e.status != 'active' ORDER BY e.finished_at DESC, e.id ASC LIMIT 21 OFFSET ?",
+        `SELECT e.id, p.name, e.title, e.mode, e.class_id, e.depth, e.duration, e.peak_squad, e.peak_mantissa, e.peak_exponent, e.gold, e.finished_at, e.details, e.seed, e.status, e.ranked, e.favorite FROM expeditions e JOIN travellers p ON p.id=e.traveller_id WHERE e.traveller_id = ? AND e.status != 'active' ${favoritesOnly ? 'AND e.favorite = 1' : ''} ORDER BY e.finished_at DESC, e.id ASC LIMIT 21 OFFSET ?`,
       )
         .bind(traveller!.id, page * 20)
         .all();
@@ -346,7 +365,7 @@ export async function chronicleHandler(
         });
       const valid = validateResult(data, run!, now);
       await env.DB.prepare(
-        "UPDATE expeditions SET status=?, title=?, depth=?, duration=?, peak_squad=?, gold=?, details=?, ranked=?, finished_at=? WHERE id=? AND traveller_id=? AND status='active'",
+        "UPDATE expeditions SET status=?, title=?, depth=?, duration=?, peak_squad=?, peak_mantissa=?, peak_exponent=?, gold=?, details=?, ranked=?, finished_at=? WHERE id=? AND traveller_id=? AND status='active'",
       )
         .bind(
           data.status,
@@ -354,6 +373,8 @@ export async function chronicleHandler(
           data.depth,
           data.duration,
           data.peakSquad,
+          valid.peakMagnitude.mantissa,
+          valid.peakMagnitude.exponent,
           data.gold,
           valid.details,
           valid.ranked,
@@ -363,6 +384,16 @@ export async function chronicleHandler(
         )
         .run();
       return reply({ saved: true, ranked: Boolean(valid.ranked) });
+    }
+    if (action === 'favorite') {
+      if (run!.status === 'active') fail('这次远征尚未结算，请稍后重试。', 409);
+      if (typeof data.favorite !== 'boolean') fail('珍藏印记无效。');
+      await env.DB.prepare(
+        "UPDATE expeditions SET favorite=? WHERE id=? AND traveller_id=? AND status!='active'",
+      )
+        .bind(data.favorite ? 1 : 0, data.id, traveller!.id)
+        .run();
+      return reply({ saved: true, favorite: data.favorite });
     }
     if (action === 'title') {
       if (run!.status === 'active') fail('这次远征尚未结算，请稍后重试。', 409);

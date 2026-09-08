@@ -7,23 +7,35 @@ import {
   firepower,
   applyGate,
   gateLabel,
+  effectiveGate,
   logRun,
-  safeTroops,
   grantExperience,
   experience,
   rollLevelChoices,
   chooseLevelUpgrade,
-  formatNumber,
   type Run,
   type GateChoice,
 } from './game.ts';
 import { VIEW } from './view.ts';
+import {
+  type ArmyState,
+  armyMagnitude,
+  magnitude,
+  multiplyMagnitude,
+  projectMagnitude,
+  normalize,
+  addArmy,
+  multiplyArmy,
+  trackArmyPeak,
+  formatMagnitude,
+} from './army.ts';
 import { bossProfile, ENCOUNTERS } from './bosses.ts';
 import {
   actIndex,
   localFloor,
   isEndless,
-  depthHealth,
+  healthGrowth,
+  depthDamage,
   weaponLimit,
   endlessEncounter,
   type BossMutation,
@@ -146,7 +158,8 @@ export interface Projectile {
 }
 export interface PlayerBullet {
   id: number;
-  kind: 'blade' | 'arrow' | 'bolt' | 'shard';
+  kind: 'blade' | 'arrow' | 'bolt' | 'shard' | 'fireball';
+  targetId?: number;
   x: number;
   y: number;
   vx: number;
@@ -334,7 +347,7 @@ export function makeGate(
 }
 export function scaleGateNumbers(
   gates: GateSegment[],
-  squad: number,
+  squad: number | ArmyState,
   floor: number,
 ) {
   if (floor < 1) return gates;
@@ -344,7 +357,17 @@ export function scaleGateNumbers(
     const base = 6 + Math.floor(floor * 0.65);
     const variation = Math.max(0.85, Math.min(1.25, g.value / base));
     const ratio = g.op === '+' ? 0.14 + depth * 0.01 : 0.12 + depth * 0.02;
-    const raw = Math.max(g.value, squad * ratio * variation);
+    const amount =
+      typeof squad === 'number' ? magnitude(squad) : armyMagnitude(squad);
+    if (amount.exponent >= 15) {
+      const value = multiplyMagnitude(amount, ratio * variation);
+      const armyValue = normalize(
+        Math.round(value.mantissa * 10) / 10,
+        value.exponent,
+      );
+      return { ...g, value: projectMagnitude(armyValue), armyValue };
+    }
+    const raw = Math.max(g.value, projectMagnitude(amount) * ratio * variation);
     const step = Math.pow(10, Math.max(0, Math.floor(Math.log10(raw)) - 1));
     return { ...g, value: Math.max(g.value, Math.round(raw / step) * step) };
   });
@@ -363,8 +386,7 @@ export function createBattle(run: Run): Battle {
     bossRoom = player.node?.kind === 'boss',
     treasure = player.node?.kind === 'treasure';
   const difficulty =
-    Math.pow(BALANCE.hpGrowth, localFloor(player)) *
-    depthHealth(player) *
+    healthGrowth(player, BALANCE.hpGrowth) *
     (elite ? 1.24 : 1) *
     (superElite ? BALANCE.superEliteHpMultiplier : 1) *
     (treasure ? 0.85 : 1) *
@@ -415,9 +437,7 @@ export function createBattle(run: Run): Battle {
           : start + 1.5,
       volleyDamage:
         (8 + Math.min(14, player.floor) * 1.3) *
-        (isEndless(player)
-          ? 1 + Math.min(8, Math.max(0, player.floor - 14) * 0.012)
-          : 1) *
+        depthDamage(player) *
         (player.difficulty === 'hard' ? 1.08 : 1),
       reward: 'gold',
       wave,
@@ -533,8 +553,7 @@ export function createBattle(run: Run): Battle {
         : elite
           ? BALANCE.eliteCommanderBaseHp
           : BALANCE.commanderBaseHp) *
-      Math.pow(BALANCE.bossGrowth, localFloor(player)) *
-      depthHealth(player) *
+      healthGrowth(player, BALANCE.bossGrowth) *
       (isEndless(player) && player.floor >= 15 && bossRoom ? 1.4 : 1) *
       (bossRoom
         ? BALANCE.bossActMultiplier[act]
@@ -553,9 +572,7 @@ export function createBattle(run: Run): Battle {
     (bossRoom
       ? 17 + Math.min(14, player.floor) * 1.6
       : 12 + Math.min(14, player.floor) * 1.4) *
-    (isEndless(player)
-      ? 1 + Math.min(8, Math.max(0, player.floor - 14) * 0.012)
-      : 1) *
+    depthDamage(player) *
     (profile.id === 'king' ? BALANCE.finalBossDamageMultiplier : 1.1) *
     (player.difficulty === 'hard' ? 1.08 : 1);
   if (player.difficulty === 'hard' && bossRoom && act < 2) {
@@ -642,7 +659,7 @@ export function createBattle(run: Run): Battle {
     ] as BossMutation;
     final.name = `${final.mutation === 'ashen' ? '黯化' : final.mutation === 'frenzied' ? '血月' : '空冠'}·${final.name}`;
   }
-  player.squad = safeTroops(player.squad + (player.relics.ambush || 0) * 8);
+  addArmy(player, (player.relics.ambush || 0) * 8);
   return {
     rushStage: 0,
     rushStages: encounter?.groups.length || 1,
@@ -833,7 +850,7 @@ function hitEntity(
       message(b, `兵装秘匣 · 武器 Lv.${b.player.weaponTier}`);
     } else {
       grantGold(b.player, 22 + actIndex(b.player) * 12);
-      b.player.squad = safeTroops(b.player.squad + 4);
+      addArmy(b.player, 4);
       message(b, `宝箱击破 · +${22 + actIndex(b.player) * 12} 金币 / +4 兵力`);
     }
     logRun(
@@ -893,14 +910,21 @@ export function damagePlayer(b: Battle, amount: number, troopLoss = 0.08) {
     absorbed === reduced
       ? 0
       : Math.min(b.player.squad - 1, Math.ceil(b.player.squad * troopLoss));
-  b.player.squad = safeTroops(b.player.squad - lost);
+  const lostMagnitude =
+    armyMagnitude(b.player).exponent >= 15
+      ? multiplyMagnitude(
+          armyMagnitude(b.player),
+          absorbed === reduced ? 0 : troopLoss,
+        )
+      : magnitude(lost);
+  addArmy(b.player, lostMagnitude, true);
   b.flash = 0.3;
   sound(b, 'hurt');
   message(
     b,
     absorbed === reduced
       ? `护盾吸收 ${reduced}`
-      : `生命 −${reduced - absorbed} · 兵力 −${lost}`,
+      : `生命 −${reduced - absorbed} · 兵力 −${formatMagnitude(lostMagnitude)}`,
     '#ffb3a4',
   );
   if (b.player.hp <= 0) {
@@ -916,8 +940,14 @@ export function damagePlayer(b: Battle, amount: number, troopLoss = 0.08) {
 }
 export function attackDamage(b: Battle) {
   return (
-    firepower(b.player, b.shield).volley * (b.buffUntil > b.time ? 1.5 : 1)
+    firepower(b.player, b.shield).volley *
+    (b.player.classId === 'knight' && b.buffUntil > b.time
+      ? 1.25 + (b.player.relics.paladin || 0) * 0.15
+      : 1)
   );
+}
+export function combatStats(b: Battle) {
+  return stats(b.player, b.shield, b.buffUntil > b.time);
 }
 function emitBullet(
   b: Battle,
@@ -958,7 +988,7 @@ function emitBullet(
   });
 }
 function firePlayerVolley(b: Battle) {
-  const s = stats(b.player, b.shield);
+  const s = combatStats(b);
   const critical = b.random() < s.crit;
   const damage = attackDamage(b) * (critical ? s.critMult : 1);
   b.shots++;
@@ -1030,6 +1060,41 @@ function stepPlayerBullets(b: Battle, oldTime: number) {
     const fromTime = Math.max(oldTime, bullet.spawnAt);
     const elapsed = b.time - fromTime;
     if (elapsed <= 0) continue;
+    if (bullet.kind === 'fireball') {
+      // Acquire at launch, then follow that target until it falls or leaves view.
+      if (oldTime <= bullet.spawnAt) {
+        bullet.x = b.x;
+        bullet.originX = b.x;
+      }
+      let target = b.entities.find(
+        (e) => e.id === bullet.targetId && targetVisible(e, b.time),
+      );
+      if (!target) {
+        const visible = b.entities.filter(
+          (e) =>
+            (e.kind === 'enemy' || e.kind === 'chest') &&
+            targetVisible(e, b.time),
+        );
+        const enemies = visible.filter((e) => e.kind === 'enemy');
+        const distance = (e: Entity) =>
+          Math.hypot(
+            enemyXAt(b, e, b.time) - bullet.x,
+            (worldY(e, b.time) - bullet.y) * 1.5,
+          );
+        target = (enemies.length ? enemies : visible).sort(
+          (a, z) => distance(a) - distance(z),
+        )[0];
+        bullet.targetId = target?.id;
+      }
+      if (target) {
+        const dx = enemyXAt(b, target, b.time) - bullet.x;
+        const dy = worldY(target, b.time) - bullet.y;
+        const distance = Math.hypot(dx, dy) || 1;
+        const speed = Math.min(2.6, distance / elapsed);
+        bullet.vx = (dx / distance) * speed;
+        bullet.vy = (dy / distance) * speed;
+      }
+    }
     const fromX = bullet.x,
       fromY = bullet.y;
     const toX = fromX + bullet.vx * elapsed,
@@ -1041,6 +1106,12 @@ function stepPlayerBullets(b: Battle, oldTime: number) {
         e.hp <= 0 ||
         !['enemy', 'chest'].includes(e.kind) ||
         bullet.hitIds.includes(e.id)
+      )
+        continue;
+      if (
+        bullet.kind === 'fireball' &&
+        bullet.targetId !== undefined &&
+        e.id !== bullet.targetId
       )
         continue;
       // The entrance frame belongs to the portrait pause, before combat resumes.
@@ -1078,7 +1149,16 @@ function stepPlayerBullets(b: Battle, oldTime: number) {
         bullet.damage * (e.hp / e.maxHp < 0.3 ? 1 + s.execute * 0.2 : 1);
       bullet.hitIds.push(e.id);
       hitEntity(b, e, damage, bullet.critical, true, bullet.originX);
-      b.effects.push({ type: 'impact', x, y, color, text: '', life: 0.26 });
+      b.effects.push({
+        type: bullet.kind === 'fireball' ? 'burst' : 'impact',
+        x,
+        y,
+        color: bullet.kind === 'fireball' ? '#ffa663' : color,
+        text: '',
+        life: 0.26,
+      });
+      if (bullet.kind === 'fireball' && !e.done && b.player.relics.ember)
+        e.burnUntil = b.time + 3;
       if (bullet.canProc) {
         if (!e.done && b.player.relics.ember) e.burnUntil = b.time + 3;
         if (s.blast) {
@@ -1167,25 +1247,45 @@ export function activateSkill(b: Battle) {
         Math.floor(b.player.maxHp * 0.1) +
         (b.player.relics.paladin || 0) * 12,
     );
-    b.buffUntil = b.time + 6;
-    message(b, '不破誓约 · 护盾 / 伤害 +50%');
-  } else {
-    for (const e of b.entities)
-      if (targetVisible(e, b.time))
-        hitEntity(
-          b,
-          e,
-          attackDamage(b) * (b.player.classId === 'mage' ? 4.5 : 4),
-        );
-    if (b.player.classId === 'mage')
-      b.player.squad = safeTroops(
-        b.player.squad + 3 + (b.player.relics.archmage || 0) * 8,
-      );
+    b.buffUntil = b.time + 5;
     message(
       b,
-      b.player.classId === 'mage'
-        ? '秘火新星 · 全屏震击'
-        : '箭雨齐射 · 全屏箭雨',
+      `不破誓约 · 护盾 / 5秒伤害 +${b.player.relics.paladin ? 40 : 25}%`,
+    );
+  } else if (b.player.classId === 'ranger') {
+    for (const e of b.entities)
+      if (targetVisible(e, b.time))
+        hitEntity(b, e, attackDamage(b) * (b.player.relics.hunter ? 6 : 4));
+    b.buffUntil = b.time + 5;
+    b.shootTimer = Math.min(b.shootTimer, 1 / combatStats(b).rate);
+    message(b, '箭雨齐射 · 5秒疾射 / 必定暴击 / 余势化为致命一击');
+  } else {
+    const empowered = Boolean(b.player.relics.archmage);
+    const count = empowered ? 9 : 6;
+    multiplyArmy(b.player, empowered ? 1.08 : 1.05, true);
+    // Damage snapshots the reinforced army once; six impacts never multiply it again.
+    const damage = attackDamage(b) * 1.5;
+    for (let i = 0; i < count; i++)
+      b.bullets.push({
+        id: b.bulletSeq++,
+        kind: 'fireball',
+        x: b.x,
+        y: VIEW.playerY - 0.035,
+        vx: 0,
+        vy: -2.6,
+        radius: stats(b.player).bulletRadius * 1.5,
+        damage,
+        critical: false,
+        pierceLeft: 0,
+        hitIds: [],
+        spawnAt: b.time + i * 0.12,
+        originX: b.x,
+        originY: VIEW.playerY - 0.035,
+        canProc: false,
+      });
+    message(
+      b,
+      `秘火连星 · ${count}星追猎 / 军势 ×${empowered ? '1.08' : '1.05'}`,
     );
   }
   prepareLevelChoice(b);
@@ -1640,7 +1740,7 @@ export function stepBattle(b: Battle, dt: number) {
     oldX = b.x;
   b.time += dt;
   b.player.combatTime = (b.player.combatTime || 0) + dt;
-  b.player.peakSquad = Math.max(b.player.peakSquad || 0, b.player.squad);
+  trackArmyPeak(b.player);
   if (
     isEndless(b.player) &&
     b.player.endless.allies.length &&
@@ -1701,8 +1801,14 @@ export function stepBattle(b: Battle, dt: number) {
       .filter((e) => e.trialStep)
       .sort((a, z) => a.trialStep! - z.trialStep!)) {
       const gate = e.gate![0];
-      if (e.trialFraction)
+      if (e.trialFraction) {
         gate.value = Math.max(1, Math.ceil(forecast.squad * e.trialFraction));
+        if (armyMagnitude(forecast).exponent >= 15)
+          gate.armyValue = multiplyMagnitude(
+            armyMagnitude(forecast),
+            e.trialFraction,
+          );
+      }
       applyGate(forecast, gate, 0);
       e.gatePrepared = true;
     }
@@ -1711,7 +1817,7 @@ export function stepBattle(b: Battle, dt: number) {
   }
   for (const e of b.entities) {
     if (e.gate && !e.gatePrepared && e.start <= b.time + VIEW.previewSeconds) {
-      e.gate = scaleGateNumbers(e.gate, b.player.squad, b.player.floor);
+      e.gate = scaleGateNumbers(e.gate, b.player, b.player.floor);
       e.gatePrepared = true;
       if (e.trialFinal) message(b, '禁术秘门 · 瞄准极窄平方通道', '#e6c2ff');
     }
@@ -1779,7 +1885,7 @@ export function stepBattle(b: Battle, dt: number) {
   b.shootTimer -= dt;
   if (b.shootTimer <= 0) {
     firePlayerVolley(b);
-    b.shootTimer += 1 / stats(b.player, b.shield).rate;
+    b.shootTimer += 1 / combatStats(b).rate;
   }
   stepPlayerBullets(b, oldTime);
   for (const e of b.entities) {
@@ -1860,7 +1966,7 @@ export function stepBattle(b: Battle, dt: number) {
         b.shield = result.shield;
         message(
           b,
-          `${e.trialStep ? `红门 ${e.trialStep}/5 · ` : ''}${gateLabel(selected)} · 兵力 ${result.delta >= 0 ? '+' : '−'}${formatNumber(Math.abs(result.delta))}`,
+          `${e.trialStep ? `红门 ${e.trialStep}/5 · ` : ''}${gateLabel(effectiveGate(b.player, selected))} · 兵力 ${result.delta >= 0 ? '+' : '−'}${result.deltaLabel}`,
           result.delta >= 0 ? '#c2f5a9' : '#ffa89c',
         );
         sound(b, 'gate');

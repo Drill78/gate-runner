@@ -9,6 +9,25 @@ import {
   covenantChoices,
   type EndlessState,
 } from './endless.ts';
+import {
+  type Magnitude,
+  type ArmyState,
+  ARMY_PROJECTION_LIMIT,
+  validMagnitude,
+  armyMagnitude,
+  projectMagnitude,
+  magnitude,
+  multiplyMagnitude,
+  powerMagnitude,
+  addMagnitude,
+  compareMagnitude,
+  setArmy,
+  addArmy,
+  multiplyArmy,
+  trackArmyPeak,
+  formatArmy,
+  formatMagnitude,
+} from './army.ts';
 export type ClassId = 'knight' | 'ranger' | 'mage';
 export const ACT_LENGTH = 5;
 export const TOTAL_FLOORS = ACT_LENGTH * 3;
@@ -65,7 +84,7 @@ export const HEROES: Hero[] = [
     squad: 12,
     weapon: '卫士长剑',
     skill: '不破誓约',
-    skillDesc: '获得 18 + 生命上限10%的护盾，6 秒内伤害提高 50%。',
+    skillDesc: '获得 18 + 生命上限10%的护盾，5 秒内伤害提高 25%。',
     passive: '每场战斗获得 15 护盾；护甲减伤 12%。',
   },
   {
@@ -81,7 +100,8 @@ export const HEROES: Hero[] = [
     squad: 15,
     weapon: '灰木长弓',
     skill: '箭雨齐射',
-    skillDesc: '对所有可见敌人和宝箱造成 4 倍单次伤害。',
+    skillDesc:
+      '箭雨对所有可见目标造成4倍单次伤害；随后5秒攻速翻倍、暴击率+100个百分点。溢出暴击率等量转为暴击伤害。',
     passive: '初始暴击率 20%；攻击速度更快。',
   },
   {
@@ -96,8 +116,9 @@ export const HEROES: Hero[] = [
     hp: 80,
     squad: 10,
     weapon: '秘火法杖',
-    skill: '秘火新星',
-    skillDesc: '对所有可见目标造成 4.5 倍单次伤害，召唤 3 名队员。',
+    skill: '秘火连星',
+    skillDesc:
+      '兵力×1.05（向上取整），随后六发秘火追踪最近敌军；每发造成1.5倍单次伤害，随强化后的兵力成长。',
     passive: '每经过一道门，额外召唤 2 名队员。',
   },
 ];
@@ -382,7 +403,7 @@ export const RELICS: Relic[] = [
     family: 'knight',
     tag: '圣盾',
     rarity: '传说',
-    desc: '主动技能冷却缩短 4 秒，技能护盾额外 +12。',
+    desc: '誓约冷却缩短4秒，护盾额外+12；5秒增伤由25%升至40%。',
     max: 1,
     icon: 'crown',
   },
@@ -442,7 +463,7 @@ export const RELICS: Relic[] = [
     family: 'ranger',
     tag: '猎杀',
     rarity: '传说',
-    desc: '主动技能冷却缩短 4 秒；暴击率 +15 个百分点。',
+    desc: '箭雨冷却缩短4秒，箭雨伤害由4倍升至6倍；常驻暴击率+15个百分点，溢出部分转为暴击伤害。',
     max: 1,
     icon: 'bow',
   },
@@ -502,7 +523,7 @@ export const RELICS: Relic[] = [
     family: 'mage',
     tag: '奥术',
     rarity: '传说',
-    desc: '主动技能冷却缩短 4 秒；主动技能额外召唤 8 人。',
+    desc: '秘火冷却缩短4秒，追踪火球由6发增至9发；施法后的兵力倍率由×1.05升至×1.08。',
     max: 1,
     icon: 'star',
   },
@@ -523,6 +544,8 @@ export interface Run {
   runId: string;
   combatTime: number;
   peakSquad: number;
+  squadMagnitude?: Magnitude;
+  peakSquadMagnitude?: Magnitude;
   endless: EndlessState;
   retired?: boolean;
   difficulty: Difficulty;
@@ -737,11 +760,17 @@ export function grantExperience(run: Run, amount: number) {
   run.hp = Math.min(run.maxHp, run.hp + gained * HP_PER_LEVEL);
   return gained;
 }
-export function stats(run: Run, shield = 0) {
+export function stats(run: Run, shield = 0, skillActive = false) {
   const r = (id: string) => run.relics[id] || 0;
   const synergy = familyCount(run) >= 3;
   const warrior = run.classId === 'knight';
   const ranger = run.classId === 'ranger';
+  const criticalChance =
+    (ranger ? 0.2 : 0.05) +
+    r('keen') * 0.12 +
+    r('hunter') * 0.15 +
+    (synergy && ranger ? 0.1 : 0) +
+    (skillActive && ranger ? 1 : 0);
   return {
     damage:
       (warrior ? 7.2 : ranger ? 5.9 : 8.8) *
@@ -757,15 +786,10 @@ export function stats(run: Run, shield = 0) {
     rate:
       (ranger ? 3.5 : 2.7) *
       (1 + r('quiver') * 0.2 + (synergy && run.classId === 'mage' ? 0.2 : 0)) *
-      (1 - r('heavy') * 0.1),
-    crit: Math.min(
-      0.85,
-      (ranger ? 0.2 : 0.05) +
-        r('keen') * 0.12 +
-        r('hunter') * 0.15 +
-        (synergy && ranger ? 0.1 : 0),
-    ),
-    critMult: 2 + r('deadeye') * 0.6,
+      (1 - r('heavy') * 0.1) *
+      (skillActive && ranger ? 2 : 1),
+    crit: Math.min(1, criticalChance),
+    critMult: 2 + r('deadeye') * 0.6 + Math.max(0, criticalChance - 1),
     armor: Math.min(0.6, (warrior ? 0.12 : 0) + r('plate') * 0.08),
     shieldStart: (warrior ? 15 : 0) + r('bulwark') * 15 + r('ward') * 18,
     gateAdd: r('recruit') * 5,
@@ -848,7 +872,8 @@ export const SUPPLY_REWARDS: Relic[] = [
   },
 ];
 // Repeatable consumables keep elite rewards useful when high-tier relics are full.
-// These never enter ordinary reward rolls, level menus, events or shop stock.
+// Ordinary reward rolls, level menus and shops exclude these. Exhausted event
+// drafts may use them so all three promises remain claimable.
 export const ELITE_FALLBACK_REWARDS: Relic[] = [
   {
     id: 'supply-epic-cache',
@@ -896,7 +921,7 @@ export function rollRewards(run: Run, elite = false): string[] {
       ? run.hp < run.maxHp
       : r.id === 'supply-weapon'
         ? run.weaponTier < weaponLimit(run)
-        : run.squad < Number.MAX_SAFE_INTEGER,
+        : run.squad < 1e14,
   );
   const random = rng(run.seed + run.floor * 439 + run.gold + 617);
   if (supplies.length && (choices.length < 3 || random() < 0.45)) {
@@ -955,7 +980,7 @@ export function addRelic(run: Run, id: string): Run {
     n.maxHp = Math.min(hpLimit(n), n.maxHp + 20);
     n.hp = Math.min(n.maxHp, n.hp + 20);
   }
-  if (id === 'army') n.squad = safeTroops(n.squad + 20);
+  if (id === 'army') addArmy(n, 20);
   if (id === 'bounty') grantGold(n, 30);
   if (id === 'constitution') {
     const growth = Math.ceil(n.maxHp * 0.12);
@@ -975,7 +1000,7 @@ export function completeRoom(run: Run, reward = true): Run {
     n.hp = Math.min(n.maxHp, n.hp + growth);
   }
   n.floor++;
-  n.peakSquad = Math.max(n.peakSquad, n.squad);
+  trackArmyPeak(n);
   if (n.floor === TOTAL_FLOORS && !isEndless(n)) {
     n.phase = 'victory';
     logRun(n, '灰烬王座已被征服。');
@@ -1001,7 +1026,7 @@ export function chooseReward(run: Run, id: string): Run {
   if (id.startsWith('supply-') && REWARD_BY_ID[id]) {
     n = structuredClone(run);
     if (id === 'supply-potion') n.hp = Math.min(n.maxHp, n.hp + 40);
-    if (id === 'supply-company') n.squad = safeTroops(n.squad + 50);
+    if (id === 'supply-company') addArmy(n, 50);
     if (id === 'supply-weapon')
       n.weaponTier = Math.min(weaponLimit(n), n.weaponTier + 1);
     if (id === 'supply-epic-cache') {
@@ -1014,7 +1039,7 @@ export function chooseReward(run: Run, id: string): Run {
     }
     if (id === 'supply-epic-company') {
       grantGold(n, 60);
-      n.squad = safeTroops(n.squad + 100);
+      addArmy(n, 100);
     }
     logRun(n, `获得补给 · ${REWARD_BY_ID[id].name}`);
   } else n = addRelic(run, id);
@@ -1030,7 +1055,7 @@ function chooseCovenant(run: Run, id: string): Run {
   if (id === 'abyss-flame') e.power = boundedProduct(e.power, 1.24);
   if (id === 'abyss-legion') {
     e.legion = boundedProduct(e.legion, 1.3);
-    n.squad = safeTroops(n.squad * 1.5);
+    multiplyArmy(n, 1.5);
   }
   if (id === 'abyss-heart') {
     n.maxHp = Math.min(hpLimit(n), Math.ceil(n.maxHp * 1.22));
@@ -1061,7 +1086,7 @@ function chooseCovenant(run: Run, id: string): Run {
     n.hp = Math.min(n.maxHp, n.hp + n.maxHp * 0.3);
   }
   n.endless.covenantAt = n.floor;
-  n.peakSquad = Math.max(n.peakSquad, n.squad);
+  trackArmyPeak(n);
   logRun(n, `长夜盟约 · ${REWARD_BY_ID[id].name}`);
   return { ...n, phase: 'map', reward: [] };
 }
@@ -1266,7 +1291,7 @@ export function shopItemAvailability(
     item.kind === 'recruits' &&
     safeTroops(run.squad + item.amount) <= run.squad
   )
-    return unavailable('兵力已达上限');
+    return unavailable('这支援军已难改变军势');
   if (item.kind === 'relic') {
     const relic = RELIC_BY_ID[item.relicId];
     if (!relic || (relic.family !== 'all' && relic.family !== run.classId))
@@ -1294,7 +1319,7 @@ export function shopBuy(run: Run, id: string): Run {
   let n = structuredClone(run);
   n.gold -= item.cost;
   if (item.kind === 'heal') n.hp = Math.min(n.maxHp, n.hp + item.amount);
-  if (item.kind === 'recruits') n.squad = safeTroops(n.squad + item.amount);
+  if (item.kind === 'recruits') addArmy(n, item.amount);
   if (item.kind === 'weapon') n.weaponTier++;
   if (item.kind === 'relic') n = addRelic(n, item.relicId);
   if (item.kind === 'relic' && item.relicId === 'square_key' && isEndless(n))
@@ -1316,7 +1341,9 @@ export type EventId =
   | 'oath'
   | 'cache'
   | 'study'
-  | 'mercy';
+  | 'mercy'
+  | 'legacy'
+  | 'pilgrim';
 export interface EventChoice {
   id: EventId;
   name: string;
@@ -1326,15 +1353,38 @@ export interface EventChoice {
   goldCost: number;
   hpCost: number;
   value: number;
+  armyValue?: Magnitude;
 }
 export function eventChoices(run: Run): EventChoice[] {
   const act = Math.min(2, Math.floor(run.floor / ACT_LENGTH));
-  const blood = Math.ceil(run.maxHp * (0.12 + act * 0.02));
+  const blood = Math.ceil(run.maxHp * 0.08);
+  const income = depthIncome(run);
+  const price = (base: number) => Math.ceil((base + act * 20) * income);
   const recruits = Math.max(
-    24 + act * 24,
-    Math.ceil(run.squad * (0.15 + act * 0.04)),
+    60 + act * 60,
+    Math.ceil(run.squad * (0.5 + act * 0.15)),
   );
-  const coins = 75 + run.floor * 12;
+  const recruitMagnitude =
+    armyMagnitude(run).exponent >= 15
+      ? multiplyMagnitude(armyMagnitude(run), 0.5 + act * 0.15)
+      : magnitude(recruits);
+  const coins = 180 + run.floor * 24;
+  const growth = Math.min(
+    hpLimit(run) - run.maxHp,
+    Math.max(30 + act * 20, Math.ceil(run.maxHp * 0.22)),
+  );
+  const forge = Math.min(
+    weaponLimit(run) - run.weaponTier,
+    Math.max(3, Math.ceil(run.weaponTier * 0.12)),
+  );
+  const study = Math.ceil(
+    experience(run).needed -
+      experience(run).current +
+      experience(run).needed * 0.5,
+  );
+  const legacy = { knight: 'paladin', ranger: 'hunter', mage: 'archmage' }[
+    run.classId
+  ];
   const pool: EventChoice[] = [
     {
       id: 'blood',
@@ -1349,37 +1399,41 @@ export function eventChoices(run: Run): EventChoice[] {
     {
       id: 'gold',
       name: '沉眠军团',
-      description: `支付${45 + act * 30}金币，招募${formatNumber(recruits)}兵力（随现有军团成长）。`,
+      description: `支付${formatNumber(price(35))}金币，唤醒${formatMagnitude(recruitMagnitude)}兵力。军团越盛，回应誓言的亡魂越多。`,
       icon: 'users',
-      available: run.gold >= 45 + act * 30,
-      goldCost: 45 + act * 30,
+      available: run.gold >= price(35),
+      goldCost: price(35),
       hpCost: 0,
       value: recruits,
+      armyValue:
+        armyMagnitude(run).exponent >= 15
+          ? multiplyMagnitude(armyMagnitude(run), 0.5 + act * 0.15)
+          : undefined,
     },
     {
       id: 'forge',
       name: '流浪铸剑师',
-      description: `支付${65 + act * 30}金币，武器提升2级。`,
+      description: `支付${formatNumber(price(40))}金币，武器提升${forge}级。炉火会顺应现有兵刃的品阶。`,
       icon: 'sword',
-      available: run.gold >= 65 + act * 30 && run.weaponTier < weaponLimit(run),
-      goldCost: 65 + act * 30,
+      available: run.gold >= price(40) && forge > 0,
+      goldCost: price(40),
       hpCost: 0,
-      value: 2,
+      value: forge,
     },
     {
       id: 'oath',
       name: '生命之井',
-      description: `支付${60 + act * 25}金币，生命上限+${18 + act * 12}，并恢复等量生命。`,
+      description: `支付${formatNumber(price(40))}金币，生命上限+${formatNumber(growth)}，并恢复等量生命与原有伤势的三成。`,
       icon: 'heart',
-      available: run.gold >= 60 + act * 25 && run.maxHp < hpLimit(run),
-      goldCost: 60 + act * 25,
+      available: run.gold >= price(40) && growth > 0,
+      goldCost: price(40),
       hpCost: 0,
-      value: 18 + act * 12,
+      value: growth,
     },
     {
       id: 'cache',
       name: '烙印宝库',
-      description: `承受${blood}伤害，带走${coins}金币。`,
+      description: `献出${formatNumber(blood)}生命，带走${formatNumber(Math.floor(coins * income))}金币。沉睡的王室金库终于回应了你。`,
       icon: 'coins',
       available: run.hp > blood,
       goldCost: 0,
@@ -1389,22 +1443,43 @@ export function eventChoices(run: Run): EventChoice[] {
     {
       id: 'study',
       name: '无名贤者',
-      description: `支付${35 + act * 20}金币，获得${50 + act * 65}经验，后续战斗可研习升级强化。`,
+      description: `支付${formatNumber(price(25))}金币，获得${formatNumber(study)}经验，至少晋升一级；下次交战时研习新的强化。`,
       icon: 'star',
-      available: run.gold >= 35 + act * 20 && experience(run).level < MAX_LEVEL,
-      goldCost: 35 + act * 20,
+      available: run.gold >= price(25) && experience(run).level < MAX_LEVEL,
+      goldCost: price(25),
       hpCost: 0,
-      value: 50 + act * 65,
+      value: study,
     },
     {
       id: 'mercy',
       name: '旅人的回礼',
-      description: `支付${30 + act * 20}金币，恢复${Math.ceil(run.maxHp * 0.45)}生命。`,
+      description: `不取分文，恢复${formatNumber(Math.min(run.maxHp - run.hp, Math.ceil(run.maxHp * 0.6)))}生命。你曾替陌生人守过一夜火。`,
       icon: 'heart',
-      available: run.gold >= 30 + act * 20 && run.hp < run.maxHp,
-      goldCost: 30 + act * 20,
+      available: run.hp < run.maxHp,
+      goldCost: 0,
       hpCost: 0,
-      value: Math.ceil(run.maxHp * 0.45),
+      value: Math.ceil(run.maxHp * 0.6),
+    },
+    {
+      id: 'legacy',
+      name: '先誓者的遗言',
+      icon: 'crown',
+      description: `献出${formatNumber(blood)}生命，继承「${RELIC_BY_ID[legacy].name}」，令你的主动誓术觉醒。`,
+      available: run.hp > blood && !run.relics[legacy],
+      goldCost: 0,
+      hpCost: blood,
+      value: 0,
+    },
+    {
+      id: 'pilgrim',
+      name: '无名者的薪火',
+      icon: 'star',
+      description:
+        '免费从三份遗物与补给中取走一份，并恢复生命上限的15%。愿下一位旅人也能找到火光。',
+      available: true,
+      goldCost: 0,
+      hpCost: 0,
+      value: Math.ceil(run.maxHp * 0.15),
     },
   ];
   const random = rng(run.seed + run.floor * 8191 + (run.node?.col || 0) * 97);
@@ -1413,16 +1488,16 @@ export function eventChoices(run: Run): EventChoice[] {
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   return [
-    ...pool.slice(0, 2),
+    ...pool.slice(0, 3),
     {
       id: 'leave',
-      name: '拾取旅费',
-      description: `带走${18 + run.floor * 4}金币，继续前行。`,
+      name: '守夜人的路资',
+      description: `收下${formatNumber(Math.floor((70 + run.floor * 12) * income))}金币，继续前行。总有人记得守门者的恩情。`,
       icon: 'coins',
       available: true,
       goldCost: 0,
       hpCost: 0,
-      value: 18 + run.floor * 4,
+      value: 70 + run.floor * 12,
     },
   ];
 }
@@ -1433,20 +1508,32 @@ export function eventAction(run: Run, action: EventId): Run {
   let n = structuredClone(run);
   n.gold -= choice.goldCost;
   n.hp -= choice.hpCost;
-  if (action === 'gold') n.squad = safeTroops(n.squad + choice.value);
+  if (action === 'gold') addArmy(n, choice.armyValue || choice.value);
   if (action === 'forge')
     n.weaponTier = Math.min(weaponLimit(n), n.weaponTier + choice.value);
   if (action === 'oath') {
+    const recovery = Math.ceil((n.maxHp - n.hp) * 0.3);
     n.maxHp = Math.min(hpLimit(n), n.maxHp + choice.value);
-    n.hp = Math.min(n.maxHp, n.hp + choice.value);
+    n.hp = Math.min(n.maxHp, n.hp + choice.value + recovery);
   }
   if (action === 'mercy') n.hp = Math.min(n.maxHp, n.hp + choice.value);
   if (action === 'study') grantExperience(n, choice.value);
   if (action === 'cache' || action === 'leave') grantGold(n, choice.value);
+  if (action === 'legacy')
+    n = addRelic(
+      n,
+      { knight: 'paladin', ranger: 'hunter', mage: 'archmage' }[n.classId],
+    );
+  if (action === 'pilgrim') n.hp = Math.min(n.maxHp, n.hp + choice.value);
+  trackArmyPeak(n);
   logRun(n, `命运之约 · ${choice.name}`);
   n = completeRoom(n, false);
-  if (action === 'blood') {
-    n.reward = rollRewards(n, true);
+  if (action === 'blood' || action === 'pilgrim') {
+    n.reward = rollRewards(n, action === 'blood');
+    for (const fallback of ELITE_FALLBACK_REWARDS) {
+      if (n.reward.length >= 3) break;
+      if (!n.reward.includes(fallback.id)) n.reward.push(fallback.id);
+    }
     n.phase = 'reward';
   }
   return n;
@@ -1464,15 +1551,22 @@ export function weaponName(run: Run) {
         ];
 }
 export function safeTroops(n: number) {
-  return Math.max(1, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(n)));
+  return Math.max(1, Math.min(ARMY_PROJECTION_LIMIT, Math.floor(n)));
 }
-export function troopMultiplier(squad: number) {
-  return 1 + Math.log2(1 + squad / 12);
+export function troopMultiplier(squad: number | ArmyState) {
+  const army =
+    typeof squad === 'number' ? magnitude(squad) : armyMagnitude(squad);
+  return army.exponent < 15
+    ? 1 + Math.log2(1 + projectMagnitude(army) / 12)
+    : 1 +
+        (army.exponent + Math.log10(army.mantissa) - Math.log10(12)) *
+          Math.LOG2E *
+          Math.LN10;
 }
 export function firepower(run: Run, shield = 0) {
   const s = stats(run, shield);
   const multiplier = boundedProduct(
-    troopMultiplier(run.squad),
+    troopMultiplier(run),
     isEndless(run) ? run.endless.legion : 1,
   );
   const volley = s.damage * multiplier;
@@ -1495,34 +1589,66 @@ export function formatNumber(n: number) {
 export interface GateChoice {
   op: '+' | '×' | '-' | '÷' | '²' | '√';
   value: number;
+  armyValue?: Magnitude;
 }
 export function gateLabel(g: GateChoice) {
   if (g.op === '²') return 'x²';
   if (g.op === '√') return '√x';
-  if (g.op === '+' || g.op === '-') return `${g.op}${formatNumber(g.value)}`;
+  if (g.op === '+' || g.op === '-')
+    return `${g.op}${g.armyValue ? formatMagnitude(g.armyValue) : formatNumber(g.value)}`;
   return `${g.op}${Number.isInteger(g.value) ? g.value : g.value.toFixed(2).replace(/0$/, '')}`;
+}
+// Keep the rolled gate immutable: new runes also affect gates already on screen.
+// Both the inscription and crossing resolve this same effective value once.
+export function effectiveGate(run: Run, gate: GateChoice): GateChoice {
+  const s = stats(run);
+  return {
+    ...gate,
+    armyValue:
+      gate.op === '+' && gate.armyValue
+        ? addMagnitude(gate.armyValue, magnitude(s.gateAdd))
+        : gate.armyValue,
+    value:
+      gate.op === '×'
+        ? Math.round((gate.value + s.gateMult) * 100) / 100
+        : gate.op === '+'
+          ? gate.value + s.gateAdd
+          : gate.value,
+  };
 }
 export function applyGate(
   run: Run,
   gate: GateChoice,
   shield: number,
-): { shield: number; delta: number } {
-  const old = run.squad;
+): { shield: number; delta: number; deltaLabel: string } {
+  const old = armyMagnitude(run);
+  const oldLabel = formatArmy(run);
   const s = stats(run, shield);
-  if (gate.op === '+') run.squad += gate.value + s.gateAdd;
-  if (gate.op === '×')
-    run.squad = Math.floor(run.squad * (gate.value + s.gateMult));
-  if (gate.op === '-') run.squad -= gate.value;
-  if (gate.op === '÷') run.squad = Math.floor(run.squad / gate.value);
-  if (gate.op === '²') run.squad *= run.squad;
-  if (gate.op === '√') run.squad = Math.floor(Math.sqrt(run.squad));
-  run.squad = safeTroops(run.squad + s.summon);
-  run.peakSquad = Math.max(run.peakSquad || 0, run.squad);
+  gate = effectiveGate(run, gate);
+  if (gate.op === '+') addArmy(run, gate.armyValue || gate.value);
+  if (gate.op === '×') multiplyArmy(run, gate.value);
+  if (gate.op === '-') addArmy(run, gate.armyValue || gate.value, true);
+  if (gate.op === '÷') multiplyArmy(run, 1 / gate.value);
+  if (gate.op === '²') setArmy(run, powerMagnitude(armyMagnitude(run), 2));
+  if (gate.op === '√') setArmy(run, powerMagnitude(armyMagnitude(run), 0.5));
+  addArmy(run, s.summon);
+  trackArmyPeak(run);
   if (gate.op === '+' || gate.op === '×' || gate.op === '²')
     shield += 6 * (run.relics.aegis || 0);
   run.gates++;
-  logRun(run, `${gateLabel(gate)} 之门 · 队伍 ${old} → ${run.squad}`);
-  return { shield: Math.min(250, shield), delta: run.squad - old };
+  logRun(
+    run,
+    `${gateLabel(gate)} 之门 · 队伍 ${oldLabel} → ${formatArmy(run)}`,
+  );
+  const next = armyMagnitude(run);
+  const sign = compareMagnitude(next, old);
+  const difference =
+    sign >= 0 ? addMagnitude(next, old, true) : addMagnitude(old, next, true);
+  return {
+    shield: Math.min(250, shield),
+    delta: sign * projectMagnitude(difference),
+    deltaLabel: formatMagnitude(difference),
+  };
 }
 export function restoreRun(text: string): Run | null {
   try {
@@ -1554,12 +1680,24 @@ export function restoreRun(text: string): Run | null {
     if (!Object.hasOwn(raw, 'combatTime')) raw.combatTime = 0;
     if (!Object.hasOwn(raw, 'peakSquad')) raw.peakSquad = raw.squad;
     if (!Object.hasOwn(raw, 'endless')) raw.endless = freshEndless();
+    for (const [field, projection] of [
+      ['squadMagnitude', 'squad'],
+      ['peakSquadMagnitude', 'peakSquad'],
+    ] as const) {
+      if (
+        raw[field] !== undefined &&
+        (!validMagnitude(raw[field]) ||
+          projectMagnitude(raw[field]) !== raw[projection])
+      )
+        return null;
+    }
     if (
       typeof raw.runId !== 'string' ||
       raw.runId.length > 80 ||
       !Number.isFinite(raw.combatTime) ||
       raw.combatTime < 0 ||
-      !Number.isSafeInteger(raw.peakSquad) ||
+      !Number.isFinite(raw.peakSquad) ||
+      raw.peakSquad > ARMY_PROJECTION_LIMIT ||
       raw.peakSquad < 1
     )
       return null;
@@ -1670,7 +1808,8 @@ export function restoreRun(text: string): Run | null {
       r.hp > r.maxHp ||
       r.maxHp > hpLimit(r) ||
       r.squad < 1 ||
-      !Number.isSafeInteger(r.squad) ||
+      !Number.isInteger(r.squad) ||
+      r.squad > ARMY_PROJECTION_LIMIT ||
       r.weaponTier < 1 ||
       r.weaponTier > weaponLimit(r) ||
       !Number.isInteger(r.weaponTier) ||

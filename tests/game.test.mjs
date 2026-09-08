@@ -163,7 +163,7 @@ test('rest, shop and events enforce their costs and cannot skip floors twice', (
   event.hp = 1;
   assert.equal(eventAction(event, 'blood'), event);
   const leave = eventAction(event, 'leave');
-  assert.equal(leave.gold, event.gold + 18 + event.floor * 4);
+  assert.equal(leave.gold, event.gold + 70 + event.floor * 12);
   assert.equal(leave.floor, event.floor + 1);
   assert.equal(eventAction(leave, 'leave'), leave);
 });

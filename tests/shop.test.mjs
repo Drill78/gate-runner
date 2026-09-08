@@ -188,8 +188,8 @@ test('stocked but unusable or unaffordable goods never charge the player', () =>
   assert.equal(shopBuy(maxWeapon, 'weapon'), maxWeapon);
   for (const id of ['soldiers', 'company']) {
     const maxArmy = { ...stockedShop([id]), squad: Number.MAX_SAFE_INTEGER };
-    assert.equal(shopItemAvailability(maxArmy, id).reason, '兵力已达上限');
-    assert.equal(shopBuy(maxArmy, id), maxArmy);
+    assert.equal(shopItemAvailability(maxArmy, id).available, true);
+    assert.ok(shopBuy(maxArmy, id).squad > maxArmy.squad);
   }
   const map = { ...stockedShop(['weapon']), phase: 'map' };
   assert.equal(shopBuy(map, 'weapon'), map);
@@ -224,9 +224,9 @@ test('stocked health capacity, recruits and healing grant their listed effects w
   assert.equal(company.gold, run.gold - 100);
   assert.equal(shopBuy({ ...run, hp: 5 }, 'tonic').hp, 85);
   assert.equal(shopBuy({ ...run, hp: run.maxHp - 1 }, 'tonic').hp, run.maxHp);
-  assert.equal(
-    shopBuy({ ...run, squad: Number.MAX_SAFE_INTEGER - 2 }, 'company').squad,
-    Number.MAX_SAFE_INTEGER,
+  assert.ok(
+    shopBuy({ ...run, squad: Number.MAX_SAFE_INTEGER - 2 }, 'company').squad >
+      Number.MAX_SAFE_INTEGER,
   );
 });
 

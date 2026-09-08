@@ -1,4 +1,5 @@
-import { HEROES, gateLabel, formatNumber } from './game.ts';
+import { HEROES, gateLabel, effectiveGate } from './game.ts';
+import { formatArmy } from './army.ts';
 import {
   worldY,
   projectilePosition,
@@ -251,6 +252,7 @@ export function drawBattle(
     const gh = 67 * scale;
     if (y + gh / 2 < 0 || y - gh / 2 > h) return;
     for (const g of e.gate!) {
+      const inscription = gateLabel(effectiveGate(b.player, g));
       const x = X(g.left),
         right = X(g.right),
         gw = right - x;
@@ -288,11 +290,11 @@ export function drawBattle(
       ctx.fillRect(x, y - gh / 2, 3, gh);
       ctx.fillRect(right - 3, y - gh / 2, 3, gh);
       const font = Math.max(
-        20,
-        Math.min(34 * scale, gw / (gateLabel(g).length * 0.65)),
+        12,
+        Math.min(34 * scale, gw / (inscription.length * 0.65)),
       );
       label(
-        gateLabel(g),
+        inscription,
         (x + right) / 2,
         y + 6 * scale,
         font,
@@ -780,9 +782,11 @@ export function drawBattle(
         ? '#f4d58a'
         : bullet.kind === 'arrow'
           ? '#98efbd'
-          : bullet.kind === 'shard'
-            ? attackColor
-            : '#d2b3ff';
+          : bullet.kind === 'fireball'
+            ? '#ffa663'
+            : bullet.kind === 'shard'
+              ? attackColor
+              : '#d2b3ff';
     ctx.save();
     ctx.lineCap = 'round';
     ctx.strokeStyle = color;
@@ -810,7 +814,20 @@ export function drawBattle(
     ctx.fillStyle = bullet.critical ? '#fff7d8' : color;
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.2 * scale;
-    if (bullet.kind === 'blade') {
+    if (bullet.kind === 'fireball') {
+      ctx.shadowColor = '#ff783b';
+      ctx.shadowBlur = reducedMotion ? 0 : radius * 2;
+      ctx.beginPath();
+      ctx.moveTo(-radius * 2.4, 0);
+      ctx.quadraticCurveTo(-radius, -radius * 1.7, radius * 0.8, -radius * 0.5);
+      ctx.quadraticCurveTo(radius * 1.5, 0, radius * 0.8, radius * 0.5);
+      ctx.quadraticCurveTo(-radius, radius * 1.7, -radius * 2.4, 0);
+      ctx.fill();
+      ctx.fillStyle = '#fff1bf';
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (bullet.kind === 'blade') {
       ctx.beginPath();
       ctx.moveTo(-radius * 0.5, -radius);
       ctx.quadraticCurveTo(radius * 1.55, 0, -radius * 0.5, radius);
@@ -1275,12 +1292,7 @@ export function drawBattle(
   }
   ctx.globalAlpha = 1;
   // The army count travels with the commander and is never dimmed by hit flashes.
-  label(
-    formatNumber(b.player.squad),
-    playerX,
-    playerY - 35 * scale,
-    32,
-    '#fff0bd',
-    '800',
-  );
+  const armyLabel = formatArmy(b.player);
+  const armyFont = Math.min(32, 360 / Math.max(10, armyLabel.length));
+  label(armyLabel, playerX, playerY - 35 * scale, armyFont, '#fff0bd', '800');
 }

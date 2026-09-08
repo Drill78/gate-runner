@@ -5,6 +5,7 @@ import { resolve, dirname } from 'node:path';
 const root = process.env.ENGINE_ROOT || resolve(process.cwd(), 'lib');
 const g = await import(pathToFileURL(root + '/game.ts').href);
 const c = await import(pathToFileURL(root + '/combat.ts').href);
+const { armyLog } = await import(pathToFileURL(root + '/army.ts').href);
 const { VIEW } = await import(pathToFileURL(root + '/view.ts').href);
 const {
   ACT_LENGTH,
@@ -24,7 +25,7 @@ const {
   shopInventory,
   canBuyShopItem,
   stats,
-  safeTroops,
+  applyGate,
   RELIC_BY_ID,
 } = g;
 const {
@@ -38,12 +39,14 @@ const {
   projectilePosition,
 } = c;
 const engineHashes = Object.fromEntries(
-  ['game.ts', 'combat.ts', 'view.ts', 'bosses.ts'].map((file) => [
-    file,
-    createHash('sha256')
-      .update(readFileSync(resolve(root, file)))
-      .digest('hex'),
-  ]),
+  ['game.ts', 'combat.ts', 'view.ts', 'bosses.ts', 'army.ts', 'endless.ts'].map(
+    (file) => [
+      file,
+      createHash('sha256')
+        .update(readFileSync(resolve(root, file)))
+        .digest('hex'),
+    ],
+  ),
 );
 export const priorities = {
   knight: [
@@ -120,20 +123,9 @@ export const priorities = {
   ],
 };
 export function gateValue(run, gate) {
-  const s = stats(run);
-  return safeTroops(
-    (gate.op === '+'
-      ? run.squad + gate.value + s.gateAdd
-      : gate.op === '×'
-        ? Math.floor(run.squad * (gate.value + s.gateMult))
-        : gate.op === '-'
-          ? run.squad - gate.value
-          : gate.op === '²'
-            ? run.squad * run.squad
-            : gate.op === '√'
-              ? Math.floor(Math.sqrt(run.squad))
-              : Math.floor(run.squad / gate.value)) + s.summon,
-  );
+  const forecast = { ...run, log: [...run.log] };
+  applyGate(forecast, gate, 0);
+  return armyLog(forecast);
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function future(b, target, t, stationary = false) {
@@ -384,9 +376,10 @@ export function pilot(
           score += selected
             ? 12 +
               12 *
-                Math.log2(
-                  gateValue(b.player, selected) / gateValue(b.player, bestGate),
-                )
+                (gateValue(b.player, selected) -
+                  gateValue(b.player, bestGate)) *
+                Math.LOG2E *
+                Math.LN10
             : -18;
         }
         if (ritualDue) {
@@ -707,7 +700,7 @@ export function scoreReward(run, id, mode) {
   // The key is shop-only, including compatibility with obsolete saved rewards.
   return id === 'square_key' ? -Infinity : scoreRelic(run, id, mode);
 }
-function visitShop(run, mode) {
+function visitShop(run, mode, noSquare = false) {
   const purchases = [];
   const buy = (id) => {
     const next = shopBuy(run, id);
@@ -734,7 +727,12 @@ function visitShop(run, mode) {
   const stockSlots = shopInventory(run).length;
   for (let i = 0; i < stockSlots; i++) {
     const candidate = shopInventory(run)
-      .filter((item) => canBuyShopItem(run, item.id) && score(item) > 1)
+      .filter(
+        (item) =>
+          (!noSquare || item.id !== 'relic-square_key') &&
+          canBuyShopItem(run, item.id) &&
+          score(item) > 1,
+      )
       .sort((a, z) => score(z) - score(a) || a.cost - z.cost)[0];
     if (!candidate) break;
     buy(candidate.id);
@@ -743,12 +741,15 @@ function visitShop(run, mode) {
 }
 export function expedition(classId, seed, mode = 'coherent', options = {}) {
   if (mode === 'weak') mode = 'economy';
-  let run = createRun(classId, seed, options.difficulty || 'normal');
+  let run = options.initialRun
+    ? structuredClone(options.initialRun)
+    : createRun(classId, seed, options.difficulty || 'normal');
   run.phase = 'map';
   const rooms = [];
   const decisions = [];
   const targetFloor = options.maxFloors || TOTAL_FLOORS;
   while (run.floor < targetFloor && run.phase !== 'defeat') {
+    options.onCheckpoint?.(structuredClone(run));
     if (run.phase !== 'map')
       throw new Error(`Unexpected route phase ${run.phase}.`);
     if (decisions.length >= targetFloor)
@@ -760,7 +761,9 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
       (d) =>
         d.kind === 'elite' && Math.floor((d.floor - 1) / ACT_LENGTH) === act,
     );
-    const unopenedTrial = run.relics.square_key && !run.squareGateSeen;
+    const unopenedTrial =
+      run.relics.square_key &&
+      (!run.squareGateSeen || run.difficulty === 'endless');
     const node =
       (run.hp < run.maxHp * 0.6
         ? choices.find((n) => n.kind === 'rest')
@@ -819,7 +822,7 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
     } else if (run.phase === 'rest')
       run = restAction(run, run.hp < run.maxHp * 0.75 ? 'heal' : 'forge');
     else if (run.phase === 'shop') {
-      const shop = visitShop(run, mode);
+      const shop = visitShop(run, mode, options.noSquare);
       run = shop.run;
       decision.purchases = shop.purchases;
       run = completeRoom(run, false);
@@ -828,7 +831,16 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
         run.hp < run.maxHp * 0.7
           ? ['mercy', 'oath', 'leave']
           : mode === 'coherent'
-            ? ['blood', 'forge', 'oath', 'study', 'gold', 'leave']
+            ? [
+                'legacy',
+                'blood',
+                'pilgrim',
+                'forge',
+                'oath',
+                'study',
+                'gold',
+                'leave',
+              ]
             : mode === 'economy'
               ? ['gold', 'cache', 'forge', 'leave']
               : ['forge', 'oath', 'leave'];
@@ -873,6 +885,7 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
     floor: run.floor,
     hp: run.hp,
     squad: run.squad,
+    squadMagnitude: run.squadMagnitude,
     weapon: run.weaponTier,
     maxHp: run.maxHp,
     goldEarned: run.goldEarned,

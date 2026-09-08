@@ -292,3 +292,48 @@
     margin: 245px auto 24px;
   }
 }
+.chronicle-history-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.chronicle-history-filter p {
+  flex: 1 1 220px;
+}
+.chronicle-history-filter button,
+.chronicle-favorite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 7px 10px;
+  color: #ada78f;
+  border: 1px solid #615c434d;
+  background: #242a24;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.chronicle-history-filter button[aria-pressed='true'],
+.chronicle-favorite[aria-pressed='true'] {
+  color: #e3c37d;
+  border-color: #a28a4f;
+}
+.chronicle-favorite:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.chronicle-favorite:focus-visible,
+.chronicle-history-filter button:focus-visible {
+  outline: 2px solid #e3c37d;
+  outline-offset: 3px;
+}
+.chronicle-favorite-message {
+  display: block;
+  padding: 8px 0;
+  color: #d5c296;
+  font-size: 13px;
+}

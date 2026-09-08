@@ -37,6 +37,26 @@ function database() {
 }
 const tokenA = 'a'.repeat(64),
   tokenB = 'b'.repeat(64);
+
+test('new migrations retain pre-existing v1.1 scores and initialize scientific ranking and favorites', () => {
+  const db = new DatabaseSync(':memory:');
+  db.exec(readFileSync('drizzle/0000_daily_carnage.sql', 'utf8'));
+  db.exec("INSERT INTO travellers VALUES ('legacy', 'hash', '旧旅人', 0)");
+  db.exec(
+    "INSERT INTO expeditions (id, traveller_id, mode, class_id, seed, started_at, status, peak_squad, title) VALUES ('old-run', 'legacy', 'normal', 'ranger', 1, 0, 'won', 9007199254740991, '旧日的王')",
+  );
+  for (const path of readdirSync('drizzle')
+    .filter((p) => p.endsWith('.sql') && !p.startsWith('0000'))
+    .sort())
+    db.exec(readFileSync(`drizzle/${path}`, 'utf8'));
+  const row = db.prepare('SELECT * FROM expeditions').get();
+  assert.equal(row.favorite, 0);
+  assert.equal(row.peak_exponent, 15);
+  assert.ok(Math.abs(row.peak_mantissa - 9.007199254740991) < 1e-14);
+  assert.equal(row.peak_squad, 9007199254740991);
+  assert.equal(row.title, '旧日的王');
+  db.close();
+});
 const id = () => crypto.randomUUID();
 async function call(
   env,
@@ -108,6 +128,115 @@ async function result(env, mode = 'normal', token = tokenA, override = {}) {
   };
   return { payload, response: await call(env, 'finish', payload, token) };
 }
+
+test('favorites persist privately, filter before pagination, reject outsiders and leave scores intact', async () => {
+  const env = database();
+  await call(env, 'profile', { name: '藏书人' });
+  await call(env, 'profile', { name: '另一位旅人' }, tokenB);
+  const { payload } = await result(env);
+  await result(env, 'hard');
+  assert.equal((await call(env, 'history')).data.rows[0].favorite, 0);
+  assert.equal(
+    (await call(env, 'favorite', { id: payload.id, favorite: true }, tokenB))
+      .status,
+    404,
+  );
+  assert.equal(
+    (await call(env, 'favorite', { id: payload.id, favorite: 'true' })).status,
+    400,
+  );
+  assert.equal(
+    (await call(env, 'favorite', { id: payload.id, favorite: true })).status,
+    200,
+  );
+  assert.equal(
+    (await call(env, 'favorite', { id: payload.id, favorite: true })).status,
+    200,
+  );
+  const favorite = (await call(env, 'history?favorite=1')).data.rows;
+  assert.deepEqual(
+    favorite.map((r) => r.id),
+    [payload.id],
+  );
+  assert.equal(favorite[0].favorite, 1);
+  assert.equal(
+    (await call(env, 'history?favorite=1', undefined, tokenB)).data.rows.length,
+    0,
+  );
+  assert.equal(
+    (await call(env, 'history?favorite=1', undefined, null)).status,
+    401,
+  );
+  const board = (await call(env, 'board?mode=normal', undefined, null)).data
+    .rows;
+  assert.equal(board[0].peak_squad, payload.peakSquad);
+  assert.equal(
+    'favorite' in board[0],
+    false,
+    'personal preference is not public leaderboard data',
+  );
+  await call(env, 'title', { id: payload.id, title: '珍藏的誓言' });
+  assert.equal(
+    (await call(env, 'history?favorite=1')).data.rows[0].favorite,
+    1,
+  );
+  await call(env, 'favorite', { id: payload.id, favorite: false });
+  assert.equal((await call(env, 'history?favorite=1')).data.rows.length, 0);
+  assert.equal((await call(env, 'history')).data.rows.length, 2);
+  const activeId = id();
+  await call(env, 'start', {
+    id: activeId,
+    mode: 'endless',
+    classId: 'mage',
+    seed: 1,
+  });
+  assert.equal(
+    (await call(env, 'favorite', { id: activeId, favorite: true })).status,
+    409,
+  );
+  env.sqlite.close();
+});
+
+test('scientific army records rank by exponent and mantissa, remain favoritable and accept old clients', async () => {
+  const env = database();
+  await call(env, 'profile', { name: '远征者甲' });
+  await call(env, 'profile', { name: '远征者乙' }, tokenB);
+  await result(env, 'endless', tokenA, {
+    peakSquad: 1e300,
+    peakMagnitude: { mantissa: 1.2, exponent: 640 },
+  });
+  const large = await result(env, 'endless', tokenB, {
+    peakSquad: 1e300,
+    peakMagnitude: { mantissa: 9.8, exponent: 641 },
+  });
+  assert.equal(large.response.status, 200);
+  const board = (await call(env, 'board?mode=endless&sort=army')).data.rows;
+  assert.deepEqual(
+    board.map((r) => r.peak_exponent),
+    [641, 640],
+  );
+  assert.equal(board[0].peak_mantissa, 9.8);
+  await call(env, 'favorite', { id: large.payload.id, favorite: true }, tokenB);
+  assert.equal(
+    (await call(env, 'history?favorite=1', undefined, tokenB)).data.rows[0]
+      .peak_exponent,
+    641,
+  );
+  assert.equal((await result(env, 'hard')).response.status, 200);
+  assert.equal(
+    (await call(env, 'board?mode=hard&sort=army')).data.rows[0].peak_exponent,
+    4,
+  );
+  assert.equal(
+    (
+      await result(env, 'endless', tokenA, {
+        peakMagnitude: { mantissa: 20, exponent: 100 },
+      })
+    ).response.status,
+    400,
+  );
+  env.sqlite.close();
+});
 test('persistent leaderboard is public, history is private, and each traveller appears only once', async () => {
   const env = database();
   await call(env, 'profile', { name: '艾琳' });

@@ -1,4 +1,5 @@
 import { firepower, type Run, type Difficulty, type ClassId } from './game.ts';
+import { peakArmyMagnitude } from './army.ts';
 
 export const CHRONICLE_API = '/api/chronicle';
 const IDENTITY = 'ashen-traveller-v1';
@@ -16,12 +17,15 @@ export interface ChronicleRow {
   depth: number;
   duration: number;
   peak_squad: number;
+  peak_mantissa?: number;
+  peak_exponent?: number;
   gold: number;
   finished_at: number;
   details: string;
   seed: number;
   status: 'won' | 'lost' | 'retired';
   ranked: number;
+  favorite?: number;
 }
 type Pending = {
   id: string;
@@ -165,6 +169,7 @@ export function trackChronicle(run: Run) {
       depth: run.floor,
       duration: run.combatTime,
       peakSquad: Math.max(run.peakSquad, run.squad),
+      peakMagnitude: peakArmyMagnitude(run),
       gold: run.goldEarned,
       status:
         run.phase === 'victory' ? 'won' : run.retired ? 'retired' : 'lost',

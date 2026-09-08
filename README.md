@@ -1,8 +1,10 @@
 # gate-runner · 灰烬之门 / Ashen Gates
 
-Gate Runner × Roguelike，原创中世纪奇幻远征：三幕各五关，以及可以继续深入的长夜无尽。当前版本 **1.1 正式版**。
+Gate Runner × Roguelike，原创中世纪奇幻远征：三幕各五关，以及可以继续深入的长夜无尽。当前版本 **1.1.1 正式版**。
 
 **[立即试玩](https://gate-runner-seven.vercel.app)** · [GitHub 仓库](https://github.com/Drill78/gate-runner)
+
+1.1.1 更新职业技能、历史收藏、事件、科学计数兵力，以及以15关为周期的无尽曲线。见 [1.1.1说明](docs/V1_1_1_RELEASE.md) 与 [完整数值调试册](docs/BALANCE_REFERENCE.md)。
 
 1.1 新增长夜无尽：首领连战、双灰烬之王、异化与融合首领、焚印重铸、首领盟友和高阶禁门。普通、困难、无尽分别拥有公共排行榜，玩家可留下名字与称号，并查看个人履历。见 [1.1 版本说明](docs/V1_1_RELEASE.md) 和 [数值设计](docs/V1_1_DESIGN.md)。保留 1.0 的八首配乐与原有普通／困难存档。
 

@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState, useId, useSyncExternalStore } from 'react';
-import { Trophy, RefreshCw, Feather } from 'lucide-react';
+import { Trophy, RefreshCw, Feather, Star } from 'lucide-react';
 import { HEROES, RELIC_BY_ID, formatNumber, type Difficulty } from '@/lib/game';
 import { ENCOUNTERS } from '@/lib/bosses';
+import { formatMagnitude, magnitude } from '@/lib/army';
 import {
   chronicleRequest,
   identity,
@@ -110,7 +111,10 @@ export function ChroniclePanel() {
   const [classId, setClassId] = useState('all');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
-  const query = `${tab}?mode=${mode}&sort=${sort}&class=${classId}&page=${page}`;
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [savingFavorite, setSavingFavorite] = useState('');
+  const [favoriteMessage, setFavoriteMessage] = useState('');
+  const query = `${tab}?mode=${mode}&sort=${sort}&class=${classId}&page=${page}&favorite=${favoritesOnly ? 1 : 0}`;
   const queryKey = `${query}:${revision}`;
   const [data, setData] = useState<{
     key: string;
@@ -121,6 +125,31 @@ export function ChroniclePanel() {
   const loading = data.key !== queryKey;
   const error = loading ? '' : data.error;
   const [selected, setSelected] = useState<ChronicleRow | null>(null);
+  const toggleFavorite = async (row: ChronicleRow) => {
+    if (savingFavorite) return;
+    setSavingFavorite(row.id);
+    setFavoriteMessage('');
+    try {
+      const favorite = !row.favorite;
+      await chronicleRequest('favorite', { id: row.id, favorite });
+      setSelected((current) =>
+        current?.id === row.id
+          ? { ...current, favorite: favorite ? 1 : 0 }
+          : current,
+      );
+      setPage(0);
+      setRevision((r) => r + 1);
+      setFavoriteMessage(
+        favorite ? '这段远征已收入珍藏。' : '已撤下珍藏印记，足迹仍留在史册。',
+      );
+    } catch (e) {
+      setFavoriteMessage(
+        e instanceof Error ? e.message : '珍藏尚未送达，请重试。',
+      );
+    } finally {
+      setSavingFavorite('');
+    }
+  };
   useEffect(() => {
     let live = true;
     chronicleRequest<{ rows: ChronicleRow[]; more: boolean }>(query)
@@ -153,6 +182,7 @@ export function ChroniclePanel() {
           aria-pressed={tab === 'board'}
           onClick={() => {
             setTab('board');
+            setSelected(null);
             setPage(0);
           }}
         >
@@ -162,6 +192,7 @@ export function ChroniclePanel() {
           aria-pressed={tab === 'history'}
           onClick={() => {
             setTab('history');
+            setSelected(null);
             setPage(0);
           }}
         >
@@ -228,7 +259,25 @@ export function ChroniclePanel() {
           </div>
         </>
       ) : (
-        <p>同一旅人印记的历次远征。请保留本浏览器的站点数据。</p>
+        <div className="chronicle-history-filter">
+          <p>同一旅人印记的历次远征。请保留本浏览器的站点数据。</p>
+          <button
+            aria-pressed={favoritesOnly}
+            onClick={() => {
+              setFavoritesOnly((value) => !value);
+              setPage(0);
+              setSelected(null);
+            }}
+          >
+            <Star size={15} />
+            {favoritesOnly ? '查看全部足迹' : '只看珍藏'}
+          </button>
+        </div>
+      )}
+      {favoriteMessage && (
+        <output className="chronicle-favorite-message" aria-live="polite">
+          {favoriteMessage}
+        </output>
       )}
       <p className="chronicle-note">
         {tab === 'board'
@@ -248,7 +297,11 @@ export function ChroniclePanel() {
       ) : !data.rows.length ? (
         <div className="chronicle-empty">
           <Trophy size={28} />
-          <p>这一页，尚待有人书写。</p>
+          <p>
+            {tab === 'history' && favoritesOnly
+              ? '尚无珍藏。在全部足迹中点亮星印，留下最难忘的远征。'
+              : '这一页，尚待有人书写。'}
+          </p>
         </div>
       ) : (
         <div className="chronicle-table-wrap">
@@ -256,6 +309,7 @@ export function ChroniclePanel() {
             <thead>
               <tr>
                 <th>{tab === 'board' ? '位次' : '日期'}</th>
+                {tab === 'history' && <th>珍藏</th>}
                 <th>旅人 · 称号</th>
                 <th>远征</th>
                 <th>关数</th>
@@ -272,6 +326,23 @@ export function ChroniclePanel() {
                       ? String(page * 20 + i + 1).padStart(2, '0')
                       : new Date(row.finished_at).toLocaleDateString('zh-CN')}
                   </td>
+                  {tab === 'history' && (
+                    <td>
+                      <button
+                        className="chronicle-favorite"
+                        aria-pressed={Boolean(row.favorite)}
+                        aria-label={`${row.favorite ? '取消收藏' : '收藏'}：${row.title || row.name} · ${row.depth}关`}
+                        title={row.favorite ? '取消收藏' : '收藏这次远征'}
+                        disabled={Boolean(savingFavorite)}
+                        onClick={() => void toggleFavorite(row)}
+                      >
+                        <Star
+                          size={19}
+                          fill={row.favorite ? 'currentColor' : 'none'}
+                        />
+                      </button>
+                    </td>
+                  )}
                   <td>
                     <button
                       className="chronicle-traveller"
@@ -289,7 +360,16 @@ export function ChroniclePanel() {
                   </td>
                   <td>{row.depth}</td>
                   <td>{combatClock(row.duration)}</td>
-                  <td>{formatNumber(row.peak_squad)}</td>
+                  <td>
+                    {formatMagnitude(
+                      row.peak_mantissa && row.peak_exponent !== undefined
+                        ? {
+                            mantissa: row.peak_mantissa,
+                            exponent: row.peak_exponent,
+                          }
+                        : magnitude(row.peak_squad),
+                    )}
+                  </td>
                   <td>{formatNumber(row.gold)}</td>
                 </tr>
               ))}
@@ -368,7 +448,21 @@ export function ChroniclePanel() {
             </p>
           )}
           {tab === 'history' && (
-            <RecordSeal key={selected.id} runId={selected.id} />
+            <>
+              <button
+                className="chronicle-favorite"
+                aria-pressed={Boolean(selected.favorite)}
+                disabled={Boolean(savingFavorite) || loading}
+                onClick={() => void toggleFavorite(selected)}
+              >
+                <Star
+                  size={17}
+                  fill={selected.favorite ? 'currentColor' : 'none'}
+                />
+                {selected.favorite ? '已珍藏 · 取消收藏' : '珍藏这次远征'}
+              </button>
+              <RecordSeal key={selected.id} runId={selected.id} />
+            </>
           )}
         </article>
       )}

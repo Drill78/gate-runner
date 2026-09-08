@@ -81,10 +81,10 @@ for (const floor of [19, 24, 29, 34, 39, 44, 49, 99]) {
   );
 }
 writeFileSync(
-  'artifacts/endless-balance-v11.json',
+  process.env.RESULT_FILE || 'artifacts/endless-balance-v11.json',
   JSON.stringify(
     {
-      version: '1.1.0',
+      version: '1.1.1',
       createdAt: new Date().toISOString(),
       policy:
         'Actual engine; 150 ms pilot reaction; real route, rewards, shop and skill APIs; no invulnerability in expedition samples. Separate late-build probes are explicitly synthetic.',

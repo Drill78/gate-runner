@@ -1,4 +1,5 @@
 'use client';
+import { formatArmy } from '@/lib/army';
 import { useState } from 'react';
 import {
   Shield,
@@ -365,7 +366,7 @@ export function BuildPanel({
       <div className="resource-grid">
         <div>
           <Users size={18} />
-          <b>{formatNumber(run.squad)}</b>
+          <b>{formatArmy(run)}</b>
           <span>兵力</span>
         </div>
         <div>
@@ -597,7 +598,7 @@ export function RoomScreen({
     >
       {isEndless(run) && (
         <div className="endless-status">
-          <strong>长夜 · 第 {run.floor + 1} 层</strong>
+          <strong>长夜 · 第 {Math.floor(run.floor / ACT_LENGTH) + 1} 层</strong>
           <span>薪火 ×{formatNumber(run.endless.power)}</span>
           <span>军势 ×{formatNumber(run.endless.legion)}</span>
           <span>焚印 {run.endless.reforges} 次</span>
@@ -825,7 +826,7 @@ export function RoomScreen({
             <span className="eyebrow">WHISPERS OF FATE</span>
             <h2>命运之约</h2>
             <p>
-              三份契约，一次抉择。
+              三桩奇遇，一次抉择；也可收下路资继续前行。
               <br />
               代价与馈赠，随你的远征一同成长。
             </p>
@@ -937,7 +938,7 @@ export function Help() {
           12
           秒。也可在暂停菜单开启「双击人物释放技能」，连续轻点队长即可施放。按{' '}
           <kbd>P</kbd> / <kbd>Esc</kbd>{' '}
-          暂停；切到其他页面也会自动暂停。普通射击采用飞行弹幕，职业主动技能保留各自的护盾或全场打击效果。
+          暂停；切到其他页面也会自动暂停。骑士以护盾与5秒增伤守阵，游侠以全场箭雨开启5秒疾射与必定暴击，法师以追踪火球与军团增幅猎杀敌人。暴击率超过100%的部分等量转为额外暴击伤害。
         </p>
       </section>
       <section>

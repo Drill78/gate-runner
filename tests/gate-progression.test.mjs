@@ -151,7 +151,7 @@ test('squaring keeps the original army firepower curve at every size', () => {
     assert.equal(troopMultiplier(troops), 1 + Math.log2(1 + troops / 12));
 });
 
-test('square and root apply their actual arithmetic, positive shield rules, and finite army cap', () => {
+test('square and root apply actual arithmetic beyond the old safe-integer army limit', () => {
   const knight = createRun('knight');
   knight.squad = 100;
   knight.relics.aegis = 1;
@@ -161,7 +161,7 @@ test('square and root apply their actual arithmetic, positive shield rules, and 
   assert.equal(knight.squad, 100);
   knight.squad = Number.MAX_SAFE_INTEGER;
   applyGate(knight, { op: '²', value: 2 }, 0);
-  assert.equal(knight.squad, Number.MAX_SAFE_INTEGER);
+  assert.ok(knight.squad > 8e31);
   const mage = createRun('mage');
   mage.squad = 101;
   applyGate(mage, { op: '√', value: 2 }, 0);

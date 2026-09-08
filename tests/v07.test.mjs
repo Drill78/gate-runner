@@ -127,7 +127,7 @@ test('draft offers are deterministic, reject unavailable choices, scale across a
   ]) {
     const run = eventRoom(id);
     assert.deepEqual(eventChoices(run), eventChoices(structuredClone(run)));
-    assert.equal(new Set(eventChoices(run).map((o) => o.id)).size, 3);
+    assert.equal(new Set(eventChoices(run).map((o) => o.id)).size, 4);
     assert.ok(eventChoices(run).some((o) => o.id === 'leave' && o.available));
     const absent = [
       'blood',

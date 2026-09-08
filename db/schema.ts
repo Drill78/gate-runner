@@ -30,8 +30,11 @@ export const expeditions = sqliteTable(
     depth: integer('depth').notNull().default(0),
     duration: real('duration').notNull().default(0),
     peakSquad: real('peak_squad').notNull().default(0),
+    peakMantissa: real('peak_mantissa'),
+    peakExponent: integer('peak_exponent'),
     gold: real('gold').notNull().default(0),
     ranked: integer('ranked').notNull().default(1),
+    favorite: integer('favorite').notNull().default(0),
     details: text('details').notNull().default('{}'),
   },
   (table) => [

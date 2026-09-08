@@ -229,7 +229,8 @@ test('active skills respect cooldown and class effects, including the tuned knig
   const mage = battle('mage');
   mage.player = addRelic(mage.player, 'archmage');
   activateSkill(mage);
-  assert.equal(mage.player.squad, 21);
+  assert.equal(mage.player.squad, 11);
+  assert.equal(mage.bullets.filter((p) => p.kind === 'fireball').length, 9);
 });
 
 test('chapter bosses expose their unique warned patterns and eventually enrage', () => {
@@ -385,6 +386,8 @@ test('focus fire interrupts the king chant without resetting its independent pre
     safeWidth: 0.48,
   };
   activateSkill(b);
+  assert.notEqual(b.ritual, null, 'fireballs must travel before interrupting');
+  advance(b, 1);
   assert.equal(b.ritual, null);
   assert.equal(b.pressure.nextAt, pressureAt);
 });

@@ -665,7 +665,11 @@ export default function Home() {
                         : hero.skill}
                     </strong>
                     <small>
-                      {(snapshot?.cooldown || 0) > 0 ? '冷却中' : '点击 / 空格'}
+                      {(snapshot?.buffRemaining || 0) > 0
+                        ? `${run.classId === 'ranger' ? '疾射' : '誓约'} ${Math.ceil(snapshot!.buffRemaining)}秒`
+                        : (snapshot?.cooldown || 0) > 0
+                          ? '冷却中'
+                          : '点击 / 空格'}
                     </small>
                   </span>
                 </button>
@@ -711,7 +715,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          正式版 <b>v1.1</b>
+          正式版 <b>v1.1.1</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>

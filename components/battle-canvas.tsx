@@ -32,6 +32,7 @@ export interface BattleSnapshot {
   run: Run;
   shield: number;
   cooldown: number;
+  buffRemaining: number;
   time: number;
   message: string;
   x: number;
@@ -401,6 +402,7 @@ export function BattleCanvas({
           run: { ...battle.player },
           shield: battle.shield,
           cooldown: battle.cooldown,
+          buffRemaining: Math.max(0, battle.buffUntil - battle.time),
           time: battle.time,
           message: battle.time < battle.messageUntil ? battle.message : '',
           x: battle.x,

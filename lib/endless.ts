@@ -34,16 +34,49 @@ export const weaponLimit = (run: Pick<Run, 'difficulty'>) =>
 // Log-space growth remains finite even after very long expeditions.
 export const boundedProduct = (a: number, b: number) => Math.min(1e100, a * b);
 export function depthHealth(run: Pick<Run, 'difficulty' | 'floor'>) {
-  if (!isEndless(run) || run.floor < 15) return 1;
-  // Replace the campaign's exponential reset with a continuous post-throne curve.
-  const depth = run.floor - 14;
-  const growth =
-    Math.min(depth, 16) * Math.log(1.058) +
-    Math.min(30, Math.max(0, depth - 16)) * Math.log(1.075) +
-    Math.max(0, depth - 46) * Math.log(1.095);
-  return Math.exp(
-    Math.min(210, Math.log(1.26) * (14 - localFloor(run)) + growth),
-  );
+  if (!isEndless(run)) return 1;
+  return healthGrowth(run, 1.26) / Math.pow(1.26, localFloor(run));
+}
+export const ENDLESS_CURVE = {
+  bandSize: 15,
+  openingBase: 1.23,
+  postThroneHealth: 2.5,
+  earlyBands: 3,
+  earlyStep: 2.4,
+  middleBands: 5,
+  middleStep: 5,
+  deepStep: 6,
+  withinBandStep: 1.008,
+  attackStep: 1.18,
+} as const;
+export function healthGrowth(
+  run: Pick<Run, 'difficulty' | 'floor'>,
+  campaignBase: number,
+) {
+  if (!isEndless(run)) return Math.pow(campaignBase, run.floor);
+  const c = ENDLESS_CURVE;
+  if (run.floor < c.bandSize) return c.openingBase ** run.floor;
+  // A layer ends at a chapter boss: three layers are fifteen rooms. This budget
+  // depends only on depth, never on the player's army or a square-gate reward.
+  const band = Math.floor(run.floor / c.bandSize);
+  const log =
+    14 * Math.log(c.openingBase) +
+    Math.log(c.postThroneHealth) +
+    Math.min(band, c.earlyBands) * Math.log(c.earlyStep) +
+    Math.min(c.middleBands, Math.max(0, band - c.earlyBands)) *
+      Math.log(c.middleStep) +
+    Math.max(0, band - c.earlyBands - c.middleBands) * Math.log(c.deepStep) +
+    (run.floor % c.bandSize) * Math.log(c.withinBandStep);
+  return Math.exp(Math.min(430, log));
+}
+export function depthDamage(run: Pick<Run, 'difficulty' | 'floor'>) {
+  return isEndless(run)
+    ? Math.min(
+        1e7,
+        ENDLESS_CURVE.attackStep **
+          Math.floor(run.floor / ENDLESS_CURVE.bandSize),
+      )
+    : 1;
 }
 export function depthIncome(run: Pick<Run, 'difficulty' | 'floor'>) {
   return isEndless(run)

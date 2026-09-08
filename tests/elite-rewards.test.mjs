@@ -108,7 +108,7 @@ test('even fully exhausted pools present three distinct epic consumables with re
   assert.equal(vigor.hp, run.hp + 8);
   const company = chooseReward(run, 'supply-epic-company');
   assert.equal(company.gold, run.gold + 60);
-  assert.equal(company.squad, Number.MAX_SAFE_INTEGER);
+  assert.ok(company.squad > Number.MAX_SAFE_INTEGER);
   assert.deepEqual(
     run,
     original,
