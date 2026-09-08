@@ -274,15 +274,21 @@
 @media (max-height: 700px) {
   .gate-entrance--classes {
     overflow-y: auto;
-    min-height: 650px;
+    min-height: 0;
   }
   .gate-entrance--classes .entrance-class-heading {
-    bottom: 408px;
+    top: 65px;
+    bottom: auto;
   }
   .gate-entrance--classes .entrance-class-art img {
     height: 50%;
   }
   .gate-entrance--classes .entrance-class-controls {
     gap: 4px;
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    margin: 245px auto 24px;
   }
 }

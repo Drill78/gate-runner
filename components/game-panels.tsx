@@ -576,6 +576,7 @@ export function RoomScreen({
   onLeaveShop,
   onEvent,
   onRestart,
+  onRetire,
 }: {
   run: Run;
   onEnter: (id: string) => void;
@@ -585,6 +586,7 @@ export function RoomScreen({
   onLeaveShop: () => void;
   onEvent: (action: EventId) => void;
   onRestart: () => void;
+  onRetire: () => void;
 }) {
   const phase = run.phase;
   const act = ACTS[currentAct(run)];
@@ -593,6 +595,16 @@ export function RoomScreen({
     <div
       className={`room-screen room-${phase} act-${currentAct(run)} ${run.relics.square_key && !run.squareGateSeen ? 'is-forbidden' : ''}`}
     >
+      {isEndless(run) && (
+        <div className="endless-status">
+          <strong>长夜 · 第 {run.floor + 1} 层</strong>
+          <span>薪火 ×{formatNumber(run.endless.power)}</span>
+          <span>军势 ×{formatNumber(run.endless.legion)}</span>
+          <span>焚印 {run.endless.reforges} 次</span>
+          <span>盟誓 {run.endless.allies.length} 位</span>
+          <span>深门 {run.endless.keysOpened} 重</span>
+        </div>
+      )}
       {phase === 'map' ? (
         <>
           <div className="room-heading">
@@ -643,6 +655,11 @@ export function RoomScreen({
           <p className="checkpoint-note">
             <Check size={13} /> 下一段征程，取决于你的选择
           </p>
+          {isEndless(run) && run.floor > 0 && (
+            <button className="text-button endless-retire" onClick={onRetire}>
+              归还火种 · 结束远征并铭刻此行
+            </button>
+          )}
         </>
       ) : null}
       {phase === 'reward' ? (

@@ -673,40 +673,21 @@ export default function Home() {
             </>
           ) : null}
           {run.phase !== 'setup' && run.phase !== 'battle' ? (
-            <>
-              {isEndless(run) && (
-                <div className="endless-status">
-                  <strong>长夜 · 第 {run.floor + 1} 层</strong>
-                  <span>薪火 ×{formatNumber(run.endless.power)}</span>
-                  <span>军势 ×{formatNumber(run.endless.legion)}</span>
-                  <span>焚印 {run.endless.reforges} 次</span>
-                  <span>盟誓 {run.endless.allies.length} 位</span>
-                  <span>深门 {run.endless.keysOpened} 重</span>
-                </div>
-              )}
-              <RoomScreen
-                run={run}
-                onEnter={go}
-                onReward={(id) =>
-                  setRun((r) =>
-                    id === '__skip' ? skipReward(r) : chooseReward(r, id),
-                  )
-                }
-                onRest={(action) => setRun((r) => restAction(r, action))}
-                onBuy={(id) => setRun((r) => shopBuy(r, id))}
-                onLeaveShop={() => setRun((r) => completeRoom(r, false))}
-                onEvent={(action) => setRun((r) => eventAction(r, action))}
-                onRestart={restart}
-              />
-              {isEndless(run) && run.phase === 'map' && run.floor > 0 && (
-                <button
-                  className="text-button endless-retire"
-                  onClick={() => setRun((r) => retireEndless(r))}
-                >
-                  归还火种 · 结束远征并铭刻此行
-                </button>
-              )}
-            </>
+            <RoomScreen
+              run={run}
+              onEnter={go}
+              onReward={(id) =>
+                setRun((r) =>
+                  id === '__skip' ? skipReward(r) : chooseReward(r, id),
+                )
+              }
+              onRest={(action) => setRun((r) => restAction(r, action))}
+              onBuy={(id) => setRun((r) => shopBuy(r, id))}
+              onLeaveShop={() => setRun((r) => completeRoom(r, false))}
+              onEvent={(action) => setRun((r) => eventAction(r, action))}
+              onRestart={restart}
+              onRetire={() => setRun((r) => retireEndless(r))}
+            />
           ) : null}
         </section>
         {run.phase === 'setup' ? (
