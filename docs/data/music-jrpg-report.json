@@ -1,0 +1,490 @@
+{
+  "version": "1.2 finale revision",
+  "soundfont": {
+    "name": "GeneralUser GS 2.0.3",
+    "sha256": "9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe",
+    "source": "https://github.com/mrbumpy409/GeneralUser-GS",
+    "license": "GeneralUser GS License v2.0"
+  },
+  "engine": "FluidSynth 2.6.0 official Windows x64 release",
+  "tracks": [
+    {
+      "title": "星穹长阶 · 云上的誓歌",
+      "seconds": 136,
+      "loop_start": 8,
+      "bpm": 90,
+      "meter": "6/8",
+      "key": "E major / C-sharp minor",
+      "theme": "pilgrimage",
+      "file": "stair-heaven.mp3",
+      "bytes": 3810264,
+      "sha256": "3d03f6db8b9b53ac35baf60621d6a1fff048d19030b9251554af62fbf7b83ed8",
+      "sample_rate": 44100,
+      "channels": 2,
+      "codec": "LAME MP3 224kbps CBR, Xing gapless metadata",
+      "decoded": {
+        "samples": 5997600,
+        "seconds": 136.0,
+        "peak_dbfs": -7.456,
+        "rms_dbfs": -20.856,
+        "clipped_samples": 0,
+        "seam_jump": 0.0212331,
+        "adjacent_step_p99": 0.043117,
+        "seam_to_p99": 0.492,
+        "edge_20ms_rms_db_delta": -27.91
+      },
+      "loop": {
+        "samples": 5644800,
+        "seconds": 128.0,
+        "peak_dbfs": -7.456,
+        "rms_dbfs": -20.635,
+        "clipped_samples": 0,
+        "seam_jump": 0.0018966,
+        "adjacent_step_p99": 0.0436582,
+        "seam_to_p99": 0.043,
+        "edge_20ms_rms_db_delta": 2.581
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -7.42,
+        "loudness_range_lu": 4.3
+      },
+      "stems": {
+        "piano": {
+          "parts": ["piano"],
+          "notes": 397,
+          "gain": 1.08,
+          "hall_seconds": 1.984,
+          "wet": 0.3808000000000001,
+          "dry_peak_dbfs": -23.538110733032227
+        },
+        "harp": {
+          "parts": ["harp", "celesta", "glock"],
+          "notes": 462,
+          "gain": 0.78,
+          "hall_seconds": 3.472,
+          "wet": 0.6832,
+          "dry_peak_dbfs": -24.883974075317383
+        },
+        "woodwind": {
+          "parts": ["flute", "oboe"],
+          "notes": 182,
+          "gain": 0.94,
+          "hall_seconds": 2.852,
+          "wet": 0.5040000000000001,
+          "dry_peak_dbfs": -25.378173828125
+        },
+        "strings": {
+          "parts": ["violin", "ensemble", "cello"],
+          "notes": 342,
+          "gain": 0.81,
+          "hall_seconds": 2.604,
+          "wet": 0.47040000000000004,
+          "dry_peak_dbfs": -19.21089744567871
+        },
+        "choir": {
+          "parts": ["choir"],
+          "notes": 204,
+          "gain": 0.69,
+          "hall_seconds": 4.588,
+          "wet": 0.8400000000000001,
+          "dry_peak_dbfs": -25.84512710571289
+        },
+        "brass": {
+          "parts": ["horn"],
+          "notes": 24,
+          "gain": 0.78,
+          "hall_seconds": 2.232,
+          "wet": 0.44800000000000006,
+          "dry_peak_dbfs": -21.164295196533203
+        },
+        "drums": {
+          "parts": ["drums"],
+          "notes": 64,
+          "gain": 0.82,
+          "hall_seconds": 0.62,
+          "wet": 0.168,
+          "dry_peak_dbfs": -34.05055236816406
+        },
+        "percussion": {
+          "parts": ["timpani"],
+          "notes": 8,
+          "gain": 0.72,
+          "hall_seconds": 2.728,
+          "wet": 0.47040000000000004,
+          "dry_peak_dbfs": -26.22751235961914
+        }
+      },
+      "sections": [
+        {
+          "start": 0,
+          "end": 8,
+          "name": "前奏：一束未落地的光",
+          "rms_dbfs": -28.655
+        },
+        {
+          "start": 8,
+          "end": 40,
+          "name": "云上的誓歌：钢琴主旋律与竖琴",
+          "rms_dbfs": -21.592
+        },
+        {
+          "start": 40,
+          "end": 56,
+          "name": "羽光回廊：长笛接句",
+          "rms_dbfs": -21.12
+        },
+        {
+          "start": 56,
+          "end": 72,
+          "name": "凡人的祈愿：双簧管与稀疏钢琴",
+          "rms_dbfs": -22.46
+        },
+        {
+          "start": 72,
+          "end": 88,
+          "name": "星门渐开：弦乐接入",
+          "rms_dbfs": -20.488
+        },
+        {
+          "start": 88,
+          "end": 120,
+          "name": "穹顶之光：弦乐、合唱、圆号展开",
+          "rms_dbfs": -18.957
+        },
+        {
+          "start": 120,
+          "end": 136,
+          "name": "回望来路：收束到循环开端",
+          "rms_dbfs": -21.257
+        }
+      ]
+    },
+    {
+      "title": "碎冕之战 · 向神挥刃",
+      "seconds": 120,
+      "loop_start": 0,
+      "bpm": 144,
+      "meter": "4/4",
+      "key": "E minor / G major",
+      "theme": "defiance",
+      "file": "crown-fracture.mp3",
+      "bytes": 3361896,
+      "sha256": "8961d70686d095f69efba66a56ea53981bf86d66818dcc64c7bf87f7f85f8fa0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "codec": "LAME MP3 224kbps CBR, Xing gapless metadata",
+      "decoded": {
+        "samples": 5292000,
+        "seconds": 120.0,
+        "peak_dbfs": -7.344,
+        "rms_dbfs": -20.37,
+        "clipped_samples": 0,
+        "seam_jump": 0.0022691,
+        "adjacent_step_p99": 0.0371369,
+        "seam_to_p99": 0.061,
+        "edge_20ms_rms_db_delta": 3.887
+      },
+      "loop": {
+        "samples": 5292000,
+        "seconds": 120.0,
+        "peak_dbfs": -7.344,
+        "rms_dbfs": -20.37,
+        "clipped_samples": 0,
+        "seam_jump": 0.0022691,
+        "adjacent_step_p99": 0.0371369,
+        "seam_to_p99": 0.061,
+        "edge_20ms_rms_db_delta": 3.887
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -7.33,
+        "loudness_range_lu": 2.7
+      },
+      "stems": {
+        "piano": {
+          "parts": ["piano"],
+          "notes": 824,
+          "gain": 1.08,
+          "hall_seconds": 1.6,
+          "wet": 0.34,
+          "dry_peak_dbfs": -19.168983459472656
+        },
+        "harp": {
+          "parts": ["harp", "glock"],
+          "notes": 338,
+          "gain": 0.78,
+          "hall_seconds": 2.8,
+          "wet": 0.61,
+          "dry_peak_dbfs": -25.644771575927734
+        },
+        "woodwind": {
+          "parts": ["oboe"],
+          "notes": 28,
+          "gain": 0.94,
+          "hall_seconds": 2.3,
+          "wet": 0.45,
+          "dry_peak_dbfs": -26.459697723388672
+        },
+        "strings": {
+          "parts": ["violin", "ensemble", "pizz", "cello"],
+          "notes": 2198,
+          "gain": 0.81,
+          "hall_seconds": 2.1,
+          "wet": 0.42,
+          "dry_peak_dbfs": -18.78248405456543
+        },
+        "choir": {
+          "parts": ["choir", "organ"],
+          "notes": 132,
+          "gain": 0.69,
+          "hall_seconds": 3.7,
+          "wet": 0.75,
+          "dry_peak_dbfs": -26.165922164916992
+        },
+        "brass": {
+          "parts": ["horn"],
+          "notes": 310,
+          "gain": 0.78,
+          "hall_seconds": 1.8,
+          "wet": 0.4,
+          "dry_peak_dbfs": -22.041790008544922
+        },
+        "bass": {
+          "parts": ["bass"],
+          "notes": 528,
+          "gain": 0.9,
+          "hall_seconds": 0.16,
+          "wet": 0.04,
+          "dry_peak_dbfs": -21.836238861083984
+        },
+        "drums": {
+          "parts": ["drums"],
+          "notes": 1271,
+          "gain": 0.82,
+          "hall_seconds": 0.5,
+          "wet": 0.15,
+          "dry_peak_dbfs": -17.840988159179688
+        },
+        "percussion": {
+          "parts": ["timpani"],
+          "notes": 18,
+          "gain": 0.72,
+          "hall_seconds": 2.2,
+          "wet": 0.42,
+          "dry_peak_dbfs": -21.64842414855957
+        }
+      },
+      "sections": [
+        {
+          "start": 0,
+          "end": 40,
+          "name": "碎冕主题：切分弦乐、钢琴与鼓组",
+          "rms_dbfs": -20.807
+        },
+        {
+          "start": 40,
+          "end": 53.333333333333336,
+          "name": "裂隙中的呼吸：钢琴与双簧管",
+          "rms_dbfs": -23.239
+        },
+        {
+          "start": 53.333333333333336,
+          "end": 66.66666666666667,
+          "name": "反抗者的誓言：宽广副歌",
+          "rms_dbfs": -19.998
+        },
+        {
+          "start": 66.66666666666667,
+          "end": 80,
+          "name": "再起：主旋律变奏",
+          "rms_dbfs": -20.366
+        },
+        {
+          "start": 80,
+          "end": 106.66666666666667,
+          "name": "向神挥刃：合唱与全乐队展开",
+          "rms_dbfs": -19.152
+        },
+        {
+          "start": 106.66666666666667,
+          "end": 120,
+          "name": "战意不熄：回到主调循环",
+          "rms_dbfs": -20.231
+        }
+      ]
+    },
+    {
+      "title": "黎明的裁决 · 光与誓言",
+      "seconds": 144,
+      "loop_start": 24,
+      "bpm": [90, 144],
+      "meter": "6/8 → 4/4",
+      "key": "E major → E minor",
+      "theme": "defiance with prelude",
+      "file": "dawn-judgment.mp3",
+      "bytes": 4034081,
+      "sha256": "3de511acfa2c19b58bebf3f840a1d0db22c5f448ecbf4995544b7e2b313d8f8c",
+      "sample_rate": 44100,
+      "channels": 2,
+      "codec": "LAME MP3 224kbps CBR, Xing gapless metadata",
+      "decoded": {
+        "samples": 6350400,
+        "seconds": 144.0,
+        "peak_dbfs": -7.009,
+        "rms_dbfs": -20.574,
+        "clipped_samples": 0,
+        "seam_jump": 0.0721508,
+        "adjacent_step_p99": 0.0383661,
+        "seam_to_p99": 1.881,
+        "edge_20ms_rms_db_delta": -34.586
+      },
+      "loop": {
+        "samples": 5292000,
+        "seconds": 120.0,
+        "peak_dbfs": -7.009,
+        "rms_dbfs": -19.89,
+        "clipped_samples": 0,
+        "seam_jump": 0.0045689,
+        "adjacent_step_p99": 0.0396125,
+        "seam_to_p99": 0.115,
+        "edge_20ms_rms_db_delta": 3.829
+      },
+      "loudness": {
+        "lufs": -18.01,
+        "true_peak_db": -6.99,
+        "loudness_range_lu": 9.9
+      },
+      "stems": {
+        "piano": {
+          "parts": ["piano"],
+          "notes": 848,
+          "gain": 1.08,
+          "hall_seconds": 1.6,
+          "wet": 0.34,
+          "dry_peak_dbfs": -20.00396728515625
+        },
+        "harp": {
+          "parts": ["harp", "glock"],
+          "notes": 361,
+          "gain": 0.78,
+          "hall_seconds": 2.8,
+          "wet": 0.61,
+          "dry_peak_dbfs": -22.577796936035156
+        },
+        "woodwind": {
+          "parts": ["flute", "oboe"],
+          "notes": 48,
+          "gain": 0.94,
+          "hall_seconds": 2.3,
+          "wet": 0.45,
+          "dry_peak_dbfs": -26.459697723388672
+        },
+        "strings": {
+          "parts": ["violin", "ensemble", "pizz", "cello"],
+          "notes": 2252,
+          "gain": 0.81,
+          "hall_seconds": 2.1,
+          "wet": 0.42,
+          "dry_peak_dbfs": -18.257488250732422
+        },
+        "choir": {
+          "parts": ["choir", "organ"],
+          "notes": 168,
+          "gain": 0.69,
+          "hall_seconds": 3.7,
+          "wet": 0.75,
+          "dry_peak_dbfs": -25.78985595703125
+        },
+        "brass": {
+          "parts": ["horn"],
+          "notes": 310,
+          "gain": 0.78,
+          "hall_seconds": 1.8,
+          "wet": 0.4,
+          "dry_peak_dbfs": -21.977575302124023
+        },
+        "bass": {
+          "parts": ["bass"],
+          "notes": 528,
+          "gain": 0.9,
+          "hall_seconds": 0.16,
+          "wet": 0.04,
+          "dry_peak_dbfs": -21.876649856567383
+        },
+        "drums": {
+          "parts": ["drums"],
+          "notes": 1279,
+          "gain": 0.82,
+          "hall_seconds": 0.5,
+          "wet": 0.15,
+          "dry_peak_dbfs": -16.861366271972656
+        },
+        "percussion": {
+          "parts": ["timpani"],
+          "notes": 22,
+          "gain": 0.72,
+          "hall_seconds": 2.2,
+          "wet": 0.42,
+          "dry_peak_dbfs": -21.357820510864258
+        }
+      },
+      "sections": [
+        {
+          "start": 0,
+          "end": 24,
+          "name": "空灵前奏：远处圣咏、钢琴与调式转暗",
+          "rms_dbfs": -28.906
+        },
+        {
+          "start": 24,
+          "end": 64,
+          "name": "碎冕主题：切分弦乐、钢琴与鼓组",
+          "rms_dbfs": -20.178
+        },
+        {
+          "start": 64,
+          "end": 77.33333333333334,
+          "name": "裂隙中的呼吸：钢琴与双簧管",
+          "rms_dbfs": -22.77
+        },
+        {
+          "start": 77.33333333333334,
+          "end": 90.66666666666667,
+          "name": "反抗者的誓言：宽广副歌",
+          "rms_dbfs": -19.562
+        },
+        {
+          "start": 90.66666666666667,
+          "end": 104,
+          "name": "再起：主旋律变奏",
+          "rms_dbfs": -19.834
+        },
+        {
+          "start": 104,
+          "end": 130.66666666666669,
+          "name": "向神挥刃：合唱与全乐队展开",
+          "rms_dbfs": -18.785
+        },
+        {
+          "start": 130.66666666666669,
+          "end": 144,
+          "name": "战意不熄：回到主调循环",
+          "rms_dbfs": -19.864
+        }
+      ]
+    }
+  ],
+  "preserved_tracks": {
+    "ascension.mp3": "4f137545a0575719f1ba20f5a0fdfb09412545c2b55dbe82259173ef05cc63d8",
+    "boss.mp3": "b84c296e06594e0e8b125c468b378b72b1364260a17c768124309eb4505b220b",
+    "congratulations.mp3": "941700428e75cae46e4ae3e04eee2468c9fa3a052d4048966956a1bed7b9bf6f",
+    "event.mp3": "5842df9a36b5fe91ab8d46f00fc44a88fbcb24b2b66238f46515fe93642697e2",
+    "final.mp3": "7ac4dbef238b649b4ef186e6c865a83d87c438e3472a53f42231ba39d2cb6a5c",
+    "forbidden.mp3": "cb32248e7bd3edc95737d49fe79273f7a2d6808f8298bc080f9c5394d1312c57",
+    "map.mp3": "20d72ed2ebbf35aa72da266f6720bbf84819cbfcbef8ba026038dd420cf4ded6",
+    "menu.mp3": "57f5dbcebf12b69bafee1d7ff2d29a3f5c8c70161048003ffd0715c6b219a9d4",
+    "normal.mp3": "12680d9f681d16cb0b5dfd2ece386041a20a0fb232df7235ae6e49d20ffcbc75",
+    "shop.mp3": "539f93e34abeb173be98801ca722b3b8afb796c529e006efe74515426e102878"
+  }
+}

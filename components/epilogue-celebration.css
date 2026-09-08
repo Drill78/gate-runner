@@ -1,0 +1,94 @@
+.epilogue-celebration {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+.epilogue-applause {
+  position: absolute;
+  width: clamp(100px, 29vw, 166px);
+  transform: translate(-50%, calc(-50% + var(--applause-rise)))
+    rotate(var(--applause-tilt)) scale(var(--applause-scale));
+  will-change: transform, opacity;
+  text-align: center;
+}
+.epilogue-applause img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 5px;
+  border: 2px solid #fff6d9;
+  box-shadow:
+    0 5px 22px #4e285b55,
+    0 0 17px #fff5b842;
+}
+.epilogue-applause strong {
+  display: block;
+  margin-top: -5px;
+  position: relative;
+  color: #fff8c4;
+  font-size: clamp(24px, 6vw, 33px);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  -webkit-text-stroke: 1px #402944;
+  paint-order: stroke fill;
+  text-shadow:
+    0 2px 0 #402944,
+    0 4px 10px #35254080;
+}
+.is-epilogue .hud-left-edge,
+.is-epilogue .edge-gold,
+.is-epilogue .edge-pause span,
+.is-epilogue .battle-edge-progress,
+.is-epilogue .battle-xp,
+.is-epilogue .hero-notice,
+.is-epilogue .battle-drag-hint,
+.is-epilogue .skill-dock {
+  display: none;
+}
+.is-epilogue .expedition-hud {
+  justify-content: flex-end;
+}
+.is-epilogue .edge-pause {
+  justify-content: center;
+  width: 44px;
+  border-radius: 50%;
+  background: #211b2b70;
+}
+.curtain-credit {
+  min-height: min(740px, 80dvh);
+  display: grid;
+  align-content: center;
+  gap: 22px;
+  padding: 32px 8px;
+  text-align: center;
+}
+.curtain-credit h2 {
+  font-size: clamp(48px, 13vw, 86px);
+  font-weight: 900;
+  color: #fff1ac;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 34px #e8c05a70;
+  margin: 0;
+}
+.curtain-credit > p {
+  font-size: 25px;
+  color: #fff2d5;
+  letter-spacing: 0.3em;
+  margin: 0;
+}
+.curtain-credit .creator-credit {
+  margin-top: 32px;
+}
+.curtain-credit .creator-credit strong {
+  font-size: clamp(18px, 4.6vw, 25px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .epilogue-applause {
+    transform: translate(-50%, -50%);
+  }
+  .epilogue-applause img {
+    display: none;
+  }
+}

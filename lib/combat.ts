@@ -31,6 +31,14 @@ import {
 } from './army.ts';
 import { bossProfile, ENCOUNTERS } from './bosses.ts';
 import {
+  EPILOGUE_BLESSINGS,
+  EPILOGUE_DURATION_SECONDS,
+  EPILOGUE_EVENT_LIFETIME,
+  EPILOGUE_WAVE_SPACING,
+  type EpilogueBlessingEvent,
+} from './epilogue.ts';
+export { EPILOGUE_BLESSINGS } from './epilogue.ts';
+import {
   actIndex,
   localFloor,
   isEndless,
@@ -101,6 +109,7 @@ export interface Entity {
   damageTakenTotal?: number;
   lifeStartedAt?: number;
   blessing?: string;
+  fakeSquare?: boolean;
   stage?: number;
   mutation?: BossMutation;
   fusionId?: string;
@@ -237,6 +246,11 @@ export interface Battle {
   cinematicTime: number;
   attackSourceId?: number;
   epilogue: boolean;
+  epilogueInfinity: boolean;
+  epiloguePlaybackSeconds: number;
+  epilogueMusicEnded: boolean;
+  blessingSeq: number;
+  blessingEvents: EpilogueBlessingEvent[];
   rushStage: number;
   rushStages: number;
   nextBossCast: number;
@@ -322,41 +336,6 @@ export const DEITY_SKILLS = [
   '逐星织路',
   '寂静钟鸣',
   '破雾终曲',
-] as const;
-
-export const EPILOGUE_BLESSINGS = [
-  '愿你归途有灯，长夜有星。',
-  '你曾照亮无人问津的道路。',
-  '那些未熄的火，终于迎来了黎明。',
-  '向你致敬，不肯屈服的远征者。',
-  '你的名字，值得被温柔地记住。',
-  '世界因你，少了一分寒冷。',
-  '愿你所爱的人，也能看见今日的光。',
-  '走过了最暗的夜，愿往后皆有晴空。',
-  '不必再举盾了，这里没有敌人。',
-  '每一次重新站起，都成为了你的冠冕。',
-  '勇气有了形状，正是你走来的模样。',
-  '愿失败的旧日，也能化作温暖的故事。',
-  '你守住的微光，足够点亮整片天穹。',
-  '谢谢你，走完了这段漫长的路。',
-  '所有失落的誓言，都向你献上祝福。',
-  '群星不再遥远，它们正在为你闪耀。',
-  '愿下一场旅途，有朋友与你同行。',
-  '王座不会定义你，你的选择才会。',
-  '你配得上掌声，也配得上休息。',
-  '风带来花的消息，雾已经散了。',
-  '没有任何一份坚持，是徒劳的。',
-  '黎明为你而来，请收下这份光。',
-  '愿你平凡的每一天，也闪着金色。',
-  '曾经的小小火种，已成为不落的太阳。',
-  '你让这个世界，有了圆满的结局。',
-  '愿你仍然好奇，仍然敢于启程。',
-  '请将这份勇气，带回你自己的世界。',
-  '无人再索取你的牺牲，今日只为你欢庆。',
-  '愿远方的你，一切都好。',
-  '破除迷雾，终究登神。',
-  '感谢相遇，感谢你玩到这里。',
-  '绿色咸咸圈&GPT-6 Astra · 献给每位远征者。',
 ] as const;
 
 export function battleEncounter(run: Run): EndlessEncounter | null {
@@ -531,13 +510,13 @@ export function createBattle(run: Run): Battle {
     ((isEndless(player) && player.floor >= 90) ||
       !!(player.devMode && player.devEncounter));
   const travel = BALANCE.travel[act],
-    spacing = epilogue ? 1.5 : BALANCE.spacing[act],
+    spacing = epilogue ? EPILOGUE_WAVE_SPACING : BALANCE.spacing[act],
     waves = directEncounter
       ? 0
       : epilogue
-        ? 16
+        ? Math.ceil(EPILOGUE_DURATION_SECONDS / spacing) + 2
         : BALANCE.waves[act] + (player.node?.enchanted ? 2 : 0);
-  const superElite = Boolean(player.node?.enchanted),
+  const superElite = !epilogue && Boolean(player.node?.enchanted),
     elite = player.node?.kind === 'elite' || superElite,
     bossRoom = player.node?.kind === 'boss',
     treasure = player.node?.kind === 'treasure';
@@ -606,22 +585,22 @@ export function createBattle(run: Run): Battle {
   for (let i = 0; i < waves; i++) {
     const t = i * spacing;
     if (epilogue) {
-      if (i % 2 === 0) {
-        const gate = put('gate', t, 0, 0, 'gate', '晨曦赐福', i + 1);
-        gate.gate = [{ op: '×', value: 1.25 + i * 0.05, left: -1, right: 1 }];
-        gate.gatePrepared = true;
-      }
-      for (let side = 0; side < 2; side++) {
-        const chest = put(
-          'chest',
-          t + 0.25 + side * 0.35,
-          side ? 0.36 : -0.36,
-          Math.max(1, firepower(player).volley * 0.15),
-          'chest',
-          '黎明礼匣',
-          i + 1,
-        );
-        chest.blessing = EPILOGUE_BLESSINGS[i * 2 + side];
+      const gate = put('gate', t, 0, 0, 'gate', '无限之门', i + 1);
+      gate.gate = [{ op: '²', value: 2, left: -1, right: 1 }];
+      gate.gatePrepared = true;
+      gate.fakeSquare = true;
+      const lanes = [0];
+      const sideX = (t < 18 ? Math.floor(i / 2) % 2 : i % 2) ? 0.56 : -0.56;
+      if (t >= 18 || i % 2 === 0) lanes.push(sideX);
+      if (t >= EPILOGUE_DURATION_SECONDS - 24 && i % 2 === 0)
+        lanes.push(-sideX);
+      for (const [side, x] of lanes.entries()) {
+        const start = t + 0.25 + side * 0.35;
+        // Keep the closing screen clear of boxes that cannot finish travelling.
+        if (start + travel > EPILOGUE_DURATION_SECONDS) continue;
+        const chest = put('chest', start, x, 1, 'chest', '黎明礼匣', i + 1);
+        chest.width = 0.32;
+        chest.blessing = EPILOGUE_BLESSINGS[(i + side) % 2];
       }
       continue;
     }
@@ -858,20 +837,20 @@ export function createBattle(run: Run): Battle {
     final.name = `${final.mutation === 'ashen' ? '黯化' : final.mutation === 'frenzied' ? '血月' : '金身'}·${final.name}`;
   }
   if (epilogue) {
-    final.done = true;
-    final.hp = 0;
-    final.boss = false;
-    final.kind = 'chest';
-    final.encounterId = undefined;
-    final.blessing = undefined;
+    entities.splice(entities.indexOf(final), 1);
   }
-  addArmy(player, (player.relics.ambush || 0) * 8);
+  if (!epilogue) addArmy(player, (player.relics.ambush || 0) * 8);
   return {
     transition: null,
     transitionQueue: [],
     transitionSeq: 0,
     cinematicTime: 0,
     epilogue,
+    epilogueInfinity: false,
+    epiloguePlaybackSeconds: 0,
+    epilogueMusicEnded: false,
+    blessingSeq: 0,
+    blessingEvents: [],
     rushStage: 0,
     rushStages: encounter?.groups.length || 1,
     nextBossCast: 0,
@@ -932,7 +911,7 @@ export function createBattle(run: Run): Battle {
     messageUntil: encounter ? 8 : 4,
     wave: 1,
     totalWaves: waves,
-    duration: finalStart + travel,
+    duration: epilogue ? EPILOGUE_DURATION_SECONDS : finalStart + travel,
     finalStart,
     enrage: false,
     threatSeq: 0,
@@ -1120,6 +1099,48 @@ export function hitEntity(
     (e.invulnerableUntil || 0) > b.time
   )
     return;
+  if (b.epilogue) {
+    if (
+      b.state !== 'running' ||
+      e.kind !== 'chest' ||
+      !e.blessing ||
+      !Number.isFinite(damage) ||
+      damage <= 0
+    )
+      return;
+    e.hp = Math.max(0, e.hp - damage);
+    if (e.hp === 0) {
+      e.done = true;
+      const text = e.blessing === '谢谢' ? '谢谢' : '恭喜';
+      b.blessingEvents.push({
+        id: ++b.blessingSeq,
+        time: b.time,
+        x: 0.13 + b.random() * 0.74,
+        y: 0.2 + b.random() * 0.42,
+        text,
+      });
+      b.blessingEvents = b.blessingEvents.slice(-32);
+      b.effects.push({
+        type: 'burst',
+        x: e.x,
+        y: worldY(e, b.time),
+        text: '',
+        color: '#fff0b2',
+        life: 0.65,
+      });
+      b.effects.push({
+        type: 'text',
+        x: e.x,
+        y: worldY(e, b.time),
+        text,
+        color: '#fff0b2',
+        life: 1.8,
+      });
+      message(b, text, '#fff0b2');
+      sound(b, 'chest');
+    }
+    return;
+  }
   const frontalShield = e.guardUntil > b.time && Math.abs(sourceX - e.x) < 0.16;
   const soulWard = b.entities.some(
     (other) => other.guardianOf === e.id && !other.done && other.hp > 0,
@@ -1658,6 +1679,7 @@ function stepPlayerBullets(b: Battle, oldTime: number) {
 export function activateSkill(b: Battle) {
   if (
     b.state !== 'running' ||
+    b.epilogue ||
     b.inputLocked ||
     b.transition ||
     b.levelChoices.length ||
@@ -2592,8 +2614,83 @@ function deityAttack(b: Battle, e: Entity, index: number) {
   b.messageUntil = b.time + 3.8;
 }
 
+/** The audio owner supplies real playback position, or its silent/error clock. */
+export function syncEpiloguePlayback(
+  b: Battle,
+  positionSeconds: number,
+  ended = false,
+) {
+  if (
+    !b.epilogue ||
+    b.state !== 'running' ||
+    !Number.isFinite(positionSeconds) ||
+    positionSeconds < 0
+  )
+    return false;
+  b.epiloguePlaybackSeconds = Math.max(
+    b.epiloguePlaybackSeconds,
+    Math.min(positionSeconds, EPILOGUE_DURATION_SECONDS + 1),
+  );
+  b.epilogueMusicEnded ||= ended;
+  return true;
+}
+
+function stepEpilogue(b: Battle) {
+  // No Run field is changed here: the celebration must preserve the hundredth
+  // room's resources and score. Audio stalls and pauses freeze this clock too.
+  const targetTime = b.epiloguePlaybackSeconds;
+  while (b.time < targetTime - 1e-8) {
+    const dt = Math.min(0.05, targetTime - b.time),
+      oldTime = b.time;
+    b.time += dt;
+    const dx =
+      b.targetX === null
+        ? b.inputAxis * BALANCE.moveSpeed * dt
+        : Math.sign(b.targetX - b.x) *
+          Math.min(Math.abs(b.targetX - b.x), BALANCE.pointerMaxSpeed * dt);
+    b.x = Math.max(BALANCE.minX, Math.min(BALANCE.maxX, b.x + dx));
+    b.effects = b.effects.filter((effect) => (effect.life -= dt) > 0);
+    b.blessingEvents = b.blessingEvents.filter(
+      (event) => b.time - event.time < EPILOGUE_EVENT_LIFETIME,
+    );
+    b.flash = Math.max(0, b.flash - dt);
+    b.skillFlash = Math.max(0, b.skillFlash - dt);
+    b.wave = Math.min(
+      b.totalWaves,
+      1 + Math.floor(b.time / EPILOGUE_WAVE_SPACING),
+    );
+    b.shootTimer -= dt;
+    if (b.shootTimer <= 0) {
+      firePlayerVolley(b);
+      b.shootTimer += 1 / combatStats(b).rate;
+    }
+    stepPlayerBullets(b, oldTime);
+    for (const entity of b.entities) {
+      if (entity.done || b.time < entity.arrival) continue;
+      if (entity.kind === 'gate' && entity.fakeSquare) {
+        // This is a visual joke. Never call applyGate or write a magnitude.
+        b.epilogueInfinity = true;
+        sound(b, 'gate');
+      }
+      // Unbroken chests expire silently: only an actual hit creates a blessing.
+      entity.done = true;
+    }
+  }
+  b.time = targetTime;
+  if (b.epilogueMusicEnded) {
+    b.state = 'won';
+    b.inputAxis = 0;
+    b.targetX = null;
+    b.bullets = [];
+  }
+}
+
 export function stepBattle(b: Battle, dt: number) {
   if (b.state !== 'running' || b.inputLocked) return;
+  if (b.epilogue) {
+    stepEpilogue(b);
+    return;
+  }
   dt = Math.min(0.05, Math.max(0, dt));
   if (b.transition) {
     b.cinematicTime += dt;
@@ -2994,13 +3091,6 @@ export function stepBattle(b: Battle, dt: number) {
     damagePlayer(b, damage, 0, pressure.bossId);
     if (b.state !== 'running') return;
     message(b, `${pressure.name} · 第 ${pressure.pulses} 次冲击`, '#ffc5ab');
-  }
-  if (b.epilogue && b.time >= b.duration && b.entities.every((e) => e.done)) {
-    b.state = 'won';
-    b.message = '绿色咸咸圈&GPT-6 Astra · 感谢你，远征者。游戏通关！';
-    b.messageUntil = b.time + 20;
-    logRun(b.player, '黎明归途 · 游戏通关');
-    return;
   }
   if (!b.epilogue && b.entities.filter((e) => e.boss).every((e) => e.done)) {
     b.state = 'won';

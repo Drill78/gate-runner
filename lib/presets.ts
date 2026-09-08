@@ -188,7 +188,7 @@ export function createDeveloperRun(
     run.phase = 'battle';
     // Dedicated ruler tests start at the actual encounter. Full-route presets
     // still retain their normal maps, waves, rewards and economy.
-    if (!run.devEncounter) {
+    if (!run.devEncounter && run.floor < 90) {
       const encounter = endlessEncounter(run);
       if (encounter) run.devEncounter = structuredClone(encounter);
     }

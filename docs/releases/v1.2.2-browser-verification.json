@@ -1,0 +1,25 @@
+{
+  "version": "1.2.2",
+  "url": "http://127.0.0.1:5173/",
+  "checkedAt": "2026-09-08T13:20:45.455819+00:00",
+  "method": "Codex browser UI: real controls, no state injection",
+  "checks": [
+    "main menu displays v1.2.2 without error overlay",
+    "developer 100-room celebration leads to epilogue",
+    "first gate renders Chinese 无限大 over the commander",
+    "real broken chests display the supplied animated GIF and only 恭喜/谢谢",
+    "GIFs fade out and do not cover the commander",
+    "pause screen holds the celebration, resume continues it",
+    "unmuted full curtain call reaches 恭喜 / 谢谢 / 绿色咸咸圈&GPT-6 Astra",
+    "return to developer menu works",
+    "new muted 390x640 replay starts with original finite army, then displays 无限大",
+    "muted replay still running at 73.113 seconds, credits present at 102.361 seconds",
+    "phone ending includes accessible exit control",
+    "no error-level console messages observed"
+  ],
+  "limitations": [
+    "The observation interval bounds completion, not a millisecond-level measurement of natural audio end. Audio onended and exact duration behavior are covered separately by automated player tests.",
+    "No claim of manually playing rooms 1–100 this revision.",
+    "Music emotion and instrument preferences remain for player listening; objective decoded audio checks are archived separately."
+  ]
+}

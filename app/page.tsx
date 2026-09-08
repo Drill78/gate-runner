@@ -303,7 +303,7 @@ export default function Home() {
 
   return (
     <main
-      className={`game-shell ${collection.secrets.includes('ascension') ? 'has-ascended' : ''} ${run.devMode ? 'is-developer' : ''} ${run.phase === 'setup' ? 'is-setup' : ''} ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
+      className={`game-shell ${collection.secrets.includes('ascension') ? 'has-ascended' : ''} ${run.devMode ? 'is-developer' : ''} ${battle?.epilogue ? 'is-epilogue' : ''} ${run.phase === 'setup' ? 'is-setup' : ''} ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
     >
       {run.phase === 'setup' ? (
         <GateEntrance
@@ -807,7 +807,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          正式版 <b>v1.2.1</b>
+          正式版 <b>v1.2.2</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>

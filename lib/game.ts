@@ -1033,6 +1033,15 @@ export function completeRoom(run: Run, reward = true): Run {
   if (!n.node || n.node.floor !== n.floor) return run;
   n.battleResume = false;
   n.path.push(n.node.id);
+  // The curtain call changes only navigation. Its pretend gates and gifts must
+  // never alter the hundredth-room score, health, army or growth history.
+  if (isEndless(n) && n.floor === 100) {
+    n.floor = 101;
+    n.phase = 'victory';
+    n.reward = [];
+    logRun(n, '绿色咸咸圈&GPT-6 Astra · 谢谢！');
+    return n;
+  }
   if (n.relics.lifebloom) {
     const growth = n.relics.lifebloom * 3;
     n.maxHp = Math.min(hpLimit(n), n.maxHp + growth);
@@ -1088,12 +1097,6 @@ export function completeRoom(run: Run, reward = true): Run {
     n.path = [];
     n.node = null;
     logRun(n, '迷雾终破，凡躯登神。感谢你，把这束火带到了最后。');
-    return n;
-  }
-  if (isEndless(n) && n.floor === 101) {
-    n.phase = 'victory';
-    n.reward = [];
-    logRun(n, '绿色咸咸圈&GPT-6 Astra · 谢谢你走到这里。游戏通关！');
     return n;
   }
   if (n.floor === TOTAL_FLOORS && !isEndless(n)) {

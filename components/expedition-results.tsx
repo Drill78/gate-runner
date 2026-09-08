@@ -13,6 +13,7 @@ import { formatMagnitude, peakArmyMagnitude } from '@/lib/army';
 import { combatClock, identity } from '@/lib/chronicle';
 import { RecordSeal } from './chronicle-panel';
 import './expedition-results.css';
+import './epilogue-celebration.css';
 
 const subscribe = (fn: () => void) => {
   window.addEventListener('ashen-chronicle', fn);
@@ -48,6 +49,34 @@ export function ExpeditionResults({
     Boolean(run.ascended);
   const won = ascension || run.phase === 'victory';
   const fallen = run.phase === 'fallen';
+  if (epilogue)
+    return (
+      <article className="expedition-result result-won result-ascended">
+        <div className="result-radiance" aria-hidden="true" />
+        {run.devMode && onDeveloperMenu && (
+          <nav className="result-test-navigation" aria-label="演武场导航">
+            <button className="secondary-button" onClick={onDeveloperMenu}>
+              返回演武场
+            </button>
+            <button className="text-button" onClick={onRestart}>
+              退出演练
+            </button>
+          </nav>
+        )}
+        <div className="curtain-credit">
+          <h2>恭喜</h2>
+          <p>谢谢</p>
+          <div className="creator-credit">
+            <strong>绿色咸咸圈&GPT-6 Astra</strong>
+          </div>
+        </div>
+        <div className="result-actions">
+          <button className="primary-button" onClick={onRestart}>
+            {run.devMode ? '退出演练' : '返回启程之地'} <ArrowRight size={18} />
+          </button>
+        </div>
+      </article>
+    );
   const total = run.difficulty === 'endless' ? 100 : 15;
   const points = (run.journey || []).filter((p) => p.room <= total);
   const maxLog = Math.max(1, ...points.map((p) => p.armyLog));

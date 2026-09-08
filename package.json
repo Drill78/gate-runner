@@ -1,6 +1,6 @@
 {
   "name": "ashen-gates",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "engines": {
     "node": ">=24.0.0"
@@ -10,7 +10,7 @@
     "build": "vite build --config vite.static.config.ts",
     "start": "vite preview --config vite.static.config.ts --host 127.0.0.1",
     "build:sites": "vinext build",
-    "lint": "oxlint app lib db components/battle-canvas.tsx components/game-panels.tsx components/boss-arrival.tsx components/game-tutorial.tsx components/gate-entrance.tsx components/collection-panel.tsx components/chronicle-panel.tsx components/developer-console.tsx components/expedition-results.tsx tests vite.config.ts vite.static.config.ts drizzle.config.ts next.config.ts",
+    "lint": "oxlint app lib db components/battle-canvas.tsx components/game-panels.tsx components/boss-arrival.tsx components/game-tutorial.tsx components/gate-entrance.tsx components/collection-panel.tsx components/chronicle-panel.tsx components/developer-console.tsx components/expedition-results.tsx components/epilogue-celebration.tsx tests vite.config.ts vite.static.config.ts drizzle.config.ts next.config.ts",
     "test": "node --test --test-isolation=none tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "format": "oxfmt",

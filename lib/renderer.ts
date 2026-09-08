@@ -44,7 +44,7 @@ export function drawBattle(
         : '#d2b3ff';
   const captions: { entity: Entity; x: number; y: number }[] = [];
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#202a28';
+  ctx.fillStyle = b.epilogue ? '#d6d5e4' : '#202a28';
   ctx.fillRect(0, 0, w, h);
   if (background?.complete && background.naturalWidth > 0) {
     const factor = Math.max(
@@ -58,6 +58,15 @@ export function drawBattle(
   }
   if (b.player.node?.enchanted) {
     ctx.fillStyle = '#07031172';
+    ctx.fillRect(0, 0, w, h);
+  }
+  if (b.epilogue) {
+    // A warm, almost overexposed curtain call after the oppressive staircase.
+    const light = ctx.createLinearGradient(0, 0, w, h);
+    light.addColorStop(0, '#f0dafa85');
+    light.addColorStop(0.5, '#fff6d668');
+    light.addColorStop(1, '#c6e7ed78');
+    ctx.fillStyle = light;
     ctx.fillRect(0, 0, w, h);
   }
   const holyField = b.player.difficulty === 'endless' && b.player.floor >= 90;
@@ -315,7 +324,9 @@ export function drawBattle(
     const gh = 67 * scale;
     if (y + gh / 2 < 0 || y - gh / 2 > h) return;
     for (const g of e.gate!) {
-      const inscription = gateLabel(effectiveGate(b.player, g));
+      const inscription = b.epilogue
+        ? 'x²'
+        : gateLabel(effectiveGate(b.player, g));
       const x = X(g.left),
         right = X(g.right),
         gw = right - x;
@@ -364,7 +375,7 @@ export function drawBattle(
         squared ? '#ffdeb0' : color,
         '700',
       );
-      if (!e.trialStep && (gw > 65 || squared || g.op === '√'))
+      if (!b.epilogue && !e.trialStep && (gw > 65 || squared || g.op === '√'))
         label(
           squared
             ? '平方'
@@ -1430,6 +1441,7 @@ export function drawBattle(
   }
   // Combat captions remain above decorative effects. Boss HP belongs to the UI.
   for (const { entity: e, x, y } of captions) {
+    if (b.epilogue) continue;
     ctx.save();
     if (e.start > b.time) ctx.globalAlpha = 0.62;
     if (e.kind === 'chest') {
@@ -1481,8 +1493,12 @@ export function drawBattle(
   }
   ctx.globalAlpha = 1;
   // The army count travels with the commander and is never dimmed by hit flashes.
-  const armyLabel = formatArmy(b.player);
-  const armyFont = Math.min(32, 360 / Math.max(10, armyLabel.length));
+  const armyLabel =
+    b.epilogue && b.epilogueInfinity ? '无限大' : formatArmy(b.player);
+  const armyFont =
+    b.epilogue && b.epilogueInfinity
+      ? Math.max(36, 46 * scale)
+      : Math.min(32, 360 / Math.max(10, armyLabel.length));
   label(armyLabel, playerX, playerY - 35 * scale, armyFont, '#fff0bd', '800');
   if (b.transition?.kind === 'shatter') {
     const t = 1 - b.transition.remaining / b.transition.duration;

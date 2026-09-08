@@ -18,6 +18,7 @@ import {
 } from '../lib/collection.ts';
 import { persistRun, persistCollection } from '../lib/storage.ts';
 import { trackChronicle } from '../lib/chronicle.ts';
+import { createDeveloperRun, DEVELOPER_PRESETS } from '../lib/presets.ts';
 
 function arrive(room = 1, mode = 'endless') {
   let run = { ...createRun('knight', 721604, mode), phase: 'map' };
@@ -104,6 +105,8 @@ test('the 100th victory is resumable, unlocks hidden ascension once, and epilogu
   const end = completeRoom(celebration);
   assert.equal(end.phase, 'victory');
   assert.equal(end.floor, 101);
+  // Completed journeys no longer offer an active resume slot.
+  assert.equal(restoreRun(JSON.stringify(end)), null);
   assert.equal(availableNodes(end).length, 0);
   assert.equal(beginEpilogue(end), end);
   assert.equal(completeRoom(end), end);
@@ -123,6 +126,43 @@ test('old unbounded saves must defeat the new last royal court before entering t
   assert.equal(restored.legacyPendingCheckpoint, 90);
   assert.equal(availableNodes(restored).length, 1);
   assert.equal(availableNodes(restored)[0].kind, 'boss');
+});
+
+test('the developer deity flows into the complete curtain call without changing earned stats', () => {
+  const testRun = createDeveloperRun(
+    'mage',
+    DEVELOPER_PRESETS.find((p) => p.id === 'deity'),
+  );
+  assert.equal(testRun.devEncounter, undefined);
+  const won = completeRoom(testRun);
+  assert.equal(won.phase, 'ascension');
+  assert.equal(won.floor, 100);
+  won.relics.lifebloom = 1;
+  const celebration = beginEpilogue(won);
+  const baseline = structuredClone(celebration);
+  const end = completeRoom(celebration);
+  for (const key of [
+    'hp',
+    'maxHp',
+    'squad',
+    'squadMagnitude',
+    'peakSquad',
+    'peakSquadMagnitude',
+    'xp',
+    'weaponTier',
+    'gold',
+    'goldEarned',
+    'chests',
+    'kills',
+    'gates',
+    'combatTime',
+    'journey',
+    'relics',
+  ])
+    assert.deepEqual(end[key], baseline[key], key);
+  assert.equal(end.floor, 101);
+  assert.equal(end.phase, 'victory');
+  assert.equal(restoreRun(JSON.stringify(end)), null);
 });
 test('developer previews cannot overwrite real saves, grant achievements, or enqueue public scores', () => {
   const oldStorage = globalThis.localStorage,

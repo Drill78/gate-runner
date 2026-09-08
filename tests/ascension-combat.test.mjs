@@ -16,13 +16,17 @@ import {
   movePlayer,
   arrivalDuration,
   spectacleDuration,
-  EPILOGUE_BLESSINGS,
+  syncEpiloguePlayback,
   skipBattleUpgrade,
   bossAttackInterval,
   DEITY_SKILLS,
   ASCENDANT_SOLAR_SKILLS,
   ASCENDANT_ECLIPSE_SKILLS,
 } from '../lib/combat.ts';
+import {
+  EPILOGUE_DURATION_SECONDS,
+  EPILOGUE_EVENT_LIFETIME,
+} from '../lib/epilogue.ts';
 
 function arena(ids = ['king'], mutations = [], secondLives = false) {
   const run = createRun('ranger', 734, 'endless');
@@ -480,31 +484,247 @@ test('the deity cannot be burst skipped and floating point remnants do not make 
   assert.ok(b.time - e.start >= 72);
 });
 
-test('the peaceful epilogue contains only positive gates and blessings and ends after its procession', () => {
-  const run = createRun('mage', 734, 'endless');
+function epilogueArena(classId = 'mage') {
+  const run = createRun(classId, 734, 'endless');
   run.floor = 100;
   run.phase = 'battle';
+  run.relics.ambush = 3;
+  run.relics.lifebloom = 2;
   run.node = { id: 'epilogue', floor: 100, col: 0, kind: 'treasure', next: [] };
-  const b = createBattle(run),
-    hp = b.player.hp;
-  assert.ok(b.epilogue);
-  assert.ok(b.entities.every((e) => e.kind === 'chest' || e.kind === 'gate'));
-  assert.ok(
-    b.entities
-      .filter((e) => e.gate)
-      .every((e) => e.gate.every((g) => g.op === '×' && g.value > 1)),
-  );
+  return { run, battle: createBattle(run) };
+}
+
+test('epilogue fake squares change only the display flag and preserve every saved player field', () => {
+  for (const classId of ['knight', 'ranger', 'mage']) {
+    const { run, battle: b } = epilogueArena(classId);
+    assert.ok(b.epilogue);
+    assert.deepEqual(
+      b.player,
+      run,
+      'even ambush must not grant troops on entry',
+    );
+    assert.ok(b.entities.every((e) => e.kind === 'chest' || e.kind === 'gate'));
+    assert.ok(
+      b.entities
+        .filter((e) => e.gate)
+        .every(
+          (e) =>
+            e.fakeSquare &&
+            e.gate.every((g) => g.op === '²' && g.left === -1 && g.right === 1),
+        ),
+    );
+    assert.equal(b.epilogueInfinity, false);
+    syncEpiloguePlayback(b, 2.9);
+    stepBattle(b, 2.9);
+    assert.equal(b.epilogueInfinity, false);
+    syncEpiloguePlayback(b, 12);
+    stepBattle(b, 9.1);
+    assert.equal(b.time, 12);
+    assert.equal(b.epilogueInfinity, true);
+    assert.equal(activateSkill(b), false);
+    damagePlayer(b, 99999);
+    assert.deepEqual(
+      b.player,
+      run,
+      'gates, chest hits, skills and damage cannot change the result',
+    );
+  }
+});
+
+test('epilogue time follows audio position and only an explicit music-ended signal can finish it', () => {
+  const { battle: b } = epilogueArena();
+  advance(b, 100);
   assert.equal(
-    b.entities.filter((e) => e.blessing).length,
-    EPILOGUE_BLESSINGS.length,
+    b.time,
+    0,
+    'animation frames cannot advance a paused or blocked song',
   );
-  stepBattle(b, 0.05);
   assert.equal(b.state, 'running');
-  damagePlayer(b, 99999);
-  assert.equal(b.player.hp, hp);
-  advance(b, 35);
+  assert.equal(syncEpiloguePlayback(b, NaN, true), false);
+  assert.equal(syncEpiloguePlayback(b, Infinity, true), false);
+  assert.equal(syncEpiloguePlayback(b, -1, true), false);
+  syncEpiloguePlayback(b, 70);
+  stepBattle(b, 70);
+  assert.equal(b.time, 70);
+  assert.equal(b.state, 'running');
+  syncEpiloguePlayback(b, 1);
+  stepBattle(b, 100);
+  assert.equal(
+    b.time,
+    70,
+    'a stale playback sample cannot replay gates or boxes',
+  );
+  syncEpiloguePlayback(b, EPILOGUE_DURATION_SECONDS);
+  stepBattle(b, 20);
+  assert.equal(
+    b.state,
+    'running',
+    'the known duration is not an independent victory timer',
+  );
+  for (const entity of b.entities) entity.done = true;
+  advance(b, 50);
+  assert.equal(
+    b.state,
+    'running',
+    'clearing all scenery cannot finish the song',
+  );
+  const player = structuredClone(b.player);
+  syncEpiloguePlayback(b, EPILOGUE_DURATION_SECONDS, true);
+  stepBattle(b, 0);
   assert.equal(b.state, 'won');
-  assert.match(b.message, /绿色咸咸圈&GPT-6 Astra/);
+  assert.deepEqual(b.player, player);
+  const ordinary = createBattle(createRun('mage', 123));
+  assert.equal(
+    syncEpiloguePlayback(ordinary, EPILOGUE_DURATION_SECONDS, true),
+    false,
+  );
+  assert.equal(ordinary.state, 'running');
+});
+
+test('real epilogue volleys produce plentiful unique blessings while missed boxes produce no events', () => {
+  for (const classId of ['knight', 'ranger', 'mage']) {
+    const { run, battle: b } = epilogueArena(classId);
+    syncEpiloguePlayback(b, 42);
+    stepBattle(b, 42);
+    assert.ok(
+      b.blessingSeq >= 25,
+      `${classId}: a stationary visitor keeps breaking center boxes`,
+    );
+    assert.ok(b.blessingEvents.length > 4 && b.blessingEvents.length <= 32);
+    assert.equal(
+      new Set(b.blessingEvents.map((event) => event.id)).size,
+      b.blessingEvents.length,
+    );
+    for (const event of b.blessingEvents) {
+      assert.ok(['恭喜', '谢谢'].includes(event.text));
+      assert.ok(event.x >= 0.13 && event.x <= 0.87);
+      assert.ok(event.y >= 0.2 && event.y <= 0.62);
+      assert.ok(
+        event.time <= b.time && b.time - event.time < EPILOGUE_EVENT_LIFETIME,
+      );
+    }
+    const broken = b.entities.find(
+      (entity) => entity.kind === 'chest' && entity.done && entity.hp === 0,
+    );
+    const seq = b.blessingSeq;
+    hitEntity(b, broken, 1000000);
+    assert.equal(
+      b.blessingSeq,
+      seq,
+      'the same destroyed box cannot emit twice',
+    );
+    assert.deepEqual(b.player, run);
+  }
+  const { run, battle: missed } = epilogueArena();
+  missed.shootTimer = Infinity;
+  syncEpiloguePlayback(missed, 20);
+  stepBattle(missed, 20);
+  assert.ok(
+    missed.entities.some((entity) => entity.kind === 'chest' && entity.done),
+  );
+  assert.equal(missed.blessingSeq, 0);
+  assert.deepEqual(missed.blessingEvents, []);
+  assert.deepEqual(missed.player, run);
+});
+
+test('epilogue keeps central gifts flowing while side gifts build toward the finale and finish travelling in time', () => {
+  const { battle: plan } = epilogueArena();
+  const gates = plan.entities.filter((e) => e.kind === 'gate');
+  for (let i = 1; i < gates.length; i++)
+    assert.ok(Math.abs(gates[i].start - gates[i - 1].start - 1.35) < 1e-8);
+  const boxes = plan.entities.filter((e) => e.kind === 'chest');
+  assert.ok(boxes.every((e) => e.arrival <= EPILOGUE_DURATION_SECONDS));
+  assert.ok(boxes.every((e) => e.start < EPILOGUE_DURATION_SECONDS - 2));
+  const ranges = [
+    [0, 18],
+    [18, EPILOGUE_DURATION_SECONDS - 24],
+    [EPILOGUE_DURATION_SECONDS - 24, EPILOGUE_DURATION_SECONDS],
+  ];
+  const density = (items, field) =>
+    ranges.map(
+      ([from, to]) =>
+        items.filter((item) => item[field] >= from && item[field] < to).length /
+        (to - from),
+    );
+  const spawnDensity = density(boxes, 'start');
+  assert.ok(
+    spawnDensity[0] < spawnDensity[1] && spawnDensity[1] < spawnDensity[2],
+  );
+  const central = boxes.filter((e) => e.x === 0);
+  for (let i = 1; i < central.length; i++)
+    assert.ok(Math.abs(central[i].start - central[i - 1].start - 1.35) < 1e-8);
+  for (const classId of ['knight', 'ranger', 'mage']) {
+    for (const moving of [false, true]) {
+      const { run, battle: b } = epilogueArena(classId);
+      const events = [];
+      let previousId = 0;
+      for (
+        let frame = 1;
+        frame <= Math.ceil(EPILOGUE_DURATION_SECONDS * 20);
+        frame++
+      ) {
+        const time = Math.min(EPILOGUE_DURATION_SECONDS, frame / 20);
+        if (moving) {
+          const target = b.entities
+            .filter(
+              (e) =>
+                e.kind === 'chest' &&
+                !e.done &&
+                e.start <= time &&
+                e.arrival > time,
+            )
+            .sort((a, z) => a.arrival - z.arrival)[0];
+          movePlayer(b, target?.x ?? 0);
+        }
+        syncEpiloguePlayback(b, time);
+        stepBattle(b, 0.05);
+        events.push(...b.blessingEvents.filter((e) => e.id > previousId));
+        previousId = b.blessingSeq;
+        assert.ok(b.blessingEvents.length <= 32);
+      }
+      assert.ok(
+        events.length >= (moving ? 100 : 55),
+        `${classId}: continuous actual hits`,
+      );
+      assert.ok(events.at(-1).time > EPILOGUE_DURATION_SECONDS - 6);
+      const gaps = events
+        .slice(1)
+        .map((event, i) => event.time - events[i].time);
+      assert.ok(
+        Math.max(...gaps) <= 1.6,
+        `${classId}: no empty stretch between gifts`,
+      );
+      if (moving) {
+        const frequency = density(events, 'time');
+        assert.ok(frequency[0] < frequency[1] && frequency[1] < frequency[2]);
+      }
+      assert.equal(b.state, 'running');
+      assert.deepEqual(b.player, run);
+    }
+  }
+});
+
+test('a delayed epilogue playback sample catches up the same hits and gates as continuous playback', () => {
+  const { battle: delayed } = epilogueArena('ranger');
+  const { battle: continuous } = epilogueArena('ranger');
+  for (let frame = 1; frame <= 240; frame++) {
+    syncEpiloguePlayback(continuous, frame / 20);
+    stepBattle(continuous, 0.05);
+  }
+  delayed.inputLocked = true;
+  syncEpiloguePlayback(delayed, 12);
+  stepBattle(delayed, 12);
+  assert.equal(delayed.time, 0);
+  delayed.inputLocked = false;
+  stepBattle(delayed, 12);
+  assert.equal(delayed.time, continuous.time);
+  assert.equal(delayed.epilogueInfinity, continuous.epilogueInfinity);
+  assert.equal(delayed.blessingSeq, continuous.blessingSeq);
+  assert.deepEqual(
+    delayed.entities.filter((e) => e.done).map((e) => [e.id, e.hp]),
+    continuous.entities.filter((e) => e.done).map((e) => [e.id, e.hp]),
+  );
+  assert.deepEqual(delayed.player, continuous.player);
 });
 
 test('actual final-battle output crosses the ascension screen into a finite epilogue', () => {
@@ -529,8 +749,11 @@ test('actual final-battle output crosses the ascension screen into a finite epil
   assert.equal(crowned.phase, 'ascension');
   assert.equal(crowned.floor, 100);
   const celebration = createBattle(beginEpilogue(crowned));
-  advance(celebration, 35);
+  const sealed = structuredClone(celebration.player);
+  syncEpiloguePlayback(celebration, EPILOGUE_DURATION_SECONDS, true);
+  stepBattle(celebration, EPILOGUE_DURATION_SECONDS);
   assert.equal(celebration.state, 'won');
+  assert.deepEqual(celebration.player, sealed);
   const ending = completeRoom(celebration.player);
   assert.equal(ending.phase, 'victory');
   assert.equal(ending.floor, 101);

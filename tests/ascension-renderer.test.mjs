@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun } from '../lib/game.ts';
-import { createBattle, DEITY_SKILLS } from '../lib/combat.ts';
+import {
+  createBattle,
+  DEITY_SKILLS,
+  syncEpiloguePlayback,
+  stepBattle,
+} from '../lib/combat.ts';
 import { drawBattle } from '../lib/renderer.ts';
 import {
   drawAscensionBoss,
@@ -346,4 +351,30 @@ test('ritual safe corridors preserve exact collision bounds while skill flashes 
       `${hero}: no false circular footprint`,
     );
   }
+});
+
+test('the curtain call renders the Chinese infinity gag without numeric or reward labels', () => {
+  const run = createRun('mage', 734, 'endless');
+  Object.assign(run, {
+    floor: 100,
+    phase: 'battle',
+    ascended: true,
+    node: { id: '100-2', floor: 100, col: 2, kind: 'treasure', next: [] },
+  });
+  const b = createBattle(run);
+  syncEpiloguePlayback(b, 6);
+  stepBattle(b, 0.05);
+  assert.equal(b.epilogueInfinity, true);
+  const before = structuredClone(b.player);
+  const rec = recorder();
+  drawBattle(rec.ctx, 390, 640, b);
+  const words = rec.calls
+    .filter((call) => call.method === 'fillText')
+    .map((call) => call.args[0]);
+  assert.ok(words.includes('无限大'));
+  assert.ok(
+    words.every((text) => ['无限大', 'x²', '恭喜', '谢谢'].includes(text)),
+    JSON.stringify(words),
+  );
+  assert.deepEqual(b.player, before);
 });

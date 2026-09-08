@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { type Run, RELIC_BY_ID, experience } from '@/lib/game';
 import {
   type Battle,
@@ -13,6 +13,7 @@ import {
   skipBattleUpgrade,
   kingPhase,
   type BattleTransition,
+  syncEpiloguePlayback,
 } from '@/lib/combat';
 import { arrivalRoster, type ArrivalCard } from '@/lib/arrivals';
 import { pointerToWorldX, screenX, screenY, VIEW } from '@/lib/view';
@@ -29,6 +30,9 @@ import { bossProfile, ENCOUNTERS } from '@/lib/bosses';
 import { BossArrival } from '@/components/boss-arrival';
 import { battleMusic, musicPlayer } from '@/lib/music';
 import { actIndex } from '@/lib/endless';
+import { EpilogueClock } from '@/lib/epilogue-clock';
+import type { EpilogueBlessingEvent } from '@/lib/epilogue';
+import { EpilogueCelebration } from '@/components/epilogue-celebration';
 
 export interface BattleSnapshot {
   run: Run;
@@ -81,6 +85,15 @@ export function BattleCanvas({
   const [transitionArrival, setTransitionArrival] =
     useState<BattleTransition | null>(null);
   const [levelChoices, setLevelChoices] = useState(battle.levelChoices);
+  const { clock: epilogueClock } = useMemo(
+    () => ({ battle, clock: new EpilogueClock() }),
+    [battle],
+  );
+  const [celebration, setCelebration] = useState<{
+    battle: Battle | null;
+    time: number;
+    events: EpilogueBlessingEvent[];
+  }>({ battle: null, time: 0, events: [] });
   const current = useRef({
     paused,
     muted,
@@ -99,7 +112,22 @@ export function BattleCanvas({
       onPause,
     };
     if (paused) setMoveAxis(battle, 0);
-  }, [paused, muted, doubleTapSkill, onSnapshot, onEnd, onPause, battle]);
+    musicPlayer.setState(
+      epilogueClock.fallback ? null : battleMusic(battle),
+      paused || document.hidden || !!battle.levelChoices.length,
+      muted,
+      battle.epilogue ? battle : undefined,
+    );
+  }, [
+    paused,
+    muted,
+    doubleTapSkill,
+    onSnapshot,
+    onEnd,
+    onPause,
+    battle,
+    epilogueClock,
+  ]);
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
@@ -116,6 +144,10 @@ export function BattleCanvas({
       introShownStage = -1;
     let introQueue: ArrivalCard[] = [];
     const background = new Image();
+    if (battle.epilogue) {
+      const applause = new Image();
+      applause.src = '/art/congratulations-evangelion.gif';
+    }
     background.src =
       battle.player.difficulty === 'endless' && battle.player.floor >= 90
         ? '/art/ascension-stair.webp'
@@ -308,8 +340,18 @@ export function BattleCanvas({
         activateSkill(battle);
     };
     const loop = (now: number) => {
-      const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
+      const elapsed = last ? Math.max(0, (now - last) / 1000) : 0;
+      const dt = Math.min(elapsed, 0.05);
       last = now;
+      musicPlayer.setState(
+        epilogueClock.fallback ? null : battleMusic(battle),
+        current.current.paused ||
+          document.hidden ||
+          !!battle.levelChoices.length ||
+          finished,
+        current.current.muted,
+        battle.epilogue ? battle : undefined,
+      );
       if (
         current.current.paused ||
         document.hidden ||
@@ -321,6 +363,16 @@ export function BattleCanvas({
         held.clear();
       }
       if (!current.current.paused && !document.hidden && !finished) {
+        if (battle.epilogue) {
+          epilogueClock.advance(musicPlayer.playback(battle), elapsed, false);
+          if (epilogueClock.fallback)
+            musicPlayer.setState(null, true, current.current.muted);
+          syncEpiloguePlayback(
+            battle,
+            epilogueClock.position,
+            epilogueClock.ended,
+          );
+        }
         let startedArrival = false;
         if (
           !battle.levelChoices.length &&
@@ -365,7 +417,7 @@ export function BattleCanvas({
         } else stepBattle(battle, dt);
         if (battle.soundSeq !== lastSound) {
           lastSound = battle.soundSeq;
-          play(battle.lastSound);
+          if (!battle.epilogue) play(battle.lastSound);
         }
       }
       setTransitionArrival((previous) =>
@@ -376,16 +428,14 @@ export function BattleCanvas({
             : null,
       );
       drawBattle(ctx, w, h, battle, reducedMotion, background, models);
-      musicPlayer.setState(
-        battleMusic(battle),
-        current.current.paused ||
-          document.hidden ||
-          !!battle.levelChoices.length ||
-          finished,
-        current.current.muted,
-      );
       if (now - lastUI > 100) {
         lastUI = now;
+        if (battle.epilogue)
+          setCelebration({
+            battle,
+            time: battle.time,
+            events: [...battle.blessingEvents],
+          });
         setLevelChoices((previous) =>
           previous === battle.levelChoices ? previous : battle.levelChoices,
         );
@@ -497,6 +547,19 @@ export function BattleCanvas({
     };
     window.addEventListener('keyup', keyup);
     window.addEventListener('blur', blur);
+    const visibility = () => {
+      last = 0;
+      musicPlayer.setState(
+        epilogueClock.fallback ? null : battleMusic(battle),
+        current.current.paused ||
+          document.hidden ||
+          !!battle.levelChoices.length ||
+          finished,
+        current.current.muted,
+        battle.epilogue ? battle : undefined,
+      );
+    };
+    document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pointerdown', ensureAudio);
     element.addEventListener('pointerdown', pointer);
     element.addEventListener('pointermove', drag);
@@ -513,6 +576,7 @@ export function BattleCanvas({
       window.removeEventListener('keydown', key);
       window.removeEventListener('keyup', keyup);
       window.removeEventListener('blur', blur);
+      document.removeEventListener('visibilitychange', visibility);
       window.removeEventListener('pointerdown', ensureAudio);
       element.removeEventListener('pointerdown', pointer);
       element.removeEventListener('pointermove', drag);
@@ -521,14 +585,24 @@ export function BattleCanvas({
       if (audio) void audio.close().catch(() => {});
       musicPlayer.setState(null, true, current.current.muted);
     };
-  }, [battle]);
+  }, [battle, epilogueClock]);
   return (
     <>
       <canvas
         ref={canvas}
         className="battle-canvas"
-        aria-label="俯视战斗场地：按住方向键或 A D 连续左右移动，空格释放技能。触屏点击任意位置或拖动移动。"
+        aria-label={
+          battle.epilogue
+            ? `最后的祝福：左右移动击破宝箱。${battle.epilogueInfinity ? '无限大。' : ''}`
+            : '俯视战斗场地：按住方向键或 A D 连续左右移动，空格释放技能。触屏点击任意位置或拖动移动。'
+        }
       />
+      {battle.epilogue && (
+        <EpilogueCelebration
+          events={celebration.battle === battle ? celebration.events : []}
+          time={celebration.battle === battle ? celebration.time : 0}
+        />
+      )}
       {arrival || transitionArrival?.kind === 'revival' ? (
         <BossArrival
           key={
