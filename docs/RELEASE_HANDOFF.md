@@ -1,5 +1,7 @@
 # 灰烬之门 · 1.0 发布交接已完成
 
+> 后续方向：用户决定以 1.0 为原型，在独立文件夹、Git 仓库与新对话中开展完整 3D 重构。请阅读 [3D 重构交接](3D_REBUILD_HANDOFF.md)、[美术与模型清单](3D_ASSET_PLAN.md) 和 [新对话启动指令](3D_NEW_THREAD_PROMPT.md)。这不改变本文件记录的已发布 1.0 状态。
+
 2026-09-08。当前正式地址已发布 1.0，结束 Early Access，无待执行发布步骤。
 
 - 正式地址：https://gate-runner-seven.vercel.app

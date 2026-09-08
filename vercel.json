@@ -6,7 +6,11 @@
   "installCommand": "npm ci",
   "rewrites": [
     {
-      "source": "/((?!assets/|art/|audio/|fonts/|favicon.svg).*)",
+      "source": "/api/chronicle/:path*",
+      "destination": "https://ashen-gates-zhour.green-salnut.chatgpt.site/api/chronicle/:path*"
+    },
+    {
+      "source": "/((?!api/|assets/|art/|audio/|fonts/|favicon.svg).*)",
       "destination": "/index.html"
     }
   ],

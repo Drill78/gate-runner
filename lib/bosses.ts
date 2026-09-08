@@ -139,9 +139,14 @@ export const ENCOUNTERS: EncounterProfile[] = [
   },
 ];
 export function bossProfile(
-  run: Pick<Run, 'floor' | 'node' | 'seed'>,
+  run: Pick<Run, 'floor' | 'node' | 'seed'> & Partial<Pick<Run, 'difficulty'>>,
 ): EncounterProfile {
-  const act = Math.min(2, Math.floor(run.floor / ACT_LENGTH));
+  const act = Math.min(
+    2,
+    Math.floor(
+      (run.difficulty === 'endless' ? run.floor % 15 : run.floor) / ACT_LENGTH,
+    ),
+  );
   if (run.node?.kind === 'boss') {
     const pool = ENCOUNTERS.filter((e) => e.kind === 'boss' && e.act === act);
     return pool[(run.seed >>> (act * 3)) % pool.length];

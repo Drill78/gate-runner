@@ -665,6 +665,16 @@ export function scoreRelic(run, id, mode) {
   return value;
 }
 export function scoreReward(run, id, mode) {
+  if (id.startsWith('abyss-')) {
+    if (id === 'abyss-bind') return 190;
+    if (id === 'abyss-reforge') {
+      const next = chooseReward(run, id);
+      return g.firepower(next).dps > g.firepower(run).dps * 1.1 ? 185 : 30;
+    }
+    if (id === 'abyss-heart') return run.hp < run.maxHp * 0.65 ? 200 : 80;
+    if (id === 'abyss-lore') return run.endless.keysOpened > 0 ? 155 : 50;
+    return id === 'abyss-legion' ? 105 : 100;
+  }
   if (id === 'supply-epic-cache')
     return (
       (mode === 'economy' ? 120 : 60) + Math.min(50, run.maxHp - run.hp) * 1.75
@@ -737,11 +747,12 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
   run.phase = 'map';
   const rooms = [];
   const decisions = [];
-  while (run.floor < TOTAL_FLOORS && run.phase !== 'defeat') {
+  const targetFloor = options.maxFloors || TOTAL_FLOORS;
+  while (run.floor < targetFloor && run.phase !== 'defeat') {
     if (run.phase !== 'map')
       throw new Error(`Unexpected route phase ${run.phase}.`);
-    if (decisions.length >= TOTAL_FLOORS)
-      throw new Error(`Route exceeded ${TOTAL_FLOORS} floors.`);
+    if (decisions.length >= targetFloor)
+      throw new Error(`Route exceeded ${targetFloor} floors.`);
     const choices = availableNodes(run);
     // Fixed route policy, no future-room knowledge or reward previews.
     const act = Math.floor(run.floor / ACT_LENGTH);
@@ -854,8 +865,11 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
     classId,
     seed,
     difficulty: run.difficulty,
+    endless: run.endless,
     mode,
-    win: run.phase === 'victory',
+    win:
+      run.phase === 'victory' ||
+      (run.difficulty === 'endless' && run.floor >= targetFloor),
     floor: run.floor,
     hp: run.hp,
     squad: run.squad,
@@ -871,7 +885,10 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
     rooms,
     decisions,
     failure:
-      run.phase === 'victory' ? null : rooms.at(-1)?.deathCause || 'incomplete',
+      run.phase === 'victory' ||
+      (run.difficulty === 'endless' && run.floor >= targetFloor)
+        ? null
+        : rooms.at(-1)?.deathCause || 'incomplete',
   };
 }
 export function summarize(results) {

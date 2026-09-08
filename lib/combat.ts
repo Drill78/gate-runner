@@ -1,7 +1,6 @@
 import {
   HEROES,
   ACT_LENGTH,
-  MAX_WEAPON_LEVEL,
   HP_PER_LEVEL,
   grantGold,
   stats,
@@ -20,6 +19,15 @@ import {
 } from './game.ts';
 import { VIEW } from './view.ts';
 import { bossProfile, ENCOUNTERS } from './bosses.ts';
+import {
+  actIndex,
+  localFloor,
+  isEndless,
+  depthHealth,
+  weaponLimit,
+  endlessEncounter,
+  type BossMutation,
+} from './endless.ts';
 
 export const BALANCE = {
   moveSpeed: 2.2,
@@ -59,6 +67,9 @@ export interface GateSegment extends GateChoice {
   right: number;
 }
 export interface Entity {
+  stage?: number;
+  mutation?: BossMutation;
+  fusionId?: string;
   id: number;
   kind: 'gate' | 'chest' | 'enemy' | 'hazard';
   x: number;
@@ -183,6 +194,11 @@ export interface BossPressure {
   flashUntil: number;
 }
 export interface Battle {
+  rushStage: number;
+  rushStages: number;
+  nextBossCast: number;
+  nextAllyAttack: number;
+  encounterName: string;
   player: Run;
   levelChoices: string[];
   encounterKills: Record<string, number>;
@@ -335,7 +351,7 @@ export function scaleGateNumbers(
 }
 export function createBattle(run: Run): Battle {
   const player = structuredClone(run),
-    act = Math.floor(player.floor / ACT_LENGTH),
+    act = actIndex(player),
     random = seededRandom(
       player.seed + player.floor * 719 + (player.node?.col || 0) * 103,
     );
@@ -347,7 +363,8 @@ export function createBattle(run: Run): Battle {
     bossRoom = player.node?.kind === 'boss',
     treasure = player.node?.kind === 'treasure';
   const difficulty =
-    Math.pow(BALANCE.hpGrowth, player.floor) *
+    Math.pow(BALANCE.hpGrowth, localFloor(player)) *
+    depthHealth(player) *
     (elite ? 1.24 : 1) *
     (superElite ? BALANCE.superEliteHpMultiplier : 1) *
     (treasure ? 0.85 : 1) *
@@ -397,7 +414,11 @@ export function createBattle(run: Run): Battle {
           ? start - 2.7
           : start + 1.5,
       volleyDamage:
-        (8 + player.floor * 1.3) * (player.difficulty === 'hard' ? 1.08 : 1),
+        (8 + Math.min(14, player.floor) * 1.3) *
+        (isEndless(player)
+          ? 1 + Math.min(8, Math.max(0, player.floor - 14) * 0.012)
+          : 1) *
+        (player.difficulty === 'hard' ? 1.08 : 1),
       reward: 'gold',
       wave,
       attackIndex: 0,
@@ -410,7 +431,7 @@ export function createBattle(run: Run): Battle {
     const t = i * spacing;
     if (i % 2 === 0) {
       const g = put('gate', t, 0, 0, 'gate', '命运之门', i + 1);
-      g.gate = makeGate(random, i, player.floor, elite);
+      g.gate = makeGate(random, i, localFloor(player), elite);
     }
     const variant = i % 4 === 2 ? 'archer' : i % 4 === 3 ? 'guard' : 'soldier';
     const x = (random() * 0.72 + 0.1) * (random() > 0.5 ? 1 : -1);
@@ -512,7 +533,9 @@ export function createBattle(run: Run): Battle {
         : elite
           ? BALANCE.eliteCommanderBaseHp
           : BALANCE.commanderBaseHp) *
-      Math.pow(BALANCE.bossGrowth, player.floor) *
+      Math.pow(BALANCE.bossGrowth, localFloor(player)) *
+      depthHealth(player) *
+      (isEndless(player) && player.floor >= 15 && bossRoom ? 1.4 : 1) *
       (bossRoom
         ? BALANCE.bossActMultiplier[act]
         : BALANCE.commanderActMultiplier[act]) *
@@ -527,7 +550,12 @@ export function createBattle(run: Run): Battle {
   if (!bossRoom && act === 2) final.attackIndex = 2;
   final.phase = 1;
   final.volleyDamage =
-    (bossRoom ? 17 + player.floor * 1.6 : 12 + player.floor * 1.4) *
+    (bossRoom
+      ? 17 + Math.min(14, player.floor) * 1.6
+      : 12 + Math.min(14, player.floor) * 1.4) *
+    (isEndless(player)
+      ? 1 + Math.min(8, Math.max(0, player.floor - 14) * 0.012)
+      : 1) *
     (profile.id === 'king' ? BALANCE.finalBossDamageMultiplier : 1.1) *
     (player.difficulty === 'hard' ? 1.08 : 1);
   if (player.difficulty === 'hard' && bossRoom && act < 2) {
@@ -556,8 +584,71 @@ export function createBattle(run: Run): Battle {
     second.volleyDamage = final.volleyDamage;
     second.lastAttack += 2.2;
   }
+  const encounter = endlessEncounter(player);
+  if (encounter) {
+    const budget = final.maxHp;
+    const attack = final.volleyDamage;
+    for (const [stage, group] of encounter.groups.entries()) {
+      for (const [index, id] of group.entries()) {
+        const profile = ENCOUNTERS.find((p) => p.id === id)!;
+        const start = stage === 0 ? finalStart : 1e12;
+        const x =
+          group.length === 1
+            ? 0
+            : group.length === 2
+              ? index
+                ? 0.46
+                : -0.46
+              : (index - 1) * 0.6;
+        const hp =
+          (budget * (encounter.groups.length > 1 ? 0.7 : 1.15)) /
+          Math.sqrt(group.length);
+        const e =
+          stage === 0 && index === 0
+            ? final
+            : put('enemy', start, x, hp, 'boss', profile.name, waves, true);
+        Object.assign(e, {
+          x,
+          anchorX: x,
+          start,
+          arrival: start + travel,
+          hp,
+          maxHp: hp,
+          encounterId: id,
+          stage,
+          phase: 1,
+          width: group.length > 1 ? 0.38 : 0.56,
+          mutation: encounter.mutation,
+          fusionId: id === 'king' ? 'lich' : 'king',
+          volleyDamage: attack * (group.length > 1 ? 0.7 : 1),
+          lastAttack: start - 2.5 + index * 1.35,
+        });
+        const prefix =
+          encounter.mutation === 'fusion'
+            ? '合葬'
+            : encounter.mutation === 'ashen'
+              ? '黯化'
+              : encounter.mutation === 'frenzied'
+                ? '血月'
+                : encounter.mutation === 'hollow'
+                  ? '空冠'
+                  : '';
+        e.name = `${prefix}${prefix ? '·' : ''}${profile.name}${group.filter((other) => other === id).length > 1 ? `·${index + 1}` : ''}`;
+      }
+    }
+  } else if (isEndless(player) && player.floor >= 15 && elite && !superElite) {
+    final.mutation = ['ashen', 'frenzied', 'hollow'][
+      (player.seed + player.floor) % 3
+    ] as BossMutation;
+    final.name = `${final.mutation === 'ashen' ? '黯化' : final.mutation === 'frenzied' ? '血月' : '空冠'}·${final.name}`;
+  }
   player.squad = safeTroops(player.squad + (player.relics.ambush || 0) * 8);
   return {
+    rushStage: 0,
+    rushStages: encounter?.groups.length || 1,
+    nextBossCast: 0,
+    nextAllyAttack: 8,
+    encounterName: encounter?.name || '',
     player,
     levelChoices: rollLevelChoices(player),
     encounterKills: {},
@@ -606,8 +697,8 @@ export function createBattle(run: Run): Battle {
     state: 'running',
     flash: 0,
     skillFlash: 0,
-    message: '横移瞄准 · 自动向前发射弹幕',
-    messageUntil: 4,
+    message: encounter?.omen || '横移瞄准 · 自动向前发射弹幕',
+    messageUntil: encounter ? 8 : 4,
     wave: 1,
     totalWaves: waves,
     duration: finalStart + travel,
@@ -735,15 +826,15 @@ function hitEntity(
   if (e.kind === 'chest') {
     b.player.chests++;
     if (e.reward === 'weapon') {
-      b.player.weaponTier = Math.min(MAX_WEAPON_LEVEL, b.player.weaponTier + 1);
+      b.player.weaponTier = Math.min(
+        weaponLimit(b.player),
+        b.player.weaponTier + 1,
+      );
       message(b, `兵装秘匣 · 武器 Lv.${b.player.weaponTier}`);
     } else {
-      grantGold(b.player, 22 + Math.floor(b.player.floor / ACT_LENGTH) * 12);
+      grantGold(b.player, 22 + actIndex(b.player) * 12);
       b.player.squad = safeTroops(b.player.squad + 4);
-      message(
-        b,
-        `宝箱击破 · +${22 + Math.floor(b.player.floor / ACT_LENGTH) * 12} 金币 / +4 兵力`,
-      );
+      message(b, `宝箱击破 · +${22 + actIndex(b.player) * 12} 金币 / +4 兵力`);
     }
     logRun(
       b.player,
@@ -758,7 +849,7 @@ function hitEntity(
       b.player.encountersDefeated[e.encounterId] =
         (b.player.encountersDefeated[e.encounterId] || 0) + 1;
     }
-    grantGold(b.player, 4 + Math.floor(b.player.floor / ACT_LENGTH) * 2);
+    grantGold(b.player, 4 + actIndex(b.player) * 2);
     b.player.hp = Math.min(
       b.player.maxHp,
       b.player.hp + (b.player.relics.vampire || 0) * 3,
@@ -777,7 +868,7 @@ function hitEntity(
       type: 'text',
       x: e.x,
       y: worldY(e, b.time) + 0.07,
-      text: `+${4 + Math.floor(b.player.floor / ACT_LENGTH) * 2} 金 · +${xp} XP`,
+      text: `+${4 + actIndex(b.player) * 2} 金 · +${xp} XP`,
       color: '#acdfba',
       life: 1.2,
     });
@@ -924,9 +1015,7 @@ function segmentHit(
   return enter;
 }
 export function enemyXAt(b: Battle, e: Entity, time: number) {
-  return e.boss &&
-    b.player.node?.kind === 'boss' &&
-    Math.floor(b.player.floor / ACT_LENGTH) === 1
+  return e.boss && b.player.node?.kind === 'boss' && actIndex(b.player) === 1
     ? (e.anchorX || 0) +
         Math.sin((time - e.start) * 0.8) * (e.anchorX ? 0.1 : 0.18)
     : e.x;
@@ -1313,8 +1402,11 @@ function enemyAttack(b: Battle, e: Entity) {
     warn(b, b.x, 0.29, 1.05, e.volleyDamage, '弓手狙击');
     return;
   }
-  const act = Math.floor(b.player.floor / ACT_LENGTH),
-    isActBoss = b.player.node?.kind === 'boss',
+  const attackProfile = ENCOUNTERS.find(
+    (profile) => profile.id === e.encounterId,
+  );
+  const act = attackProfile?.act ?? actIndex(b.player),
+    isActBoss = attackProfile?.kind === 'boss',
     index = e.attackIndex++;
   const damage = e.volleyDamage * (b.enrage ? 1.75 : 1),
     secondPhase = e.hp < e.maxHp * 0.5;
@@ -1547,6 +1639,36 @@ export function stepBattle(b: Battle, dt: number) {
   const oldTime = b.time,
     oldX = b.x;
   b.time += dt;
+  b.player.combatTime = (b.player.combatTime || 0) + dt;
+  b.player.peakSquad = Math.max(b.player.peakSquad || 0, b.player.squad);
+  if (
+    isEndless(b.player) &&
+    b.player.endless.allies.length &&
+    b.time >= b.nextAllyAttack
+  ) {
+    const targets = b.entities.filter(
+      (e) => e.kind === 'enemy' && targetVisible(e, b.time),
+    );
+    if (targets.length) {
+      b.nextAllyAttack = b.time + 8;
+      for (const [index, ally] of b.player.endless.allies.entries()) {
+        const target = targets[index % targets.length];
+        const profile = ENCOUNTERS.find((p) => p.id === ally);
+        hitEntity(b, target, firepower(b.player, b.shield).dps * 2.8, true);
+        b.effects.push({
+          type: 'shot',
+          x: index ? 0.3 : -0.3,
+          y: 0.83,
+          targetX: target.x,
+          targetY: worldY(target, b.time),
+          text: '',
+          color: profile?.color || '#d8c08e',
+          life: 0.7,
+        });
+        message(b, `${profile?.name || '失冠者'} · 盟誓援击`);
+      }
+    }
+  }
   const slowed = b.zones.some(
     (z) =>
       z.kind === 'web' &&
@@ -1596,10 +1718,7 @@ export function stepBattle(b: Battle, dt: number) {
   }
   b.wave = Math.min(
     b.totalWaves,
-    1 +
-      Math.floor(
-        b.time / BALANCE.spacing[Math.floor(b.player.floor / ACT_LENGTH)],
-      ),
+    1 + Math.floor(b.time / BALANCE.spacing[actIndex(b.player)]),
   );
   b.enrage = b.time > b.finalStart + BALANCE.enrageAfter;
   if (b.ritual && b.time >= b.ritual.resolveAt) {
@@ -1676,11 +1795,7 @@ export function stepBattle(b: Battle, dt: number) {
         false,
       );
     if (e.done || e.start > b.time) continue;
-    if (
-      e.boss &&
-      b.player.node?.kind === 'boss' &&
-      Math.floor(b.player.floor / ACT_LENGTH) === 1
-    )
+    if (e.boss && b.player.node?.kind === 'boss' && actIndex(b.player) === 1)
       e.x = enemyXAt(b, e, b.time);
     if (e.done) continue;
     if (e.encounterId === 'king' && e.phase !== kingPhase(e)) {
@@ -1708,6 +1823,9 @@ export function stepBattle(b: Battle, dt: number) {
       (e.boss || e.variant === 'archer') &&
       (e.boss || progress(e, b.time) > 0.2) &&
       !b.ritual &&
+      (!e.boss ||
+        !isEndless(b.player) ||
+        (b.time >= b.nextBossCast && b.threats.length < 6)) &&
       b.time - e.lastAttack >
         (e.boss
           ? b.player.node?.kind === 'boss'
@@ -1715,16 +1833,30 @@ export function stepBattle(b: Battle, dt: number) {
               ? BALANCE.finalBossAttackIntervals[kingPhase(e) - 1]
               : BALANCE.chapterAttackInterval
             : BALANCE.commanderAttackInterval
-          : 3.6)
+          : 3.6) *
+          (e.mutation === 'frenzied' ? 0.78 : 1)
     ) {
       e.lastAttack = b.time;
+      if (e.boss) b.nextBossCast = b.time + 1.35;
+      const identity = e.encounterId;
+      if (e.mutation === 'fusion' && e.attackIndex % 2 === 1)
+        e.encounterId = e.fusionId;
       enemyAttack(b, e);
+      e.encounterId = identity;
+      if (e.mutation === 'ashen' && e.attackIndex % 3 === 0)
+        groundZone(b, e, b.x, 0.3, 'shadow', 2, 2.2);
+      if (e.mutation === 'hollow' && e.attackIndex % 3 === 0)
+        e.guardUntil = b.time + 1.8;
     }
     if (b.time < e.arrival || e.stationary) continue;
     if (e.kind === 'gate') {
       const selected = gateAt(e.gate!, b.x);
       if (selected) {
         const result = applyGate(b.player, selected, b.shield);
+        if (e.trialFinal && selected.op === '²' && isEndless(b.player)) {
+          b.player.endless.keysOpened++;
+          delete b.player.relics.square_key;
+        }
         b.shield = result.shield;
         message(
           b,
@@ -1736,7 +1868,7 @@ export function stepBattle(b: Battle, dt: number) {
       e.done = true;
     } else if (e.kind === 'hazard') {
       if (Math.abs(b.x - e.x) < e.width / 2 + 0.035)
-        damagePlayer(b, 18 + b.player.floor * 1.8, 0.13);
+        damagePlayer(b, 18 + Math.min(100, b.player.floor) * 1.8, 0.13);
       e.done = true;
     } else if (e.kind === 'chest') {
       e.done = true;
@@ -1745,7 +1877,7 @@ export function stepBattle(b: Battle, dt: number) {
       const collision = Math.abs(b.x - e.x) < e.width / 2 + 0.05;
       damagePlayer(
         b,
-        (collision ? 14 : 8) + b.player.floor * 1.25,
+        (collision ? 14 : 8) + Math.min(100, b.player.floor) * 1.25,
         collision ? 0.14 : 0.07,
       );
       e.done = true;
@@ -1758,9 +1890,49 @@ export function stepBattle(b: Battle, dt: number) {
     return;
   }
   // Resolve pressure after attacks: a kill at the deadline prevents the pulse.
+  if (
+    b.rushStage + 1 < b.rushStages &&
+    b.entities
+      .filter((e) => e.boss && (e.stage || 0) === b.rushStage)
+      .every((e) => e.done)
+  ) {
+    b.rushStage++;
+    const arrival = b.time + 3.5;
+    const group = b.entities.filter((e) => e.boss && e.stage === b.rushStage);
+    group.forEach((e, index) => {
+      e.start = arrival;
+      e.arrival = arrival + 3.1;
+      e.lastAttack = arrival - 2 + index * 1.35;
+    });
+    for (const e of b.entities)
+      if (e.guardianOf !== undefined) {
+        e.done = true;
+        e.hp = 0;
+      }
+    b.threats = [];
+    b.zones = [];
+    b.projectiles = [];
+    b.bullets = [];
+    b.ritual = null;
+    b.finalStart = arrival;
+    b.enrage = false;
+    b.player.hp = Math.min(b.player.maxHp, b.player.hp + b.player.maxHp * 0.12);
+    if (b.pressure) {
+      b.pressure.bossId = group[0].id;
+      b.pressure.nextAt = arrival + 24;
+      b.pressure.pulses = 0;
+    }
+    message(
+      b,
+      `追猎未止 · 第 ${b.rushStage + 1} / ${b.rushStages} 幕 · ${group.map((e) => e.name).join('、')}`,
+    );
+    b.messageUntil = arrival + 2;
+  }
   const pressure = b.pressure;
   if (pressure && b.entities[pressure.bossId].done) {
-    const survivor = b.entities.find((e) => e.boss && !e.done);
+    const survivor = b.entities.find(
+      (e) => e.boss && !e.done && e.start <= b.time,
+    );
     if (survivor) pressure.bossId = survivor.id;
   }
   if (
@@ -1782,7 +1954,7 @@ export function stepBattle(b: Battle, dt: number) {
       b.player.flawlessBosses++;
     if (
       b.player.node?.kind === 'boss' &&
-      b.entities.filter((e) => e.boss).length === 2
+      b.entities.filter((e) => e.boss).length >= 2
     )
       b.player.doubleBossWins++;
     grantGold(

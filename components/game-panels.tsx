@@ -34,7 +34,6 @@ import {
   ACT_LENGTH,
   TOTAL_FLOORS,
   MAX_LEVEL,
-  MAX_WEAPON_LEVEL,
   eventChoices,
   type EventId,
   ACTS,
@@ -58,6 +57,13 @@ import {
   type ShopCategory,
 } from '@/lib/game';
 import { bossProfile } from '@/lib/bosses';
+import {
+  actIndex as currentAct,
+  isEndless,
+  weaponLimit,
+  endlessEncounter,
+} from '@/lib/endless';
+import { RecordSeal } from './chronicle-panel';
 export const CLASS_ICONS = {
   knight: Shield,
   ranger: BowArrow,
@@ -182,13 +188,7 @@ export function RoutePanel({
   run: Run;
   onEnter: (id: string) => void;
 }) {
-  const actIndex = Math.min(
-    2,
-    Math.floor(
-      Math.max(0, run.phase === 'reward' ? run.floor - 1 : run.floor) /
-        ACT_LENGTH,
-    ),
-  );
+  const actIndex = currentAct(run);
   const act = ACTS[actIndex];
   return (
     <aside className="route-panel panel">
@@ -202,7 +202,7 @@ export function RoutePanel({
       </div>
       <RouteGraph run={run} onEnter={onEnter} />
       <p className="route-note">
-        已征服 {run.floor} / {TOTAL_FLOORS} 关
+        已征服 {run.floor} / {isEndless(run) ? '∞' : TOTAL_FLOORS} 关
       </p>
     </aside>
   );
@@ -214,8 +214,7 @@ export function RouteGraph({
   run: Run;
   onEnter: (id: string) => void;
 }) {
-  const floor = run.phase === 'reward' ? Math.max(0, run.floor - 1) : run.floor;
-  const actIndex = Math.min(2, Math.floor(floor / ACT_LENGTH));
+  const actIndex = currentAct(run);
   const rows = run.nodes.slice(
     actIndex * ACT_LENGTH,
     (actIndex + 1) * ACT_LENGTH,
@@ -588,11 +587,11 @@ export function RoomScreen({
   onRestart: () => void;
 }) {
   const phase = run.phase;
-  const act = ACTS[Math.min(2, Math.floor(run.floor / ACT_LENGTH))];
+  const act = ACTS[currentAct(run)];
   const [shopFilter, setShopFilter] = useState<ShopCategory | '全部'>('全部');
   return (
     <div
-      className={`room-screen room-${phase} act-${Math.min(2, Math.floor(run.floor / ACT_LENGTH))} ${run.relics.square_key && !run.squareGateSeen ? 'is-forbidden' : ''}`}
+      className={`room-screen room-${phase} act-${currentAct(run)} ${run.relics.square_key && !run.squareGateSeen ? 'is-forbidden' : ''}`}
     >
       {phase === 'map' ? (
         <>
@@ -626,10 +625,15 @@ export function RoomScreen({
                     </small>
                     <h3>
                       {n.kind === 'boss'
-                        ? bossProfile({ ...run, node: n }).name
+                        ? endlessEncounter(run)?.name ||
+                          bossProfile({ ...run, node: n }).name
                         : NODE_INFO[n.kind].name}
                     </h3>
-                    <p>{NODE_INFO[n.kind].desc}</p>
+                    <p>
+                      {n.kind === 'boss'
+                        ? endlessEncounter(run)?.omen || NODE_INFO[n.kind].desc
+                        : NODE_INFO[n.kind].desc}
+                    </p>
                   </div>
                   <ArrowRight size={18} />
                 </button>
@@ -691,13 +695,13 @@ export function RoomScreen({
             </button>
             <button
               onClick={() => onRest('forge')}
-              disabled={run.weaponTier >= MAX_WEAPON_LEVEL}
+              disabled={run.weaponTier >= weaponLimit(run)}
             >
               <Anvil size={28} />
               <h3>磨砺武器</h3>
               <p>永久提高本局武器等级</p>
               <span>
-                {run.weaponTier >= MAX_WEAPON_LEVEL
+                {run.weaponTier >= weaponLimit(run)
                   ? '武器已满级'
                   : `Lv.${run.weaponTier} → Lv.${run.weaponTier + 1}`}
               </span>
@@ -837,9 +841,11 @@ export function RoomScreen({
               {phase === 'victory' ? 'THE CROWN IS YOURS' : 'THE EMBERS REMAIN'}
             </span>
             <h2>
-              {phase === 'victory'
-                ? '灰烬之上，新王加冕。'
-                : '身归灰烬，誓言未熄。'}
+              {run.retired
+                ? '携火归来，长夜犹存。'
+                : phase === 'victory'
+                  ? '灰烬之上，新王加冕。'
+                  : '身归灰烬，誓言未熄。'}
             </h2>
             <p>
               {phase === 'victory'
@@ -851,7 +857,7 @@ export function RoomScreen({
             <div>
               <b>
                 {run.floor}
-                <small>/{TOTAL_FLOORS}</small>
+                <small>/{isEndless(run) ? '∞' : TOTAL_FLOORS}</small>
               </b>
               <span>征服关数</span>
             </div>
@@ -877,6 +883,7 @@ export function RoomScreen({
               </span>
             ))}
           </div>
+          <RecordSeal runId={run.runId} />
           <button className="primary-button room-continue" onClick={onRestart}>
             再次踏上征途 <ArrowRight size={18} />
           </button>

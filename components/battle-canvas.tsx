@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { type Run, RELIC_BY_ID, experience, ACT_LENGTH } from '@/lib/game';
+import { type Run, RELIC_BY_ID, experience } from '@/lib/game';
 import {
   type Battle,
   stepBattle,
@@ -26,6 +26,7 @@ import { drawBattle } from '@/lib/renderer';
 import { bossProfile, ENCOUNTERS } from '@/lib/bosses';
 import { BossArrival } from '@/components/boss-arrival';
 import { battleMusic, musicPlayer } from '@/lib/music';
+import { actIndex, endlessEncounter } from '@/lib/endless';
 
 export interface BattleSnapshot {
   run: Run;
@@ -74,19 +75,34 @@ export function BattleCanvas({
   const [arrival, setArrival] = useState(false);
   const [levelChoices, setLevelChoices] = useState(battle.levelChoices);
   const skipArrival = useRef(false);
-  const primaryProfile = bossProfile(battle.player);
+  const firstBoss = battle.entities.find((e) => e.boss);
+  const primaryProfile =
+    ENCOUNTERS.find((e) => e.id === firstBoss?.encounterId) ||
+    bossProfile(battle.player);
+  const endlessProfile = endlessEncounter(battle.player);
   const partner = battle.entities.find(
-    (e) => e.boss && e.encounterId !== primaryProfile.id,
+    (e) => e.boss && (e.stage || 0) === 0 && e.id !== firstBoss?.id,
   );
   const partnerProfile = ENCOUNTERS.find((e) => e.id === partner?.encounterId);
-  const profile = partnerProfile
+  const profile = endlessProfile
     ? {
         ...primaryProfile,
-        name: `${primaryProfile.name} · ${partnerProfile.name}`,
-        title: '困难远征 · 双王会猎',
-        hint: '击败两位首领才可前行 · 双方轮流进攻，共享压力计时',
+        name: endlessProfile.name,
+        title: `长夜远征 · ${battle.rushStages > 1 ? `${battle.rushStages} 幕追猎` : '失冠者降临'}`,
+        quote: endlessProfile.omen,
+        hint:
+          battle.rushStages > 1
+            ? '每幕清场后短暂喘息 · 所有追猎者倒下方可前行'
+            : '留意交错预兆 · 集中击破其中一位',
       }
-    : primaryProfile;
+    : partnerProfile
+      ? {
+          ...primaryProfile,
+          name: `${primaryProfile.name} · ${partnerProfile.name}`,
+          title: '困难远征 · 双王会猎',
+          hint: '击败两位首领才可前行 · 双方轮流进攻，共享压力计时',
+        }
+      : primaryProfile;
   const current = useRef({
     paused,
     muted,
@@ -121,9 +137,14 @@ export function BattleCanvas({
       introRemaining = 0,
       introShown = false;
     const background = new Image();
-    background.src = `/art/battlefield-${Math.floor(battle.player.floor / ACT_LENGTH) + 1}.webp`;
+    background.src = `/art/battlefield-${actIndex(battle.player) + 1}.webp`;
     const portrait = new Image();
-    portrait.src = bossProfile(battle.player).portrait;
+    portrait.src = (
+      ENCOUNTERS.find(
+        (e) =>
+          e.id === battle.entities.find((entity) => entity.boss)?.encounterId,
+      ) || bossProfile(battle.player)
+    ).portrait;
     let audio: AudioContext | null = null;
     const reducedMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
@@ -346,7 +367,12 @@ export function BattleCanvas({
         );
         const chapterBoss = battle.player.node?.kind === 'boss';
         const encounters = battle.entities
-          .filter((e) => e.boss && e.start <= battle.time)
+          .filter(
+            (e) =>
+              e.boss &&
+              e.start <= battle.time &&
+              (e.stage || 0) === battle.rushStage,
+          )
           .map((target) => ({
             id: target.id,
             name: target.name,

@@ -8,5 +8,13 @@ export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@': fileURLToPath(new URL('.', import.meta.url)) } },
   css: { postcss: { plugins: [tailwindcss()] } },
+  server: {
+    proxy: {
+      '/api/chronicle': {
+        target: 'https://ashen-gates-zhour.green-salnut.chatgpt.site',
+        changeOrigin: true,
+      },
+    },
+  },
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false },
 });

@@ -1,3 +1,14 @@
+import {
+  ENDLESS_REWARDS,
+  freshEndless,
+  isEndless,
+  hpLimit,
+  weaponLimit,
+  boundedProduct,
+  depthIncome,
+  covenantChoices,
+  type EndlessState,
+} from './endless.ts';
 export type ClassId = 'knight' | 'ranger' | 'mage';
 export const ACT_LENGTH = 5;
 export const TOTAL_FLOORS = ACT_LENGTH * 3;
@@ -5,7 +16,7 @@ export const MAX_LEVEL = 15;
 export const MAX_WEAPON_LEVEL = 25;
 export const MAX_HP = 1200;
 export const HP_PER_LEVEL = 6;
-export type Difficulty = 'normal' | 'hard';
+export type Difficulty = 'normal' | 'hard' | 'endless';
 export type Phase =
   | 'setup'
   | 'map'
@@ -509,6 +520,11 @@ export interface RouteNode {
 }
 export interface Run {
   version: 4;
+  runId: string;
+  combatTime: number;
+  peakSquad: number;
+  endless: EndlessState;
+  retired?: boolean;
   difficulty: Difficulty;
   goldEarned: number;
   doubleBossWins: number;
@@ -547,8 +563,8 @@ export function rng(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-export function createMap(seed: number): RouteNode[][] {
-  const random = rng(seed);
+export function createMap(seed: number, offset = 0): RouteNode[][] {
+  const random = rng(seed + offset * 7919);
   const columns = [[0, 2, 4], [0, 1, 3, 4], [0, 2, 4], [1, 3], [2]];
   // Order-preserving edges can merge at a node but never cross between rows.
   const links = [
@@ -586,14 +602,16 @@ export function createMap(seed: number): RouteNode[][] {
     const choices = patterns[depth];
     const kinds = choices[Math.floor(random() * choices.length)];
     return columns[depth].map((col, index) => ({
-      id: `${floor}-${col}`,
-      floor,
+      id: `${floor + offset}-${col}`,
+      floor: floor + offset,
       col,
       kind: kinds[index],
       next:
         floor + 1 === TOTAL_FLOORS
           ? []
-          : links[depth][index].map((nextCol) => `${floor + 1}-${nextCol}`),
+          : links[depth][index].map(
+              (nextCol) => `${floor + offset + 1}-${nextCol}`,
+            ),
     }));
   });
 }
@@ -605,6 +623,10 @@ export function createRun(
   const h = HEROES.find((h) => h.id === classId)!;
   return {
     version: 4,
+    runId: '',
+    combatTime: 0,
+    peakSquad: h.squad,
+    endless: freshEndless(),
     difficulty,
     goldEarned: 0,
     doubleBossWins: 0,
@@ -640,7 +662,7 @@ export function logRun(run: Run, message: string) {
 }
 export function grantGold(run: Run, amount: number) {
   if (!Number.isFinite(amount) || amount <= 0) return;
-  const earned = Math.floor(amount);
+  const earned = Math.floor(amount * depthIncome(run));
   run.gold = Math.min(Number.MAX_SAFE_INTEGER, run.gold + earned);
   run.goldEarned = Math.min(
     Number.MAX_SAFE_INTEGER,
@@ -648,10 +670,11 @@ export function grantGold(run: Run, amount: number) {
   );
 }
 export function availableNodes(run: Run): RouteNode[] {
-  if (run.floor >= TOTAL_FLOORS || run.floor < 0) return [];
+  if ((!isEndless(run) && run.floor >= TOTAL_FLOORS) || run.floor < 0)
+    return [];
   const lastId = run.path.at(-1);
   const last = run.nodes.flat().find((n) => n.id === lastId);
-  return run.nodes[run.floor]
+  return (run.nodes.find((row) => row[0]?.floor === run.floor) || [])
     .filter((node) =>
       last
         ? last.floor === run.floor - 1 && last.next.includes(node.id)
@@ -710,7 +733,7 @@ export function grantExperience(run: Run, amount: number) {
   const before = experience(run).level;
   run.xp = Math.min(Number.MAX_SAFE_INTEGER, run.xp + Math.floor(amount));
   const gained = experience(run).level - before;
-  run.maxHp = Math.min(MAX_HP, run.maxHp + gained * HP_PER_LEVEL);
+  run.maxHp = Math.min(hpLimit(run), run.maxHp + gained * HP_PER_LEVEL);
   run.hp = Math.min(run.maxHp, run.hp + gained * HP_PER_LEVEL);
   return gained;
 }
@@ -729,7 +752,8 @@ export function stats(run: Run, shield = 0) {
       (1 + r('steel') * 0.2 + r('surge') * 0.25) *
       (1 + r('heavy') * 0.25 + r('focus') * 0.1) *
       (1 + shield * r('bash') * 0.005) *
-      (synergy && warrior ? 1.15 : 1),
+      (synergy && warrior ? 1.15 : 1) *
+      (isEndless(run) ? run.endless.power : 1),
     rate:
       (ranger ? 3.5 : 2.7) *
       (1 + r('quiver') * 0.2 + (synergy && run.classId === 'mage' ? 0.2 : 0)) *
@@ -861,14 +885,17 @@ export const REWARD_BY_ID: Record<string, Relic> = {
   ...RELIC_BY_ID,
   ...Object.fromEntries(SUPPLY_REWARDS.map((r) => [r.id, r])),
   ...Object.fromEntries(ELITE_FALLBACK_REWARDS.map((r) => [r.id, r])),
+  ...Object.fromEntries(ENDLESS_REWARDS.map((r) => [r.id, r])),
 };
 export function rollRewards(run: Run, elite = false): string[] {
+  if (isEndless(run) && run.floor >= 15 && run.floor % 5 === 0)
+    return covenantChoices(run);
   const choices = rollRelicRewards(run, elite);
   const supplies = SUPPLY_REWARDS.filter((r) =>
     r.id === 'supply-potion'
       ? run.hp < run.maxHp
       : r.id === 'supply-weapon'
-        ? run.weaponTier < MAX_WEAPON_LEVEL
+        ? run.weaponTier < weaponLimit(run)
         : run.squad < Number.MAX_SAFE_INTEGER,
   );
   const random = rng(run.seed + run.floor * 439 + run.gold + 617);
@@ -925,14 +952,14 @@ export function addRelic(run: Run, id: string): Run {
   const n = structuredClone(run);
   n.relics[id] = (n.relics[id] || 0) + 1;
   if (id === 'vitality') {
-    n.maxHp = Math.min(MAX_HP, n.maxHp + 20);
+    n.maxHp = Math.min(hpLimit(n), n.maxHp + 20);
     n.hp = Math.min(n.maxHp, n.hp + 20);
   }
   if (id === 'army') n.squad = safeTroops(n.squad + 20);
   if (id === 'bounty') grantGold(n, 30);
   if (id === 'constitution') {
     const growth = Math.ceil(n.maxHp * 0.12);
-    n.maxHp = Math.min(MAX_HP, n.maxHp + growth);
+    n.maxHp = Math.min(hpLimit(n), n.maxHp + growth);
     n.hp = Math.min(n.maxHp, n.hp + growth);
   }
   logRun(n, `获得强化 · ${relic.name}`);
@@ -944,11 +971,12 @@ export function completeRoom(run: Run, reward = true): Run {
   n.path.push(n.node.id);
   if (n.relics.lifebloom) {
     const growth = n.relics.lifebloom * 3;
-    n.maxHp = Math.min(MAX_HP, n.maxHp + growth);
+    n.maxHp = Math.min(hpLimit(n), n.maxHp + growth);
     n.hp = Math.min(n.maxHp, n.hp + growth);
   }
   n.floor++;
-  if (n.floor === TOTAL_FLOORS) {
+  n.peakSquad = Math.max(n.peakSquad, n.squad);
+  if (n.floor === TOTAL_FLOORS && !isEndless(n)) {
     n.phase = 'victory';
     logRun(n, '灰烬王座已被征服。');
     return n;
@@ -957,25 +985,31 @@ export function completeRoom(run: Run, reward = true): Run {
   n.reward = reward
     ? rollRewards(n, n.node.kind === 'elite' || n.node.kind === 'boss')
     : [];
+  if (isEndless(n) && n.floor % TOTAL_FLOORS === 0) {
+    n.nodes = createMap(n.seed, n.floor);
+    n.path = [];
+    n.node = null;
+  }
   return n;
 }
 export function chooseReward(run: Run, id: string): Run {
   if (run.phase !== 'reward' || !run.reward.includes(id)) return run;
   // Previous saves may still contain the old key reward; it is now shop-only.
   if (id === 'square_key') return run;
+  if (id.startsWith('abyss-')) return chooseCovenant(run, id);
   let n: Run;
   if (id.startsWith('supply-') && REWARD_BY_ID[id]) {
     n = structuredClone(run);
     if (id === 'supply-potion') n.hp = Math.min(n.maxHp, n.hp + 40);
     if (id === 'supply-company') n.squad = safeTroops(n.squad + 50);
     if (id === 'supply-weapon')
-      n.weaponTier = Math.min(MAX_WEAPON_LEVEL, n.weaponTier + 1);
+      n.weaponTier = Math.min(weaponLimit(n), n.weaponTier + 1);
     if (id === 'supply-epic-cache') {
       grantGold(n, 120);
       n.hp = Math.min(n.maxHp, n.hp + 50);
     }
     if (id === 'supply-epic-vigor') {
-      n.maxHp = Math.min(MAX_HP, n.maxHp + 8);
+      n.maxHp = Math.min(hpLimit(n), n.maxHp + 8);
       n.hp = Math.min(n.maxHp, n.hp + 50);
     }
     if (id === 'supply-epic-company') {
@@ -989,6 +1023,57 @@ export function chooseReward(run: Run, id: string): Run {
 export function skipReward(run: Run): Run {
   return run.phase === 'reward' ? { ...run, phase: 'map', reward: [] } : run;
 }
+function chooseCovenant(run: Run, id: string): Run {
+  if (!isEndless(run) || !covenantChoices(run).includes(id)) return run;
+  let n = structuredClone(run);
+  const e = n.endless;
+  if (id === 'abyss-flame') e.power = boundedProduct(e.power, 1.24);
+  if (id === 'abyss-legion') {
+    e.legion = boundedProduct(e.legion, 1.3);
+    n.squad = safeTroops(n.squad * 1.5);
+  }
+  if (id === 'abyss-heart') {
+    n.maxHp = Math.min(hpLimit(n), Math.ceil(n.maxHp * 1.22));
+    n.hp = Math.min(n.maxHp, n.hp + n.maxHp * 0.45);
+  }
+  if (id === 'abyss-lore') e.keyLore++;
+  if (id === 'abyss-bind') {
+    const pool = Object.keys(n.encountersDefeated).filter(
+      (boss) => !e.allies.includes(boss),
+    );
+    const ally = pool[(n.seed + n.floor) % pool.length];
+    if (!ally) return run;
+    e.allies.push(ally);
+  }
+  if (id === 'abyss-reforge') {
+    const layers = Object.entries(n.relics).reduce(
+      (sum, [key, count]) => sum + (key === 'square_key' ? 0 : count),
+      0,
+    );
+    e.power = boundedProduct(e.power, 1 + layers * 0.08);
+    e.embers += layers;
+    e.reforges++;
+    const key = n.relics.square_key;
+    n.relics = key ? { square_key: key } : {};
+    for (let i = 0; i < 3; i++) n = addRelic(n, 'steel');
+    const family = RELICS.filter((r) => r.family === n.classId).slice(0, 3);
+    for (const relic of family) n = addRelic(n, relic.id);
+    n.hp = Math.min(n.maxHp, n.hp + n.maxHp * 0.3);
+  }
+  n.endless.covenantAt = n.floor;
+  n.peakSquad = Math.max(n.peakSquad, n.squad);
+  logRun(n, `长夜盟约 · ${REWARD_BY_ID[id].name}`);
+  return { ...n, phase: 'map', reward: [] };
+}
+export function retireEndless(run: Run): Run {
+  if (!isEndless(run) || run.phase !== 'map' || run.floor < 1) return run;
+  return {
+    ...structuredClone(run),
+    phase: 'defeat',
+    retired: true,
+    log: ['火种已归还。长夜将记住你的足迹。', ...run.log].slice(0, 8),
+  };
+}
 export function restAction(run: Run, action: 'heal' | 'forge'): Run {
   if (run.phase !== 'rest') return run;
   const n = structuredClone(run);
@@ -997,7 +1082,7 @@ export function restAction(run: Run, action: 'heal' | 'forge'): Run {
     n.hp += amount;
     logRun(n, `营火休整 · 恢复 ${amount} 生命`);
   } else {
-    n.weaponTier = Math.min(MAX_WEAPON_LEVEL, n.weaponTier + 1);
+    n.weaponTier = Math.min(weaponLimit(n), n.weaponTier + 1);
     logRun(n, '磨砺武器 · 武器等级 +1');
   }
   return completeRoom(n, false);
@@ -1113,7 +1198,8 @@ export function shopInventory(
   run: Pick<
     Run,
     'classId' | 'seed' | 'floor' | 'node' | 'relics' | 'squareGateSeen'
-  >,
+  > &
+    Partial<Pick<Run, 'difficulty' | 'endless'>>,
 ): ShopItem[] {
   const pool = SHOP_ITEMS.filter((item) => {
     if (item.id === 'relic-square_key') return false;
@@ -1128,9 +1214,36 @@ export function shopInventory(
     const j = Math.floor(random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  const stock = pool.slice(0, 5);
+  const stock = pool.slice(0, 5).map((item) => ({ ...item }));
   if (!run.relics.square_key && !run.squareGateSeen)
     stock.push(SHOP_ITEMS.find((item) => item.id === 'relic-square_key')!);
+  if (run.difficulty === 'endless' && run.endless) {
+    if (
+      run.squareGateSeen &&
+      !run.relics.square_key &&
+      run.endless.keysOpened > 0 &&
+      run.endless.keyLore >= run.endless.keysOpened
+    ) {
+      const tier = run.endless.keysOpened;
+      stock.push({
+        ...SHOP_ITEMS.find((item) => item.id === 'relic-square_key')!,
+        name: `禁忌秘钥 · 第${tier + 1}重`,
+        cost: Math.min(
+          Number.MAX_SAFE_INTEGER,
+          Number('6'.repeat(Math.min(15, tier + 3))),
+        ),
+      });
+    }
+    for (const item of stock) {
+      if (item.kind === 'heal') {
+        item.amount = Math.max(
+          item.amount,
+          Math.ceil((run as Run).maxHp * 0.35),
+        );
+        item.desc = `恢复 ${formatNumber(item.amount)} 生命`;
+      }
+    }
+  }
   return stock;
 }
 
@@ -1138,14 +1251,16 @@ export function shopItemAvailability(
   run: Run,
   id: string,
 ): { available: boolean; reason: string } {
-  const item = SHOP_ITEMS.find((entry) => entry.id === id);
+  const item =
+    shopInventory(run).find((entry) => entry.id === id) ||
+    SHOP_ITEMS.find((entry) => entry.id === id);
   const unavailable = (reason: string) => ({ available: false, reason });
   if (!item) return unavailable('商品不存在');
   if (run.phase !== 'shop') return unavailable('当前不在商店');
   if (run.purchases.includes(id)) return unavailable('本店已购买');
   if (item.kind === 'heal' && run.hp >= run.maxHp)
     return unavailable('生命已满');
-  if (item.kind === 'weapon' && run.weaponTier >= MAX_WEAPON_LEVEL)
+  if (item.kind === 'weapon' && run.weaponTier >= weaponLimit(run))
     return unavailable('武器已满级');
   if (
     item.kind === 'recruits' &&
@@ -1158,7 +1273,7 @@ export function shopItemAvailability(
       return unavailable('该职业无法使用');
     if ((run.relics[relic.id] || 0) >= relic.max)
       return unavailable('强化已满层');
-    if (relic.id === 'square_key' && run.squareGateSeen)
+    if (relic.id === 'square_key' && run.squareGateSeen && !isEndless(run))
       return unavailable('已售罄');
   }
   if (item.kind === 'random-relic' && availableRelics(run).length === 0)
@@ -1174,7 +1289,7 @@ export function canBuyShopItem(run: Run, id: string): boolean {
 }
 
 export function shopBuy(run: Run, id: string): Run {
-  const item = SHOP_ITEMS.find((i) => i.id === id);
+  const item = shopInventory(run).find((i) => i.id === id);
   if (!item || !canBuyShopItem(run, id)) return run;
   let n = structuredClone(run);
   n.gold -= item.cost;
@@ -1182,6 +1297,8 @@ export function shopBuy(run: Run, id: string): Run {
   if (item.kind === 'recruits') n.squad = safeTroops(n.squad + item.amount);
   if (item.kind === 'weapon') n.weaponTier++;
   if (item.kind === 'relic') n = addRelic(n, item.relicId);
+  if (item.kind === 'relic' && item.relicId === 'square_key' && isEndless(n))
+    n.squareGateSeen = false;
   if (item.kind === 'random-relic') {
     const candidate = rollRelicRewards(n, true)[0];
     if (!candidate) return run;
@@ -1244,7 +1361,7 @@ export function eventChoices(run: Run): EventChoice[] {
       name: '流浪铸剑师',
       description: `支付${65 + act * 30}金币，武器提升2级。`,
       icon: 'sword',
-      available: run.gold >= 65 + act * 30 && run.weaponTier < MAX_WEAPON_LEVEL,
+      available: run.gold >= 65 + act * 30 && run.weaponTier < weaponLimit(run),
       goldCost: 65 + act * 30,
       hpCost: 0,
       value: 2,
@@ -1254,7 +1371,7 @@ export function eventChoices(run: Run): EventChoice[] {
       name: '生命之井',
       description: `支付${60 + act * 25}金币，生命上限+${18 + act * 12}，并恢复等量生命。`,
       icon: 'heart',
-      available: run.gold >= 60 + act * 25 && run.maxHp < MAX_HP,
+      available: run.gold >= 60 + act * 25 && run.maxHp < hpLimit(run),
       goldCost: 60 + act * 25,
       hpCost: 0,
       value: 18 + act * 12,
@@ -1318,9 +1435,9 @@ export function eventAction(run: Run, action: EventId): Run {
   n.hp -= choice.hpCost;
   if (action === 'gold') n.squad = safeTroops(n.squad + choice.value);
   if (action === 'forge')
-    n.weaponTier = Math.min(MAX_WEAPON_LEVEL, n.weaponTier + choice.value);
+    n.weaponTier = Math.min(weaponLimit(n), n.weaponTier + choice.value);
   if (action === 'oath') {
-    n.maxHp = Math.min(MAX_HP, n.maxHp + choice.value);
+    n.maxHp = Math.min(hpLimit(n), n.maxHp + choice.value);
     n.hp = Math.min(n.maxHp, n.hp + choice.value);
   }
   if (action === 'mercy') n.hp = Math.min(n.maxHp, n.hp + choice.value);
@@ -1354,7 +1471,10 @@ export function troopMultiplier(squad: number) {
 }
 export function firepower(run: Run, shield = 0) {
   const s = stats(run, shield);
-  const multiplier = troopMultiplier(run.squad);
+  const multiplier = boundedProduct(
+    troopMultiplier(run.squad),
+    isEndless(run) ? run.endless.legion : 1,
+  );
   const volley = s.damage * multiplier;
   return {
     multiplier,
@@ -1363,6 +1483,7 @@ export function firepower(run: Run, shield = 0) {
   };
 }
 export function formatNumber(n: number) {
+  if (n >= 1e16) return n.toExponential(2).replace('e+', '×10^');
   return n >= 1000000000000
     ? `${(n / 1000000000000).toFixed(1)}兆`
     : n >= 100000000
@@ -1396,6 +1517,7 @@ export function applyGate(
   if (gate.op === '²') run.squad *= run.squad;
   if (gate.op === '√') run.squad = Math.floor(Math.sqrt(run.squad));
   run.squad = safeTroops(run.squad + s.summon);
+  run.peakSquad = Math.max(run.peakSquad || 0, run.squad);
   if (gate.op === '+' || gate.op === '×' || gate.op === '²')
     shield += 6 * (run.relics.aegis || 0);
   run.gates++;
@@ -1411,7 +1533,8 @@ export function restoreRun(text: string): Run | null {
       (!legacy && raw.version !== 4) ||
       !Number.isInteger(raw.floor) ||
       raw.floor < 0 ||
-      raw.floor >= (legacy ? 12 : TOTAL_FLOORS) ||
+      raw.floor >=
+        (raw.difficulty === 'endless' ? 1000000 : legacy ? 12 : TOTAL_FLOORS) ||
       !Array.isArray(raw.path) ||
       (legacy && raw.path.length !== raw.floor)
     )
@@ -1426,7 +1549,39 @@ export function restoreRun(text: string): Run | null {
       if (!Object.hasOwn(raw, field)) raw[field] = 0;
       if (!Number.isSafeInteger(raw[field]) || raw[field] < 0) return null;
     }
-    if (!['normal', 'hard'].includes(raw.difficulty)) return null;
+    if (!['normal', 'hard', 'endless'].includes(raw.difficulty)) return null;
+    if (!Object.hasOwn(raw, 'runId')) raw.runId = '';
+    if (!Object.hasOwn(raw, 'combatTime')) raw.combatTime = 0;
+    if (!Object.hasOwn(raw, 'peakSquad')) raw.peakSquad = raw.squad;
+    if (!Object.hasOwn(raw, 'endless')) raw.endless = freshEndless();
+    if (
+      typeof raw.runId !== 'string' ||
+      raw.runId.length > 80 ||
+      !Number.isFinite(raw.combatTime) ||
+      raw.combatTime < 0 ||
+      !Number.isSafeInteger(raw.peakSquad) ||
+      raw.peakSquad < 1
+    )
+      return null;
+    const es = raw.endless;
+    if (
+      !es ||
+      typeof es !== 'object' ||
+      !['embers', 'reforges', 'keyLore', 'keysOpened', 'covenantAt'].every(
+        (key) => Number.isSafeInteger(es[key]) && es[key] >= 0,
+      ) ||
+      !['power', 'legion'].every(
+        (key) => Number.isFinite(es[key]) && es[key] >= 1 && es[key] <= 1e100,
+      ) ||
+      !Array.isArray(es.allies) ||
+      es.allies.length > 2 ||
+      new Set(es.allies).size !== es.allies.length ||
+      es.allies.some(
+        (id: unknown) =>
+          typeof id !== 'string' || !Object.hasOwn(raw.encountersDefeated, id),
+      )
+    )
+      return null;
     if (!Object.hasOwn(raw, 'talentPicks'))
       raw.talentPicks = experience({ xp: Number(raw.xp) || 0 }).level - 1;
     // The old three-column graph has no lossless mapping to explicit edges.
@@ -1460,7 +1615,7 @@ export function restoreRun(text: string): Run | null {
       !Number.isSafeInteger(r.seed) ||
       !Number.isInteger(r.floor) ||
       r.floor < 0 ||
-      r.floor >= TOTAL_FLOORS ||
+      r.floor >= (isEndless(r) ? 1000000 : TOTAL_FLOORS) ||
       !Array.isArray(r.path) ||
       r.path.length > r.floor ||
       (r.floor - r.path.length) % ACT_LENGTH !== 0 ||
@@ -1513,11 +1668,11 @@ export function restoreRun(text: string): Run | null {
       r.talentPicks > MAX_LEVEL - 1 ||
       r.hp <= 0 ||
       r.hp > r.maxHp ||
-      r.maxHp > MAX_HP ||
+      r.maxHp > hpLimit(r) ||
       r.squad < 1 ||
       !Number.isSafeInteger(r.squad) ||
       r.weaponTier < 1 ||
-      r.weaponTier > MAX_WEAPON_LEVEL ||
+      r.weaponTier > weaponLimit(r) ||
       !Number.isInteger(r.weaponTier) ||
       !['gold', 'kills', 'chests', 'gates'].every((key) =>
         Number.isSafeInteger(r[key as 'gold' | 'kills' | 'chests' | 'gates']),
@@ -1536,11 +1691,17 @@ export function restoreRun(text: string): Run | null {
       )
     )
       return null;
-    r.nodes = createMap(r.seed);
+    const offset = isEndless(r)
+      ? Math.floor(r.floor / TOTAL_FLOORS) * TOTAL_FLOORS
+      : 0;
+    if (isEndless(r) && r.path.length !== r.floor - offset) return null;
+    r.nodes = createMap(r.seed, offset);
     const checkpoint = r.floor - r.path.length;
     let previous: RouteNode | undefined;
     for (const [index, id] of r.path.entries()) {
-      const node = r.nodes[checkpoint + index].find((n) => n.id === id);
+      const node = r.nodes[checkpoint + index - offset]?.find(
+        (n) => n.id === id,
+      );
       if (!node || (previous && !previous.next.includes(node.id))) return null;
       previous = node;
     }
@@ -1554,7 +1715,9 @@ export function restoreRun(text: string): Run | null {
         return null;
       if (
         r.node.enchanted &&
-        (known.kind !== 'elite' || !r.squareGateSeen || !r.relics.square_key)
+        (known.kind !== 'elite' ||
+          !r.squareGateSeen ||
+          (!r.relics.square_key && !isEndless(r)))
       )
         return null;
       r.node = { ...known, ...(r.node.enchanted ? { enchanted: true } : {}) };

@@ -1,0 +1,288 @@
+.traveller-name,
+.record-seal {
+  display: grid;
+  gap: 9px;
+  text-align: left;
+  color: #d9c7a6;
+  margin: 14px 0;
+}
+.traveller-name label,
+.record-seal label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+}
+.traveller-name label small {
+  opacity: 0.6;
+  font-size: 10px;
+}
+.traveller-name > div,
+.record-seal > div {
+  display: flex;
+  gap: 8px;
+}
+.traveller-name input,
+.record-seal input,
+.chronicle-filters select {
+  min-width: 0;
+  flex: 1;
+  background: #171714;
+  border: 1px solid #504733;
+  border-radius: 4px;
+  color: #eddfc0;
+  padding: 9px 12px;
+  font: inherit;
+}
+.traveller-name button,
+.record-seal button,
+.chronicle-panel button {
+  border: 1px solid #625137;
+  border-radius: 4px;
+  padding: 8px 13px;
+  background: #24221b;
+  color: #dfc795;
+  font-size: 13px;
+  cursor: pointer;
+}
+.traveller-name > small,
+.record-seal > small {
+  font-size: 11px;
+  opacity: 0.7;
+}
+.chronicle-dialog {
+  max-width: min(1000px, 95vw) !important;
+}
+.chronicle-panel {
+  color: #d9cdb6;
+  max-height: 72dvh;
+  overflow: auto;
+  padding-right: 4px;
+}
+.chronicle-tabs,
+.chronicle-modes,
+.chronicle-filters,
+.chronicle-pages {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.chronicle-tabs button[aria-pressed='true'],
+.chronicle-modes button[aria-pressed='true'] {
+  background: #65513a;
+  color: #fff0d2;
+}
+.chronicle-tabs > button:last-child {
+  margin-left: auto;
+}
+.chronicle-filters {
+  justify-content: space-between;
+}
+.chronicle-filters label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+.chronicle-note {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #9b9486;
+}
+.chronicle-table-wrap {
+  overflow: auto;
+  border-top: 1px solid #413b30;
+}
+.chronicle-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.chronicle-table th {
+  text-align: left;
+  font-weight: 400;
+  color: #968977;
+  padding: 12px 8px;
+}
+.chronicle-table td {
+  padding: 12px 8px;
+  border-top: 1px solid #302d26;
+}
+.chronicle-table td:first-child {
+  color: #c8a763;
+}
+.chronicle-table small {
+  display: block;
+  font-size: 10px;
+  color: #a79b85;
+  margin-top: 4px;
+}
+.chronicle-table .chronicle-traveller {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-size: 13px;
+  white-space: normal;
+  min-width: 115px;
+  max-width: 220px;
+}
+.chronicle-empty {
+  padding: 35px 15px;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  color: #bba580;
+}
+.chronicle-pages {
+  justify-content: center;
+  font-size: 12px;
+}
+.chronicle-panel button:disabled,
+.record-seal button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chronicle-detail {
+  border: 1px solid #5b4b34;
+  background: #191914;
+  padding: 18px;
+  margin-top: 15px;
+}
+.chronicle-detail h3 {
+  font-size: 18px;
+  color: #e4c38e;
+}
+.chronicle-detail p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #b8ac99;
+}
+.chronicle-detail dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  font-size: 12px;
+}
+.chronicle-detail dt {
+  color: #8d8477;
+}
+.chronicle-detail dd {
+  margin: 4px 0;
+}
+.endless-status {
+  border: 1px solid #54403f;
+  background: #231b20;
+  padding: 12px 16px;
+  margin: 12px 0;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #c8adbb;
+}
+.endless-status strong {
+  color: #e0c2cf;
+}
+.entrance-chronicle {
+  position: absolute;
+  z-index: 5;
+  top: 24px;
+  left: 24px;
+  border: 1px solid #82704e;
+  color: #e6c78b;
+  background: #171714cc;
+  padding: 9px 14px;
+  border-radius: 4px;
+}
+.endless-retire {
+  display: block;
+  margin: 12px auto;
+  font-size: 12px;
+  color: #b8a991;
+}
+.record-seal {
+  max-width: 490px;
+  width: 100%;
+  margin: 18px auto;
+  padding: 0 14px;
+}
+.entrance-class-controls .traveller-name {
+  margin: 4px 0;
+}
+.difficulty-choice {
+  flex-wrap: wrap !important;
+}
+.difficulty-choice button {
+  font-size: 12px !important;
+}
+.boss-health-stack[data-dual='true'] {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+}
+.boss-health-stack .boss-health h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .chronicle-detail dl {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .entrance-chronicle {
+    top: 18px;
+    left: 16px;
+    font-size: 12px;
+  }
+  .chronicle-table {
+    font-size: 11px;
+  }
+  .chronicle-filters label {
+    font-size: 11px;
+  }
+  .traveller-name label small {
+    display: none;
+  }
+  .record-seal > div {
+    flex-wrap: wrap;
+  }
+}
+
+.encounter-health-stack[data-dual='true'] {
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important;
+}
+
+.difficulty-choice {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+.gate-entrance--classes .entrance-class-heading {
+  bottom: 430px;
+}
+.gate-entrance--classes .entrance-class-controls {
+  gap: 7px;
+}
+.gate-entrance--classes .traveller-name {
+  padding: 0;
+}
+.gate-entrance--classes .traveller-name > small {
+  max-height: 30px;
+  overflow: auto;
+}
+@media (max-height: 700px) {
+  .gate-entrance--classes {
+    overflow-y: auto;
+    min-height: 650px;
+  }
+  .gate-entrance--classes .entrance-class-heading {
+    bottom: 408px;
+  }
+  .gate-entrance--classes .entrance-class-art img {
+    height: 50%;
+  }
+  .gate-entrance--classes .entrance-class-controls {
+    gap: 4px;
+  }
+}

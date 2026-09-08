@@ -56,7 +56,6 @@ import {
 } from '@/components/game-panels';
 import {
   HEROES,
-  ACT_LENGTH,
   TOTAL_FLOORS,
   MAX_LEVEL,
   ACTS,
@@ -91,6 +90,10 @@ import {
 } from '@/lib/storage';
 
 import { hardModeUnlocked } from '@/lib/collection';
+import { actIndex as currentAct, isEndless } from '@/lib/endless';
+import { retireEndless } from '@/lib/game';
+import { trackChronicle, flushChronicle } from '@/lib/chronicle';
+import { ChroniclePanel, TravellerName } from '@/components/chronicle-panel';
 
 export default function Home() {
   const [run, setRun] = useState<Run>(() => createRun('knight'));
@@ -112,7 +115,7 @@ export default function Home() {
   } = useMemo(() => parseStorage(stored), [stored]);
   const [paused, setPaused] = useState(false);
   const [overlay, setOverlay] = useState<
-    'help' | 'codex' | 'route' | 'settings' | 'collection' | null
+    'help' | 'codex' | 'route' | 'settings' | 'collection' | 'chronicle' | null
   >(null);
   const [characterOpen, setCharacterOpen] = useState(false);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
@@ -127,13 +130,7 @@ export default function Home() {
   const game = run.phase === 'battle' && snapshot ? snapshot.run : run;
   const hero = HEROES.find((h) => h.id === game.classId)!;
   const ClassIcon = CLASS_ICONS[game.classId];
-  const actIndex = Math.min(
-    2,
-    Math.floor(
-      Math.max(0, run.phase === 'reward' ? run.floor - 1 : run.floor) /
-        ACT_LENGTH,
-    ),
-  );
+  const actIndex = currentAct(run);
   const act = ACTS[Math.max(0, actIndex)];
   const inBattle = run.phase === 'battle' && battle !== null;
   const inExpedition = run.phase !== 'setup';
@@ -146,7 +143,20 @@ export default function Home() {
   }, [inExpedition]);
   useEffect(() => {
     persistRun(run);
+    trackChronicle(run);
   }, [run]);
+  useEffect(() => {
+    const flush = () => {
+      void flushChronicle();
+    };
+    const interval = window.setInterval(flush, 15000);
+    window.addEventListener('online', flush);
+    flush();
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', flush);
+    };
+  }, []);
   useEffect(() => {
     const unlock = () => musicPlayer.unlock();
     window.addEventListener('pointerdown', unlock);
@@ -198,6 +208,7 @@ export default function Home() {
         hardModeUnlocked(collection) ? run.difficulty : 'normal',
       ),
       phase: 'map',
+      runId: crypto.randomUUID(),
     });
     setSnapshot(null);
     setBattle(null);
@@ -261,6 +272,7 @@ export default function Home() {
               : undefined
           }
           onSettings={() => setOverlay('settings')}
+          onChronicle={() => setOverlay('chronicle')}
         />
       ) : null}
       <header className="masthead">
@@ -273,6 +285,10 @@ export default function Home() {
           </span>
         </div>
         <nav className="top-nav" aria-label="游戏导航">
+          <button onClick={() => setOverlay('chronicle')}>
+            <Trophy size={16} />
+            灰烬史册
+          </button>
           <button className="nav-active" onClick={() => setOverlay(null)}>
             <Footprints size={16} />
             踏上征途
@@ -329,8 +345,12 @@ export default function Home() {
               : '新的远征'
             : `${hero.name}的远征`}
           <i />第{' '}
-          {String(Math.min(TOTAL_FLOORS, run.floor + 1)).padStart(2, '0')} /{' '}
-          {TOTAL_FLOORS} 关
+          {String(
+            isEndless(run)
+              ? run.floor + 1
+              : Math.min(TOTAL_FLOORS, run.floor + 1),
+          ).padStart(2, '0')}{' '}
+          / {isEndless(run) ? '∞' : TOTAL_FLOORS} 关
         </div>
       </section>
       <div className="game-layout">
@@ -410,8 +430,11 @@ export default function Home() {
                   </button>
                 ) : (
                   <span className="edge-floor">
-                    第 {Math.min(TOTAL_FLOORS, run.floor + 1)} / {TOTAL_FLOORS}{' '}
-                    关
+                    第{' '}
+                    {isEndless(run)
+                      ? run.floor + 1
+                      : Math.min(TOTAL_FLOORS, run.floor + 1)}{' '}
+                    / {isEndless(run) ? '∞' : TOTAL_FLOORS} 关
                   </span>
                 )}
               </div>
@@ -650,20 +673,40 @@ export default function Home() {
             </>
           ) : null}
           {run.phase !== 'setup' && run.phase !== 'battle' ? (
-            <RoomScreen
-              run={run}
-              onEnter={go}
-              onReward={(id) =>
-                setRun((r) =>
-                  id === '__skip' ? skipReward(r) : chooseReward(r, id),
-                )
-              }
-              onRest={(action) => setRun((r) => restAction(r, action))}
-              onBuy={(id) => setRun((r) => shopBuy(r, id))}
-              onLeaveShop={() => setRun((r) => completeRoom(r, false))}
-              onEvent={(action) => setRun((r) => eventAction(r, action))}
-              onRestart={restart}
-            />
+            <>
+              {isEndless(run) && (
+                <div className="endless-status">
+                  <strong>长夜 · 第 {run.floor + 1} 层</strong>
+                  <span>薪火 ×{formatNumber(run.endless.power)}</span>
+                  <span>军势 ×{formatNumber(run.endless.legion)}</span>
+                  <span>焚印 {run.endless.reforges} 次</span>
+                  <span>盟誓 {run.endless.allies.length} 位</span>
+                  <span>深门 {run.endless.keysOpened} 重</span>
+                </div>
+              )}
+              <RoomScreen
+                run={run}
+                onEnter={go}
+                onReward={(id) =>
+                  setRun((r) =>
+                    id === '__skip' ? skipReward(r) : chooseReward(r, id),
+                  )
+                }
+                onRest={(action) => setRun((r) => restAction(r, action))}
+                onBuy={(id) => setRun((r) => shopBuy(r, id))}
+                onLeaveShop={() => setRun((r) => completeRoom(r, false))}
+                onEvent={(action) => setRun((r) => eventAction(r, action))}
+                onRestart={restart}
+              />
+              {isEndless(run) && run.phase === 'map' && run.floor > 0 && (
+                <button
+                  className="text-button endless-retire"
+                  onClick={() => setRun((r) => retireEndless(r))}
+                >
+                  归还火种 · 结束远征并铭刻此行
+                </button>
+              )}
+            </>
           ) : null}
         </section>
         {run.phase === 'setup' ? (
@@ -687,7 +730,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          正式版 <b>v1.0</b>
+          正式版 <b>v1.1</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>
@@ -741,18 +784,20 @@ export default function Home() {
         }}
       >
         <DialogContent
-          className={`game-dialog ${activeOverlay === 'collection' ? 'collection-dialog' : activeOverlay === 'codex' ? 'codex-dialog' : activeOverlay === 'help' ? 'tutorial-dialog' : ''}`}
+          className={`game-dialog ${activeOverlay === 'chronicle' ? 'chronicle-dialog' : activeOverlay === 'collection' ? 'collection-dialog' : activeOverlay === 'codex' ? 'codex-dialog' : activeOverlay === 'help' ? 'tutorial-dialog' : ''}`}
         >
           <DialogTitle>
-            {activeOverlay === 'settings'
-              ? '设置'
-              : activeOverlay === 'collection'
-                ? '远征收藏'
-                : activeOverlay === 'codex'
-                  ? '秘宝与构筑'
-                  : activeOverlay === 'route'
-                    ? '远征路线'
-                    : '冒险入门'}
+            {activeOverlay === 'chronicle'
+              ? '灰烬史册'
+              : activeOverlay === 'settings'
+                ? '设置'
+                : activeOverlay === 'collection'
+                  ? '远征收藏'
+                  : activeOverlay === 'codex'
+                    ? '秘宝与构筑'
+                    : activeOverlay === 'route'
+                      ? '远征路线'
+                      : '冒险入门'}
           </DialogTitle>
           <DialogDescription>
             {activeOverlay === 'codex'
@@ -761,6 +806,14 @@ export default function Home() {
           </DialogDescription>
           {activeOverlay === 'settings' ? (
             <>
+              <TravellerName />
+              <button
+                className="secondary-button"
+                onClick={() => setOverlay('chronicle')}
+              >
+                <Trophy size={18} />
+                排行榜与我的履历
+              </button>
               <label className="control-option" htmlFor="settings-double-tap">
                 <span>
                   双击人物释放技能<small>连续轻点队长，拖动不会施放</small>
@@ -797,6 +850,8 @@ export default function Home() {
                 收藏记录自动保存在当前浏览器，新开远征不会清空。
               </p>
             </>
+          ) : activeOverlay === 'chronicle' ? (
+            <ChroniclePanel />
           ) : activeOverlay === 'collection' ? (
             <CollectionPanel progress={collection} />
           ) : activeOverlay === 'codex' ? (

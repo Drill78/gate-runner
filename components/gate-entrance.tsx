@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { HEROES, type ClassId, type Difficulty } from '@/lib/game';
 import './gate-entrance.css';
+import { TravellerName } from './chronicle-panel';
 
 export function GateEntrance({
   selected,
@@ -19,6 +20,7 @@ export function GateEntrance({
   difficulty,
   hardUnlocked,
   onDifficulty,
+  onChronicle,
 }: {
   selected: ClassId;
   onSelect: (id: ClassId) => void;
@@ -28,6 +30,7 @@ export function GateEntrance({
   difficulty: Difficulty;
   hardUnlocked: boolean;
   onDifficulty: (mode: Difficulty) => void;
+  onChronicle: () => void;
 }) {
   const [stage, setStage] = useState<'closed' | 'opening' | 'classes'>(
     'closed',
@@ -50,6 +53,9 @@ export function GateEntrance({
       className={`gate-entrance gate-entrance--${stage}`}
       aria-label="灰烬之门"
     >
+      <button className="entrance-chronicle" onClick={onChronicle}>
+        灰烬史册
+      </button>
       <button
         className="entrance-settings"
         onClick={onSettings}
@@ -108,14 +114,29 @@ export function GateEntrance({
               >
                 困难 · 灰烬再临
               </button>
+              <button
+                aria-pressed={difficulty === 'endless'}
+                disabled={!hardUnlocked}
+                onClick={() => onDifficulty('endless')}
+              >
+                无尽 · 长夜远征
+              </button>
               <small>
-                {hardUnlocked
-                  ? difficulty === 'hard'
-                    ? '敌人略强 · 前两幕双首领 · 独立成就'
-                    : '完成十五关，征服余烬王座'
-                  : '首次通关后解锁困难模式'}
+                {difficulty === 'endless'
+                  ? '永续远征 · 首领连战 · 长夜契约'
+                  : ''}
+                {difficulty !== 'endless' && (
+                  <>
+                    {hardUnlocked
+                      ? difficulty === 'hard'
+                        ? '敌人略强 · 前两幕双首领 · 独立成就'
+                        : '完成十五关，征服余烬王座'
+                      : '首次通关后解锁困难与无尽模式'}
+                  </>
+                )}
               </small>
             </fieldset>
+            <TravellerName />
             <button className="entrance-start" onClick={onStart}>
               以此誓约启程 <ArrowRight size={20} />
             </button>

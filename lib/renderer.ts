@@ -1,4 +1,4 @@
-import { HEROES, ACT_LENGTH, gateLabel, formatNumber } from './game.ts';
+import { HEROES, gateLabel, formatNumber } from './game.ts';
 import {
   worldY,
   projectilePosition,
@@ -8,6 +8,7 @@ import {
 } from './combat.ts';
 import { VIEW, screenX, screenY } from './view.ts';
 import { ENCOUNTERS } from './bosses.ts';
+import { actIndex } from './endless.ts';
 
 // Orthographic world: linear coordinates and distance-independent object sizes.
 export function drawBattle(
@@ -417,6 +418,30 @@ export function drawBattle(
       ctx.scale(scale, scale);
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
+      if (e.mutation) {
+        const pulse = reducedMotion ? 0 : Math.sin(b.time * 3 + e.id) * 4;
+        ctx.strokeStyle =
+          e.mutation === 'fusion'
+            ? '#e5bded'
+            : e.mutation === 'frenzied'
+              ? '#d85f6d'
+              : '#7c5c9e';
+        ctx.fillStyle = e.mutation === 'frenzied' ? '#61152955' : '#180d2b99';
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 17;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(0, -10, 35 + pulse, 47 + pulse, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        if (e.mutation === 'fusion') {
+          ctx.strokeStyle = '#e9ab68';
+          ctx.beginPath();
+          ctx.arc(0, -10, 48 + pulse, -Math.PI * 0.8, Math.PI * 0.65);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+      }
       if (e.encounterId === 'wyvern') {
         const flap = reducedMotion ? 0 : Math.sin(b.time * 3) * 5;
         for (const side of [-1, 1]) {
@@ -576,7 +601,7 @@ export function drawBattle(
       captions.push({ entity: e, x, y });
     }
     if (e.boss) {
-      const act = Math.floor(b.player.floor / ACT_LENGTH);
+      const act = actIndex(b.player);
       if (b.player.node?.kind === 'boss' && act === 1) {
         for (let i = 0; i < 5; i++) {
           const angle =
@@ -692,7 +717,7 @@ export function drawBattle(
       Math.min(1, 1 - (b.pressure.flashUntil - b.time) / 0.7),
     );
     const color = ['#c0ce8a', '#c9aff0', '#ffb185'][
-      Math.min(2, Math.floor(b.player.floor / ACT_LENGTH))
+      Math.min(2, actIndex(b.player))
     ];
     const spread = reducedMotion ? 0.18 : pulse;
     ctx.save();
