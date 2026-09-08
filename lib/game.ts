@@ -1,5 +1,7 @@
 import {
   ENDLESS_REWARDS,
+  ENDLESS_ECONOMY,
+  reforgeGain,
   freshEndless,
   isEndless,
   hpLimit,
@@ -8,6 +10,7 @@ import {
   depthIncome,
   covenantChoices,
   type EndlessState,
+  type EndlessEncounter,
 } from './endless.ts';
 import {
   type Magnitude,
@@ -37,6 +40,8 @@ export const MAX_HP = 1200;
 export const HP_PER_LEVEL = 6;
 export type Difficulty = 'normal' | 'hard' | 'endless';
 export type Phase =
+  | 'ascension'
+  | 'fallen'
   | 'setup'
   | 'map'
   | 'battle'
@@ -541,6 +546,24 @@ export interface RouteNode {
 }
 export interface Run {
   version: 4;
+  ruleset?: 'ascension-v1';
+  devMode?: boolean;
+  battleResume?: boolean;
+  devEncounter?: EndlessEncounter;
+  ascended?: boolean;
+  revivalCoins?: number;
+  revivalCoinsEarned?: number;
+  revivalsUsed?: number;
+  checkpointStart?: number;
+  legacyPendingCheckpoint?: 45 | 90;
+  legacyContinuation?: boolean;
+  journey?: {
+    room: number;
+    hp: number;
+    maxHp: number;
+    armyLog: number;
+    seconds: number;
+  }[];
   runId: string;
   combatTime: number;
   peakSquad: number;
@@ -646,6 +669,13 @@ export function createRun(
   const h = HEROES.find((h) => h.id === classId)!;
   return {
     version: 4,
+    ruleset: 'ascension-v1',
+    ascended: false,
+    revivalCoins: 0,
+    revivalCoinsEarned: 0,
+    revivalsUsed: 0,
+    checkpointStart: 0,
+    journey: [],
     runId: '',
     combatTime: 0,
     peakSquad: h.squad,
@@ -693,7 +723,11 @@ export function grantGold(run: Run, amount: number) {
   );
 }
 export function availableNodes(run: Run): RouteNode[] {
-  if ((!isEndless(run) && run.floor >= TOTAL_FLOORS) || run.floor < 0)
+  if (
+    (!isEndless(run) && run.floor >= TOTAL_FLOORS) ||
+    run.floor < 0 ||
+    run.floor > 100
+  )
     return [];
   const lastId = run.path.at(-1);
   const last = run.nodes.flat().find((n) => n.id === lastId);
@@ -701,7 +735,9 @@ export function availableNodes(run: Run): RouteNode[] {
     .filter((node) =>
       last
         ? last.floor === run.floor - 1 && last.next.includes(node.id)
-        : !lastId && run.floor % ACT_LENGTH === 0,
+        : !lastId &&
+          (run.floor % ACT_LENGTH === 0 ||
+            run.legacyPendingCheckpoint === run.floor + 1),
     )
     .map((node) => ({
       ...node,
@@ -993,6 +1029,7 @@ export function addRelic(run: Run, id: string): Run {
 export function completeRoom(run: Run, reward = true): Run {
   const n = structuredClone(run);
   if (!n.node || n.node.floor !== n.floor) return run;
+  n.battleResume = false;
   n.path.push(n.node.id);
   if (n.relics.lifebloom) {
     const growth = n.relics.lifebloom * 3;
@@ -1000,7 +1037,63 @@ export function completeRoom(run: Run, reward = true): Run {
     n.hp = Math.min(n.maxHp, n.hp + growth);
   }
   n.floor++;
+  if (n.legacyPendingCheckpoint === n.floor && n.node.kind === 'boss')
+    delete n.legacyPendingCheckpoint;
   trackArmyPeak(n);
+  const army = armyMagnitude(n);
+  n.journey = [
+    ...(n.journey || []),
+    {
+      room: n.floor,
+      hp: n.hp,
+      maxHp: n.maxHp,
+      armyLog: army.exponent + Math.log10(army.mantissa),
+      seconds: n.combatTime,
+    },
+  ].slice(-101);
+  if (n.devMode && n.devEncounter) {
+    n.phase = 'victory';
+    n.reward = [];
+    logRun(n, '独立演武完成 · 可返回演武场选择下一场试炼。');
+    return n;
+  }
+  if (
+    n.node.kind === 'boss' &&
+    n.floor % ACT_LENGTH === 0 &&
+    (isEndless(n) || n.floor < TOTAL_FLOORS)
+  ) {
+    const restored = Math.min(n.maxHp - n.hp, n.maxHp * 0.5);
+    n.hp += restored;
+    logRun(
+      n,
+      `章末余火 · 恢复 ${formatNumber(restored)} 生命，下一段誓约已开启。`,
+    );
+  }
+  if (
+    isEndless(n) &&
+    [15, 45, 75].includes(n.floor) &&
+    (n.revivalCoinsEarned || 0) < 3
+  ) {
+    n.revivalCoins = (n.revivalCoins || 0) + 1;
+    n.revivalCoinsEarned = (n.revivalCoinsEarned || 0) + 1;
+    logRun(n, '不灭余烬凝成归魂币 · 陨落时可重燃此战。');
+  }
+  if (isEndless(n) && n.floor === 100) {
+    n.ascended = true;
+    n.phase = 'ascension';
+    n.reward = [];
+    n.nodes = createRunMap(n.seed, n.difficulty, 100);
+    n.path = [];
+    n.node = null;
+    logRun(n, '迷雾终破，凡躯登神。感谢你，把这束火带到了最后。');
+    return n;
+  }
+  if (isEndless(n) && n.floor === 101) {
+    n.phase = 'victory';
+    n.reward = [];
+    logRun(n, '绿色咸咸圈&GPT-6 Astra · 谢谢你走到这里。游戏通关！');
+    return n;
+  }
   if (n.floor === TOTAL_FLOORS && !isEndless(n)) {
     n.phase = 'victory';
     logRun(n, '灰烬王座已被征服。');
@@ -1011,11 +1104,57 @@ export function completeRoom(run: Run, reward = true): Run {
     ? rollRewards(n, n.node.kind === 'elite' || n.node.kind === 'boss')
     : [];
   if (isEndless(n) && n.floor % TOTAL_FLOORS === 0) {
-    n.nodes = createMap(n.seed, n.floor);
+    n.nodes = createRunMap(n.seed, n.difficulty, n.floor);
     n.path = [];
     n.node = null;
   }
   return n;
+}
+/** The final ten trials share one straight map; the celebration has one last node. */
+export function createRunMap(
+  seed: number,
+  difficulty: Difficulty,
+  floor: number,
+): RouteNode[][] {
+  if (difficulty !== 'endless') return createMap(seed);
+  if (floor >= 100)
+    return [[{ id: '100-2', floor: 100, col: 2, kind: 'treasure', next: [] }]];
+  if (floor >= 90)
+    return Array.from({ length: 10 }, (_, index) => [
+      {
+        id: `${90 + index}-2`,
+        floor: 90 + index,
+        col: 2,
+        kind: 'boss' as const,
+        next: index < 9 ? [`${91 + index}-2`] : [],
+      },
+    ]);
+  return createMap(seed, Math.floor(floor / TOTAL_FLOORS) * TOTAL_FLOORS);
+}
+export function reviveRun(run: Run): Run {
+  if (
+    run.phase !== 'fallen' ||
+    !isEndless(run) ||
+    (run.revivalCoins || 0) < 1 ||
+    !run.node
+  )
+    return run;
+  const next = structuredClone(run);
+  next.revivalCoins = (next.revivalCoins || 0) - 1;
+  next.revivalsUsed = (next.revivalsUsed || 0) + 1;
+  next.hp = next.maxHp;
+  next.phase = 'battle';
+  next.battleResume = true;
+  logRun(next, '归魂币燃尽 · 此战重启，誓言未断。');
+  return next;
+}
+export function acceptDefeat(run: Run): Run {
+  return run.phase === 'fallen' ? { ...run, phase: 'defeat' } : run;
+}
+export function beginEpilogue(run: Run): Run {
+  if (run.phase !== 'ascension' || !run.ascended || run.floor !== 100)
+    return run;
+  return enterNode({ ...run, phase: 'map' }, '100-2');
 }
 export function chooseReward(run: Run, id: string): Run {
   if (run.phase !== 'reward' || !run.reward.includes(id)) return run;
@@ -1052,7 +1191,8 @@ function chooseCovenant(run: Run, id: string): Run {
   if (!isEndless(run) || !covenantChoices(run).includes(id)) return run;
   let n = structuredClone(run);
   const e = n.endless;
-  if (id === 'abyss-flame') e.power = boundedProduct(e.power, 1.24);
+  if (id === 'abyss-flame')
+    e.power = boundedProduct(e.power, 1 + ENDLESS_ECONOMY.flameGain);
   if (id === 'abyss-legion') {
     e.legion = boundedProduct(e.legion, 1.3);
     multiplyArmy(n, 1.5);
@@ -1075,7 +1215,7 @@ function chooseCovenant(run: Run, id: string): Run {
       (sum, [key, count]) => sum + (key === 'square_key' ? 0 : count),
       0,
     );
-    e.power = boundedProduct(e.power, 1 + layers * 0.08);
+    e.power = boundedProduct(e.power, 1 + reforgeGain(layers, e.reforges));
     e.embers += layers;
     e.reforges++;
     const key = n.relics.square_key;
@@ -1680,6 +1820,92 @@ export function restoreRun(text: string): Run | null {
     if (!Object.hasOwn(raw, 'combatTime')) raw.combatTime = 0;
     if (!Object.hasOwn(raw, 'peakSquad')) raw.peakSquad = raw.squad;
     if (!Object.hasOwn(raw, 'endless')) raw.endless = freshEndless();
+    if (raw.devMode === true) return null;
+    if (raw.difficulty === 'endless' && raw.ruleset !== 'ascension-v1') {
+      if (typeof raw.runId !== 'string' || raw.runId.length > 80) return null;
+      // A legacy server record retains its original ruleset and history. The
+      // carried build starts a separate private continuation in the new rules.
+      raw.runId = crypto.randomUUID();
+      raw.legacyContinuation = true;
+      raw.ascended = false;
+      raw.revivalCoins = raw.revivalCoinsEarned = raw.revivalsUsed = 0;
+      raw.checkpointStart = 0;
+      raw.journey = [];
+      if (raw.floor >= 45) {
+        raw.legacyPendingCheckpoint = raw.floor >= 90 ? 90 : 45;
+        raw.floor = raw.legacyPendingCheckpoint - 1;
+        raw.path = [];
+        raw.node = null;
+        raw.phase = 'map';
+        raw.reward = [];
+        raw.purchases = [];
+        raw.battleResume = false;
+      }
+      const message = raw.legacyPendingCheckpoint
+        ? `旧长夜的誓装已保留，请重新跨过第${raw.legacyPendingCheckpoint}关的王庭。此行另记私人履历。`
+        : '旧长夜的誓装与足迹已保留。新章另记私人履历，旧史册仍在。';
+      raw.log = [message, ...(Array.isArray(raw.log) ? raw.log : [])].slice(
+        0,
+        8,
+      );
+    }
+    raw.ruleset = 'ascension-v1';
+    if (
+      raw.legacyContinuation !== undefined &&
+      (typeof raw.legacyContinuation !== 'boolean' ||
+        raw.difficulty !== 'endless')
+    )
+      return null;
+    if (
+      raw.legacyPendingCheckpoint !== undefined &&
+      (![45, 90].includes(raw.legacyPendingCheckpoint) ||
+        raw.difficulty !== 'endless' ||
+        raw.floor !== raw.legacyPendingCheckpoint - 1)
+    )
+      return null;
+    for (const field of [
+      'revivalCoins',
+      'revivalCoinsEarned',
+      'revivalsUsed',
+      'checkpointStart',
+    ]) {
+      if (!Object.hasOwn(raw, field)) raw[field] = 0;
+      if (!Number.isSafeInteger(raw[field]) || raw[field] < 0) return null;
+    }
+    if (
+      raw.revivalCoinsEarned > 3 ||
+      raw.revivalCoins > raw.revivalCoinsEarned ||
+      raw.revivalsUsed > 3 ||
+      ![0, 46, 91].includes(raw.checkpointStart)
+    )
+      return null;
+    if (!Object.hasOwn(raw, 'ascended')) raw.ascended = false;
+    if (
+      typeof raw.ascended !== 'boolean' ||
+      (raw.ascended && (raw.difficulty !== 'endless' || raw.floor < 100))
+    )
+      return null;
+    if (!Object.hasOwn(raw, 'journey')) raw.journey = [];
+    if (
+      !Array.isArray(raw.journey) ||
+      raw.journey.length > 101 ||
+      raw.journey.some(
+        (point: Run['journey'] extends (infer P)[] | undefined ? P : never) =>
+          !point ||
+          !Number.isInteger(point.room) ||
+          point.room < 1 ||
+          point.room > 101 ||
+          ![point.hp, point.maxHp, point.armyLog, point.seconds].every(
+            Number.isFinite,
+          ) ||
+          point.hp < 0 ||
+          point.maxHp <= 0 ||
+          point.hp > point.maxHp ||
+          point.armyLog < 0 ||
+          point.seconds < 0,
+      )
+    )
+      return null;
     for (const [field, projection] of [
       ['squadMagnitude', 'squad'],
       ['peakSquadMagnitude', 'peakSquad'],
@@ -1749,14 +1975,24 @@ export function restoreRun(text: string): Run | null {
       typeof r.encountersDefeated !== 'object' ||
       Array.isArray(r.encountersDefeated) ||
       !HEROES.some((h) => h.id === r.classId) ||
-      !['map', 'reward', 'rest', 'shop', 'event'].includes(r.phase) ||
+      ![
+        'map',
+        'reward',
+        'rest',
+        'shop',
+        'event',
+        'fallen',
+        'ascension',
+        'battle',
+      ].includes(r.phase) ||
       !Number.isSafeInteger(r.seed) ||
       !Number.isInteger(r.floor) ||
       r.floor < 0 ||
-      r.floor >= (isEndless(r) ? 1000000 : TOTAL_FLOORS) ||
+      r.floor >= (isEndless(r) ? 101 : TOTAL_FLOORS) ||
       !Array.isArray(r.path) ||
       r.path.length > r.floor ||
-      (r.floor - r.path.length) % ACT_LENGTH !== 0 ||
+      ((r.floor - r.path.length) % ACT_LENGTH !== 0 &&
+        !r.legacyPendingCheckpoint) ||
       !Array.isArray(r.log) ||
       r.log.length > 50 ||
       r.log.some((entry) => typeof entry !== 'string' || entry.length > 300) ||
@@ -1804,7 +2040,7 @@ export function restoreRun(text: string): Run | null {
       r.talentPicks < 0 ||
       // Migrated builds keep cards earned under the previous, faster XP curve.
       r.talentPicks > MAX_LEVEL - 1 ||
-      r.hp <= 0 ||
+      (r.hp <= 0 && r.phase !== 'fallen') ||
       r.hp > r.maxHp ||
       r.maxHp > hpLimit(r) ||
       r.squad < 1 ||
@@ -1830,11 +2066,32 @@ export function restoreRun(text: string): Run | null {
       )
     )
       return null;
+    if (
+      r.phase === 'ascension' &&
+      (!isEndless(r) || r.floor !== 100 || !r.ascended)
+    )
+      return null;
+    if (
+      r.phase === 'fallen' &&
+      (!isEndless(r) || !r.node || r.hp !== 0 || (r.revivalCoins || 0) < 1)
+    )
+      return null;
+    if (
+      r.phase === 'battle' &&
+      (!r.battleResume || !isEndless(r) || !r.node || (r.revivalsUsed || 0) < 1)
+    )
+      return null;
     const offset = isEndless(r)
-      ? Math.floor(r.floor / TOTAL_FLOORS) * TOTAL_FLOORS
+      ? r.floor >= 100
+        ? 100
+        : Math.floor(r.floor / TOTAL_FLOORS) * TOTAL_FLOORS
       : 0;
-    if (isEndless(r) && r.path.length !== r.floor - offset) return null;
-    r.nodes = createMap(r.seed, offset);
+    if (
+      isEndless(r) &&
+      r.path.length !== (r.legacyPendingCheckpoint ? 0 : r.floor - offset)
+    )
+      return null;
+    r.nodes = createRunMap(r.seed, r.difficulty, r.floor);
     const checkpoint = r.floor - r.path.length;
     let previous: RouteNode | undefined;
     for (const [index, id] of r.path.entries()) {
@@ -1861,6 +2118,13 @@ export function restoreRun(text: string): Run | null {
         return null;
       r.node = { ...known, ...(r.node.enchanted ? { enchanted: true } : {}) };
     }
+    if (
+      ['fallen', 'battle'].includes(r.phase) &&
+      (!r.node ||
+        r.node.floor !== r.floor ||
+        !availableNodes(r).some((node) => node.id === r.node!.id))
+    )
+      return null;
     if (
       ['rest', 'shop', 'event'].includes(r.phase) &&
       (!r.node ||

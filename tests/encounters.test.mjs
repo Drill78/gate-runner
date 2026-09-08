@@ -18,10 +18,10 @@ function encounterRun(id, floor) {
   assert.fail(`an actual map node selects ${id}`);
 }
 
-test('ten distinct encounter profiles provide five elites and 2 / 2 / 1 chapter boss pools', () => {
-  assert.equal(ENCOUNTERS.length, 10);
-  assert.equal(new Set(ENCOUNTERS.map((entry) => entry.id)).size, 10);
-  assert.equal(new Set(ENCOUNTERS.map((entry) => entry.portrait)).size, 10);
+test('thirteen distinct profiles preserve five elites and 2 / 2 / 1 campaign pools plus three ascension forms', () => {
+  assert.equal(ENCOUNTERS.length, 13);
+  assert.equal(new Set(ENCOUNTERS.map((entry) => entry.id)).size, 13);
+  assert.equal(new Set(ENCOUNTERS.map((entry) => entry.portrait)).size, 13);
   assert.equal(ENCOUNTERS.filter((entry) => entry.kind === 'elite').length, 5);
   assert.deepEqual(
     [0, 1, 2].map(
@@ -32,6 +32,7 @@ test('ten distinct encounter profiles provide five elites and 2 / 2 / 1 chapter 
     [2, 2, 1],
   );
   for (const profile of ENCOUNTERS) {
+    if (profile.kind === 'boss' && profile.act === undefined) continue;
     const floor =
       profile.kind === 'boss' ? (profile.act + 1) * ACT_LENGTH - 1 : 0;
     const run = encounterRun(profile.id, floor);

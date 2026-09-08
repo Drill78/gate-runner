@@ -11,6 +11,13 @@ import { VIEW, screenX, screenY } from './view.ts';
 import { ENCOUNTERS } from './bosses.ts';
 import { actIndex } from './endless.ts';
 
+export interface BattleArt {
+  reborn?: HTMLImageElement;
+  ascendant?: HTMLImageElement;
+  deity?: HTMLImageElement;
+  angel?: HTMLImageElement;
+}
+
 // Orthographic world: linear coordinates and distance-independent object sizes.
 export function drawBattle(
   ctx: CanvasRenderingContext2D,
@@ -19,6 +26,7 @@ export function drawBattle(
   b: Battle,
   reducedMotion = false,
   background?: HTMLImageElement,
+  art?: BattleArt,
 ) {
   const hero = HEROES.find((v) => v.id === b.player.classId)!;
   const scale = Math.max(0.86, Math.min(1.18, w / 520));
@@ -51,6 +59,42 @@ export function drawBattle(
     ctx.fillStyle = '#07031172';
     ctx.fillRect(0, 0, w, h);
   }
+  const holyField = b.player.difficulty === 'endless' && b.player.floor >= 90;
+  if (holyField) {
+    ctx.save();
+    const dawn = ctx.createRadialGradient(
+      w * 0.5,
+      h * 0.03,
+      5,
+      w * 0.5,
+      h * 0.03,
+      h * 0.85,
+    );
+    dawn.addColorStop(0, '#fff2ca35');
+    dawn.addColorStop(0.6, '#eac9770c');
+    dawn.addColorStop(1, '#fff2ca00');
+    ctx.fillStyle = dawn;
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#ffeaba';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 26; i++) {
+      const phase = reducedMotion
+        ? (i * 0.137) % 1
+        : (b.time * 0.06 + i * 0.137) % 1;
+      const side = i % 2 ? 1 : -1;
+      const x =
+        w * (side > 0 ? 0.91 : 0.09) + side * Math.sin(i * 7.4) * w * 0.06;
+      const y = h * (1 - phase);
+      ctx.globalAlpha = Math.sin(phase * Math.PI) * 0.55;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 6);
+      ctx.lineTo(x, y + 6);
+      ctx.moveTo(x - 3, y);
+      ctx.lineTo(x + 3, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   const fog = ctx.createLinearGradient(0, 0, 0, h);
   fog.addColorStop(0, '#0a161a70');
   fog.addColorStop(0.15, '#0c1b1315');
@@ -71,7 +115,12 @@ export function drawBattle(
             ? '#b9dba7'
             : '#b4c787';
     ctx.save();
-    ctx.fillStyle = color + (active ? '35' : '16');
+    ctx.fillStyle =
+      zone.kind === 'shadow'
+        ? active
+          ? '#100b20b0'
+          : '#30203935'
+        : color + (active ? '35' : '16');
     ctx.fillRect(left, Y(-0.13), width, playerY + 32 - Y(-0.13));
     ctx.strokeStyle = color;
     ctx.lineWidth = active ? 2 : 1;
@@ -179,6 +228,39 @@ export function drawBattle(
       );
     }
     ctx.stroke();
+  };
+  const wings = (x: number, y: number, size: number, color = '#fff3df') => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = reducedMotion ? 0 : 10;
+    const flutter = reducedMotion ? 0 : Math.sin(b.time * 4) * size * 0.08;
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.scale(side, 1);
+      for (let i = 0; i < 6; i++) {
+        ctx.globalAlpha = 0.88 - i * 0.08;
+        ctx.beginPath();
+        ctx.moveTo(size * 0.12, size * 0.1);
+        ctx.quadraticCurveTo(
+          size * (0.45 + i * 0.07),
+          -size * (0.8 - i * 0.06) + flutter,
+          size * (0.9 - i * 0.08),
+          -size * (0.68 - i * 0.18) + flutter,
+        );
+        ctx.quadraticCurveTo(
+          size * (0.7 - i * 0.08),
+          size * 0.25,
+          size * 0.12,
+          size * 0.1,
+        );
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    ctx.restore();
   };
   function soldier(
     x: number,
@@ -427,8 +509,21 @@ export function drawBattle(
             ? '#e5bded'
             : e.mutation === 'frenzied'
               ? '#d85f6d'
-              : '#7c5c9e';
-        ctx.fillStyle = e.mutation === 'frenzied' ? '#61152955' : '#180d2b99';
+              : e.mutation === 'golden' || e.mutation === 'hollow'
+                ? '#ffda79'
+                : e.mutation === 'angelic'
+                  ? e.angelBroken
+                    ? '#f16769'
+                    : '#fff8e5'
+                  : '#7c5c9e';
+        ctx.fillStyle =
+          e.mutation === 'frenzied'
+            ? '#61152955'
+            : e.mutation === 'golden'
+              ? '#dba23322'
+              : e.mutation === 'angelic'
+                ? '#f6edd516'
+                : '#180d2b99';
         ctx.shadowColor = ctx.strokeStyle;
         ctx.shadowBlur = 17;
         ctx.lineWidth = 3;
@@ -442,9 +537,66 @@ export function drawBattle(
           ctx.arc(0, -10, 48 + pulse, -Math.PI * 0.8, Math.PI * 0.65);
           ctx.stroke();
         }
+        if (e.mutation === 'ashen') {
+          for (let i = 0; i < 9; i++) {
+            const t = reducedMotion ? 0.45 : (b.time * 0.6 + i * 0.19) % 1;
+            const px = Math.sin(i * 2.3) * 39;
+            ctx.globalAlpha = (1 - t) * 0.8;
+            ctx.fillStyle = '#090614';
+            ctx.strokeStyle = '#8d65a0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(px - 7, 16 - t * 55);
+            ctx.quadraticCurveTo(px + 16, -5 - t * 65, px + 3, -32 - t * 60);
+            ctx.quadraticCurveTo(px - 18, -5 - t * 45, px - 7, 16 - t * 55);
+            ctx.fill();
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+        }
+        if (e.mutation === 'angelic' && !e.angelBroken) {
+          wings(0, -3, 66, '#fff7df');
+          ctx.strokeStyle = '#fff7dc';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(0, -63, 21, 6, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if ((e.invulnerableUntil || 0) > b.time) {
+          ctx.strokeStyle = e.mutation === 'angelic' ? '#ffffff' : '#ffe29b';
+          ctx.lineWidth = 3;
+          rune(0, -10, 55, reducedMotion ? 0 : b.time * 0.4);
+          ctx.fillStyle = e.mutation === 'angelic' ? '#ffffff15' : '#ffd26422';
+          ctx.beginPath();
+          ctx.arc(0, -10, 52, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.shadowBlur = 0;
       }
-      if (e.encounterId === 'wyvern') {
+      const model =
+        e.encounterId === 'king-reborn'
+          ? art?.reborn
+          : e.encounterId === 'king-ascendant'
+            ? art?.ascendant
+            : e.encounterId === 'deity'
+              ? art?.deity
+              : undefined;
+      if (model?.complete && model.naturalWidth > 0) {
+        const width =
+          e.encounterId === 'deity'
+            ? (w * 0.98) / scale
+            : e.encounterId === 'king-ascendant'
+              ? 165
+              : 138;
+        const height = (width * model.naturalHeight) / model.naturalWidth;
+        if (e.encounterId === 'deity') {
+          ctx.globalCompositeOperation = 'screen';
+          ctx.globalAlpha = 0.94;
+        }
+        ctx.drawImage(model, -width / 2, -height * 0.55, width, height);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+      } else if (e.encounterId === 'wyvern') {
         const flap = reducedMotion ? 0 : Math.sin(b.time * 3) * 5;
         for (const side of [-1, 1]) {
           ctx.save();
@@ -550,7 +702,7 @@ export function drawBattle(
           ctx.lineTo(43, -31);
           ctx.stroke();
         }
-        if (e.encounterId === 'king') {
+        if (e.encounterId?.startsWith('king') || e.encounterId === 'deity') {
           const phase = kingPhase(e);
           const rotation = reducedMotion ? 0 : b.time * (0.16 + phase * 0.07);
           ctx.save();
@@ -587,6 +739,15 @@ export function drawBattle(
       ctx.beginPath();
       ctx.arc(x, y, 42 * scale, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (
+      holyField &&
+      art?.angel?.complete &&
+      art.angel.naturalWidth > 0
+    ) {
+      const height = 70 * scale,
+        width = (height * art.angel.naturalWidth) / art.angel.naturalHeight;
+      ctx.drawImage(art.angel, x - width / 2, y - height / 2, width, height);
+      captions.push({ entity: e, x, y });
     } else {
       soldier(
         x,
@@ -603,6 +764,49 @@ export function drawBattle(
       captions.push({ entity: e, x, y });
     }
     if (e.boss) {
+      if ((e.mutationShield || 0) > 0) {
+        round(x - 43 * scale, y + 42 * scale, 86 * scale, 5, 2, '#3a2b10');
+        round(
+          x - 43 * scale,
+          y + 42 * scale,
+          (86 * scale * e.mutationShield!) /
+            Math.max(1, e.mutationShieldMax || 1),
+          5,
+          2,
+          '#f5d580',
+        );
+      }
+      if ((e.healingFlashUntil || 0) > b.time) {
+        const tint = e.mutation === 'frenzied' ? '#ff7890' : '#fff5dc';
+        ctx.save();
+        ctx.strokeStyle = tint;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 3; i++) {
+          const p = reducedMotion ? 0.5 : (b.time * 0.9 + i * 0.33) % 1;
+          ctx.globalAlpha = 1 - p;
+          const py = y + (22 - p * 60) * scale,
+            px = x + (i - 1) * 24 * scale;
+          ctx.beginPath();
+          ctx.moveTo(px - 4, py);
+          ctx.lineTo(px + 4, py);
+          ctx.moveTo(px, py - 4);
+          ctx.lineTo(px, py + 4);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      if (e.angelBroken) {
+        ctx.save();
+        ctx.strokeStyle = '#ff676b';
+        ctx.globalAlpha = reducedMotion
+          ? 0.5
+          : 0.3 + (Math.sin(b.time * 10) + 1) * 0.25;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 43 * scale, 49 * scale, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
       const act = actIndex(b.player);
       if (b.player.node?.kind === 'boss' && act === 1) {
         for (let i = 0; i < 5; i++) {
@@ -877,8 +1081,14 @@ export function drawBattle(
       x = X(pos.x),
       y = Y(pos.y);
     if (y > h + 25 || y < -25) continue;
-    const color =
-      p.kind === 'star'
+    const owner = b.entities.find((e) => e.id === p.ownerId);
+    const holy =
+      owner?.encounterId === 'deity' ||
+      owner?.encounterId === 'king-ascendant' ||
+      owner?.mutation === 'angelic';
+    const color = holy
+      ? '#fff2bb'
+      : p.kind === 'star'
         ? '#d1b5ff'
         : p.kind === 'ember'
           ? '#ffb47f'
@@ -991,7 +1201,7 @@ export function drawBattle(
       ctx.lineWidth = 1 * scale;
       ctx.stroke();
     } else {
-      ctx.fillStyle = '#e27642';
+      ctx.fillStyle = holy ? '#eec978' : '#e27642';
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
@@ -1011,13 +1221,45 @@ export function drawBattle(
     const left = X(threat.x - threat.width / 2),
       right = X(threat.x + threat.width / 2);
     const countdown = Math.max(0, threat.resolveAt - b.time);
-    ctx.fillStyle = countdown < 0.35 ? '#ed714953' : '#d56c3f30';
+    const owner = b.entities.find((e) => e.id === threat.ownerId);
+    const holy =
+      owner?.encounterId === 'deity' ||
+      owner?.encounterId === 'king-ascendant' ||
+      owner?.mutation === 'angelic';
+    ctx.fillStyle = holy
+      ? countdown < 0.35
+        ? '#ffd98555'
+        : '#dfb65727'
+      : countdown < 0.35
+        ? '#ed714953'
+        : '#d56c3f30';
     ctx.fillRect(left, 80, right - left, playerY + 30 - 80);
-    ctx.strokeStyle = '#ffb28a';
+    ctx.strokeStyle = holy ? '#ffe9af' : '#ffb28a';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 5]);
     ctx.strokeRect(left, 80, right - left, playerY + 30 - 80);
     ctx.setLineDash([]);
+    if (holy) {
+      const center = (left + right) / 2;
+      ctx.save();
+      ctx.strokeStyle = '#fff7d7';
+      ctx.lineWidth = Math.max(2, Math.min(8, (right - left) * 0.09));
+      ctx.shadowColor = '#ffe6ac';
+      ctx.shadowBlur = reducedMotion ? 0 : 13;
+      ctx.globalAlpha = 0.35 + Math.max(0, 1 - countdown / 2.6) * 0.45;
+      ctx.beginPath();
+      ctx.moveTo(center, Y(-0.48));
+      ctx.lineTo(center, playerY - 82);
+      ctx.stroke();
+      ctx.lineWidth = 1.5;
+      rune(
+        center,
+        playerY - 18,
+        Math.min(35, (right - left) * 0.35),
+        reducedMotion ? 0 : b.time * 0.3,
+      );
+      ctx.restore();
+    }
     label(
       `${threat.name} · ${countdown.toFixed(1)}s`,
       (left + right) / 2,
@@ -1098,7 +1340,7 @@ export function drawBattle(
       '700',
     );
     label(
-      '集火打断 / 移入绿区',
+      cast.interruptible ? '集火打断 / 移入绿区' : '圣约不可打断 · 移入绿区',
       w / 2,
       playerY - 104 * scale,
       14,
@@ -1250,7 +1492,11 @@ export function drawBattle(
     if (e.kind === 'chest') {
       hpBar(e, x, y - 29 * scale, 65 * scale);
       label(
-        e.reward === 'weapon' ? '兵装秘匣' : '补给宝箱',
+        e.blessing
+          ? '黎明礼匣'
+          : e.reward === 'weapon'
+            ? '兵装秘匣'
+            : '补给宝箱',
         x,
         y - 39 * scale,
         Math.max(14, 14 * scale),
@@ -1295,4 +1541,35 @@ export function drawBattle(
   const armyLabel = formatArmy(b.player);
   const armyFont = Math.min(32, 360 / Math.max(10, armyLabel.length));
   label(armyLabel, playerX, playerY - 35 * scale, armyFont, '#fff0bd', '800');
+  if (b.transition?.kind === 'shatter') {
+    const t = 1 - b.transition.remaining / b.transition.duration;
+    ctx.save();
+    ctx.fillStyle = `rgba(218,231,246,${reducedMotion ? 0.14 : Math.max(0, 0.4 - t * 0.33)})`;
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#faffff';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 1 - t * 0.7;
+    const cx = w * 0.5,
+      cy = h * 0.34;
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6 + 0.15,
+        length = Math.max(w, h) * (reducedMotion ? 0.5 : 0.2 + t * 0.75);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(
+        cx + Math.cos(a) * length * 0.35,
+        cy + Math.sin(a) * length * 0.35,
+      );
+      ctx.lineTo(
+        cx + Math.cos(a + 0.09) * length * 0.6,
+        cy + Math.sin(a + 0.09) * length * 0.6,
+      );
+      ctx.lineTo(cx + Math.cos(a) * length, cy + Math.sin(a) * length);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    label('圣翼崩解', cx, h * 0.46, 32 * scale, '#fff5e4', '800');
+    label('神性褪去 · 凡躯再现', cx, h * 0.46 + 30, 14, '#e7c3c6');
+    ctx.restore();
+  }
 }

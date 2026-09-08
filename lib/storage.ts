@@ -77,7 +77,12 @@ export function parseStorage(raw: string) {
   }
 }
 export function persistRun(run: Run) {
-  if (run.phase === 'setup' || run.phase === 'battle') return;
+  if (
+    run.devMode ||
+    run.phase === 'setup' ||
+    (run.phase === 'battle' && !run.battleResume)
+  )
+    return;
   try {
     if (run.phase === 'victory' || run.phase === 'defeat')
       localStorage.removeItem(RUN_KEY);
@@ -122,6 +127,7 @@ export function persistCollection(
   run: Run,
   encounterKills: Record<string, number>,
 ) {
+  if (run.devMode) return;
   try {
     const next = mergeCollection(
       parseCollection(localStorage.getItem(COLLECTION_KEY)),

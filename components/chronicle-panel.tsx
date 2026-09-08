@@ -16,14 +16,14 @@ import {
 } from '@/lib/chronicle';
 import './chronicle-panel.css';
 
-const modes = { normal: '普通远征', hard: '灰烬再临', endless: '长夜无尽' };
+const modes = { normal: '普通远征', hard: '灰烬再临', endless: '登神远征' };
 const subscribeName = (listener: () => void) => {
   window.addEventListener('storage', listener);
   return () => window.removeEventListener('storage', listener);
 };
 const readName = () => identity().name;
 const serverName = () => '';
-export function TravellerName() {
+export function TravellerName({ ascended = false }: { ascended?: boolean }) {
   const fieldId = useId();
   const savedName = useSyncExternalStore(subscribeName, readName, serverName);
   const [draft, setName] = useState<string | null>(null);
@@ -43,7 +43,12 @@ export function TravellerName() {
       }}
     >
       <label htmlFor={fieldId}>
-        旅人之名 <small>将与你的称号一同传颂</small>
+        {ascended ? (
+          <span className="ascended-name">✦ 登神者之名</span>
+        ) : (
+          '旅人之名'
+        )}{' '}
+        <small>将与你的称号一同传颂</small>
       </label>
       <div>
         <input
@@ -108,13 +113,14 @@ export function ChroniclePanel() {
   const [tab, setTab] = useState<'board' | 'history'>('board');
   const [mode, setMode] = useState<Difficulty>('normal');
   const [sort, setSort] = useState('duration');
+  const [route, setRoute] = useState('1');
   const [classId, setClassId] = useState('all');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [savingFavorite, setSavingFavorite] = useState('');
   const [favoriteMessage, setFavoriteMessage] = useState('');
-  const query = `${tab}?mode=${mode}&sort=${sort}&class=${classId}&page=${page}&favorite=${favoritesOnly ? 1 : 0}`;
+  const query = `${tab}?mode=${mode}&sort=${sort}&class=${classId}&page=${page}&favorite=${favoritesOnly ? 1 : 0}&route=${route}`;
   const queryKey = `${query}:${revision}`;
   const [data, setData] = useState<{
     key: string;
@@ -235,10 +241,30 @@ export function ChroniclePanel() {
                 ) : (
                   <option value="duration">最快交战</option>
                 )}
+                {mode === 'endless' && (
+                  <option value="duration">最快登神</option>
+                )}
                 <option value="army">最高兵力</option>
                 <option value="gold">最多金币</option>
               </select>
             </label>
+            {mode === 'endless' && (
+              <label>
+                启程篝火
+                <select
+                  value={route}
+                  onChange={(e) => {
+                    setRoute(e.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <option value="1">完整远征 · 第1关</option>
+                  <option value="46">续战 · 第46关</option>
+                  <option value="91">续战 · 第91关</option>
+                  <option value="all">全部足迹</option>
+                </select>
+              </label>
+            )}
             <label>
               誓约
               <select
@@ -281,7 +307,9 @@ export function ChroniclePanel() {
       )}
       <p className="chronicle-note">
         {tab === 'board'
-          ? '每位旅人展示当前排序下的最佳一局。普通与困难收录通关，无尽五层起入榜。'
+          ? mode === 'endless'
+            ? '每位旅人展示本纪元的最佳一局，从第5关起入榜。完整远征与两处续战篝火分别比较；旧长夜记录保留在我的足迹。'
+            : '每位旅人展示当前排序下的最佳通关远征。'
           : '离线或足迹不完整的远征保留在个人履历。'}{' '}
         计时只计算实际交战。
       </p>
@@ -346,9 +374,13 @@ export function ChroniclePanel() {
                   <td>
                     <button
                       className="chronicle-traveller"
+                      aria-label={`${row.name}的远征档案`}
                       onClick={() => setSelected(row)}
                     >
-                      {row.name}
+                      <span className={row.ascended ? 'ascended-name' : ''}>
+                        {row.ascended ? '✦ ' : ''}
+                        {row.name}
+                      </span>
                       <small>{row.title || '尚无传颂之名'}</small>
                     </button>
                   </td>
@@ -356,6 +388,9 @@ export function ChroniclePanel() {
                     {modes[row.mode]}
                     <small>
                       {HEROES.find((h) => h.id === row.class_id)?.name}
+                      {(row.start_room || 1) > 1
+                        ? ` · ${row.start_room}关续战`
+                        : ''}
                     </small>
                   </td>
                   <td>{row.depth}</td>
@@ -398,12 +433,18 @@ export function ChroniclePanel() {
             收起档案
           </button>
           <h3>
-            {selected.name} · {selected.title || '无名之誓'}
+            <span className={selected.ascended ? 'ascended-name' : ''}>
+              {selected.ascended ? '✦ ' : ''}
+              {selected.name}
+            </span>{' '}
+            · {selected.title || '无名之誓'}
           </h3>
           <p>
             {modes[selected.mode]} ·{' '}
             {selected.status === 'won'
-              ? '征服王座'
+              ? selected.mode === 'endless'
+                ? '登神通关'
+                : '征服王座'
               : selected.status === 'retired'
                 ? '归还火种'
                 : '陨落长路'}
@@ -418,6 +459,8 @@ export function ChroniclePanel() {
               ['开启宝箱', details.chests],
               ['焚印重铸', details.reforges],
               ['禁门深度', details.keysOpened],
+              ['归魂次数', details.revivalsUsed || 0],
+              ['启程篝火', `第${selected.start_room || 1}关`],
               ['军势倍率', formatNumber(details.legion)],
               ['战斗秒伤', formatNumber(details.dps)],
               ['命运种子', selected.seed],

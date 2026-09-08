@@ -64,7 +64,7 @@ import {
   weaponLimit,
   endlessEncounter,
 } from '@/lib/endless';
-import { RecordSeal } from './chronicle-panel';
+import { ExpeditionResults, ChapterInterlude } from './expedition-results';
 export const CLASS_ICONS = {
   knight: Shield,
   ranger: BowArrow,
@@ -195,15 +195,22 @@ export function RoutePanel({
     <aside className="route-panel panel">
       <div className="panel-heading">
         <span>远征路线</span>
-        <span>{act.roman} / Ⅲ</span>
+        <span>
+          {isEndless(run)
+            ? run.floor >= 90
+              ? '登神长阶'
+              : `第${Math.floor(run.floor / 15) + 1}轮`
+            : `${act.roman} / Ⅲ`}
+        </span>
       </div>
       <div className="act-label">
-        <h2>{act.name}</h2>
+        <h2>{isEndless(run) && run.floor >= 90 ? '登神长阶' : act.name}</h2>
         <p>每层五关 · 沿连线前进</p>
       </div>
       <RouteGraph run={run} onEnter={onEnter} />
       <p className="route-note">
-        已征服 {run.floor} / {isEndless(run) ? '∞' : TOTAL_FLOORS} 关
+        已征服 {Math.min(run.floor, 100)} /{' '}
+        {isEndless(run) ? '100' : TOTAL_FLOORS} 关
       </p>
     </aside>
   );
@@ -216,6 +223,38 @@ export function RouteGraph({
   onEnter: (id: string) => void;
 }) {
   const actIndex = currentAct(run);
+  if (isEndless(run) && run.floor >= 90) {
+    const reachable = run.phase === 'map' ? availableNodes(run) : [];
+    return (
+      <div
+        className={`stair-map ${run.floor === 100 ? 'stair-map--epilogue' : ''}`}
+        aria-label="登神长阶，唯一的前行之路"
+      >
+        <ol>
+          {run.nodes.flat().map((node) => {
+            const active = reachable.some((n) => n.id === node.id),
+              completed = run.path.includes(node.id);
+            const encounter = endlessEncounter({ ...run, floor: node.floor });
+            return (
+              <li key={node.id}>
+                <button
+                  className={`stair-node ${active ? 'active' : ''} ${completed ? 'completed' : ''}`}
+                  disabled={!active}
+                  onClick={() => onEnter(node.id)}
+                  aria-label={`第${node.floor + 1}关 ${encounter?.name || '诸神的祝福'}${completed ? ' 已完成' : ''}`}
+                >
+                  <b>{node.floor + 1}</b>
+                  <span>
+                    {completed ? '誓约已成' : encounter?.name || '诸神的祝福'}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    );
+  }
   const rows = run.nodes.slice(
     actIndex * ACT_LENGTH,
     (actIndex + 1) * ACT_LENGTH,
@@ -578,6 +617,11 @@ export function RoomScreen({
   onEvent,
   onRestart,
   onRetire,
+  onRevive,
+  onAcceptDefeat,
+  onEpilogue,
+  onCheckpoint,
+  checkpointDepth,
 }: {
   run: Run;
   onEnter: (id: string) => void;
@@ -588,17 +632,42 @@ export function RoomScreen({
   onEvent: (action: EventId) => void;
   onRestart: () => void;
   onRetire: () => void;
+  onRevive: () => void;
+  onAcceptDefeat: () => void;
+  onEpilogue: () => void;
+  onCheckpoint: (room: 46 | 91) => void;
+  checkpointDepth: number;
 }) {
   const phase = run.phase;
   const act = ACTS[currentAct(run)];
   const [shopFilter, setShopFilter] = useState<ShopCategory | '全部'>('全部');
+  if (['victory', 'defeat', 'fallen', 'ascension'].includes(phase))
+    return (
+      <ExpeditionResults
+        run={run}
+        onRestart={onRestart}
+        onRevive={onRevive}
+        onAcceptDefeat={onAcceptDefeat}
+        onEpilogue={onEpilogue}
+        onCheckpoint={onCheckpoint}
+        checkpointDepth={checkpointDepth}
+      />
+    );
   return (
     <div
-      className={`room-screen room-${phase} act-${currentAct(run)} ${run.relics.square_key && !run.squareGateSeen ? 'is-forbidden' : ''}`}
+      className={`room-screen room-${phase} act-${currentAct(run)} ${isEndless(run) && run.floor >= 90 ? 'is-ascension-route' : ''} ${run.relics.square_key && !run.squareGateSeen ? 'is-forbidden' : ''}`}
     >
       {isEndless(run) && (
         <div className="endless-status">
-          <strong>长夜 · 第 {Math.floor(run.floor / ACT_LENGTH) + 1} 层</strong>
+          <strong>
+            {run.floor >= 90
+              ? '登神长阶'
+              : `第${Math.floor(run.floor / 15) + 1}轮 · 第${Math.floor((run.floor % 15) / 5) + 1}层`}
+          </strong>
+          <span>
+            归魂币 {run.revivalCoins || 0} · 此行已获{' '}
+            {run.revivalCoinsEarned || 0}/3
+          </span>
           <span>薪火 ×{formatNumber(run.endless.power)}</span>
           <span>军势 ×{formatNumber(run.endless.legion)}</span>
           <span>焚印 {run.endless.reforges} 次</span>
@@ -608,11 +677,17 @@ export function RoomScreen({
       )}
       {phase === 'map' ? (
         <>
+          <ChapterInterlude run={run} />
           <div className="room-heading">
             <span className="eyebrow">CHOOSE YOUR PATH</span>
-            <h2>下一道门，通向何处？</h2>
+            <h2>
+              {isEndless(run) && run.floor >= 90
+                ? '向着光，再走一步。'
+                : '下一道门，通向何处？'}
+            </h2>
             <p>
-              第 {run.floor + 1} 关 · {act.name}
+              第 {run.floor + 1} 关 ·{' '}
+              {isEndless(run) && run.floor >= 90 ? '登神长阶' : act.name}
             </p>
           </div>
           <RouteGraph run={run} onEnter={onEnter} />
@@ -654,7 +729,10 @@ export function RoomScreen({
             })}
           </div>
           <p className="checkpoint-note">
-            <Check size={13} /> 下一段征程，取决于你的选择
+            <Check size={13} />{' '}
+            {isEndless(run) && run.floor >= 90
+              ? '长阶没有岔路。让所有未竟的誓言，在此迎来终章。'
+              : '下一段征程，取决于你的选择'}
           </p>
           {isEndless(run) && run.floor > 0 && (
             <button className="text-button endless-retire" onClick={onRetire}>
@@ -849,64 +927,6 @@ export function RoomScreen({
           </div>
         </>
       ) : null}
-      {phase === 'victory' || phase === 'defeat' ? (
-        <>
-          <div className="room-heading">
-            <span className={`end-sigil ${phase === 'victory' ? 'won' : ''}`}>
-              {phase === 'victory' ? <Crown size={55} /> : <Flame size={49} />}
-            </span>
-            <span className="eyebrow">
-              {phase === 'victory' ? 'THE CROWN IS YOURS' : 'THE EMBERS REMAIN'}
-            </span>
-            <h2>
-              {run.retired
-                ? '携火归来，长夜犹存。'
-                : phase === 'victory'
-                  ? '灰烬之上，新王加冕。'
-                  : '身归灰烬，誓言未熄。'}
-            </h2>
-            <p>
-              {phase === 'victory'
-                ? '十五关高塔已被征服。你的名字将被传唱。'
-                : '命运不会记住每一次陨落，却会记住再次出发的人。'}
-            </p>
-          </div>
-          <div className="end-stats">
-            <div>
-              <b>
-                {run.floor}
-                <small>/{isEndless(run) ? '∞' : TOTAL_FLOORS}</small>
-              </b>
-              <span>征服关数</span>
-            </div>
-            <div>
-              <b>{run.gates}</b>
-              <span>穿越之门</span>
-            </div>
-            <div>
-              <b>{run.chests}</b>
-              <span>击破宝箱</span>
-            </div>
-            <div>
-              <b>{run.kills}</b>
-              <span>击败敌人</span>
-            </div>
-          </div>
-          <div className="end-build">
-            {Object.entries(run.relics).map(([id, n]) => (
-              <span key={id} title={RELIC_BY_ID[id].desc}>
-                <RelicIcon name={RELIC_BY_ID[id].icon} size={15} />
-                {RELIC_BY_ID[id].name}
-                {n > 1 ? ` ×${n}` : ''}
-              </span>
-            ))}
-          </div>
-          <RecordSeal runId={run.runId} />
-          <button className="primary-button room-continue" onClick={onRestart}>
-            再次踏上征途 <ArrowRight size={18} />
-          </button>
-        </>
-      ) : null}
     </div>
   );
 }
@@ -970,6 +990,7 @@ export function Help() {
         </p>
       </section>
       <p className="save-explanation">
+        长夜远征前90关为六轮，91—100关为登神长阶，101关是祝福尾声，之后结束。第15、45、75关各获一枚归魂币，整局最多三枚；第45、90关点亮预设续战篝火。每五关的章节首领后恢复最大生命50%。详细异化与天使复生机制见教程后三页。
         进度仅保存在当前浏览器，关卡间自动存档；战斗中刷新会回到该房间前的存档。左上角「角色」可查看装备、构筑与路线，或切换音效；查看时暂停战斗。
       </p>
     </div>

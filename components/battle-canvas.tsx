@@ -12,6 +12,9 @@ import {
   chooseBattleUpgrade,
   skipBattleUpgrade,
   kingPhase,
+  arrivalDuration,
+  battleEncounter,
+  type BattleTransition,
 } from '@/lib/combat';
 import { pointerToWorldX, screenX, screenY, VIEW } from '@/lib/view';
 import { createHeroTapTracker } from '@/lib/controls';
@@ -26,7 +29,7 @@ import { drawBattle } from '@/lib/renderer';
 import { bossProfile, ENCOUNTERS } from '@/lib/bosses';
 import { BossArrival } from '@/components/boss-arrival';
 import { battleMusic, musicPlayer } from '@/lib/music';
-import { actIndex, endlessEncounter } from '@/lib/endless';
+import { actIndex } from '@/lib/endless';
 
 export interface BattleSnapshot {
   run: Run;
@@ -51,6 +54,8 @@ export interface BattleSnapshot {
     maxHp: number;
     chapterBoss: boolean;
     hasSecondPhase: boolean;
+    life: number;
+    lives: number;
     phaseThresholds: number[];
     status: string;
   } | null;
@@ -74,13 +79,14 @@ export function BattleCanvas({
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [arrival, setArrival] = useState(false);
+  const [transitionArrival, setTransitionArrival] =
+    useState<BattleTransition | null>(null);
   const [levelChoices, setLevelChoices] = useState(battle.levelChoices);
-  const skipArrival = useRef(false);
   const firstBoss = battle.entities.find((e) => e.boss);
   const primaryProfile =
     ENCOUNTERS.find((e) => e.id === firstBoss?.encounterId) ||
     bossProfile(battle.player);
-  const endlessProfile = endlessEncounter(battle.player);
+  const endlessProfile = battleEncounter(battle.player);
   const partner = battle.entities.find(
     (e) => e.boss && (e.stage || 0) === 0 && e.id !== firstBoss?.id,
   );
@@ -136,9 +142,22 @@ export function BattleCanvas({
       h = 640,
       lastSound = 0,
       introRemaining = 0,
-      introShown = false;
+      introShownStage = -1;
     const background = new Image();
-    background.src = `/art/battlefield-${actIndex(battle.player) + 1}.webp`;
+    background.src =
+      battle.player.difficulty === 'endless' && battle.player.floor >= 90
+        ? '/art/ascension-stair.webp'
+        : `/art/battlefield-${actIndex(battle.player) + 1}.webp`;
+    const models = {
+      reborn: new Image(),
+      ascendant: new Image(),
+      deity: new Image(),
+      angel: new Image(),
+    };
+    models.reborn.src = '/art/king-reborn-sprite.webp';
+    models.ascendant.src = '/art/king-ascendant-sprite.webp';
+    models.deity.src = '/art/boss-deity.webp';
+    models.angel.src = '/art/angel-minion.webp';
     const portrait = new Image();
     portrait.src = (
       ENCOUNTERS.find(
@@ -183,6 +202,8 @@ export function BattleCanvas({
         level: 980,
         'boss-arrival': 82,
         'elite-arrival': 104,
+        'angel-revive': 680,
+        'time-shatter': 1450,
       };
       try {
         const o = audio.createOscillator(),
@@ -206,6 +227,25 @@ export function BattleCanvas({
         g.connect(audio.destination);
         o.start();
         o.stop(audio.currentTime + (impact ? 0.25 : 0.18));
+        if (name === 'time-shatter') {
+          for (let i = 0; i < 7; i++) {
+            const shard = audio.createOscillator(),
+              gain = audio.createGain(),
+              at = audio.currentTime + i * 0.038;
+            shard.type = 'triangle';
+            shard.frequency.setValueAtTime(2200 - i * 190, at);
+            shard.frequency.exponentialRampToValueAtTime(
+              160 + i * 24,
+              at + 0.48,
+            );
+            gain.gain.setValueAtTime(0.035, at);
+            gain.gain.exponentialRampToValueAtTime(0.001, at + 0.6);
+            shard.connect(gain);
+            gain.connect(audio.destination);
+            shard.start(at);
+            shard.stop(at + 0.62);
+          }
+        }
       } catch {
         /* Keep combat running if audio fails. */
       }
@@ -244,11 +284,8 @@ export function BattleCanvas({
         return;
       }
       if (current.current.paused || document.hidden) return;
-      if (introRemaining > 0) {
-        if (code === 'Enter' || code === 'Space') {
-          e.preventDefault();
-          if (!e.repeat) skipArrival.current = true;
-        }
+      if (introRemaining > 0 || battle.transition) {
+        if (code === 'Enter' || code === 'Space') e.preventDefault();
         return;
       }
       ensureAudio();
@@ -263,6 +300,7 @@ export function BattleCanvas({
         !e.isPrimary ||
         current.current.paused ||
         introRemaining > 0 ||
+        battle.transition ||
         battle.levelChoices.length
       )
         return;
@@ -295,6 +333,7 @@ export function BattleCanvas({
         !current.current.paused &&
         !document.hidden &&
         introRemaining <= 0 &&
+        !battle.transition &&
         !battle.levelChoices.length &&
         heroTaps.up({
           x: e.clientX - rect.left,
@@ -311,23 +350,31 @@ export function BattleCanvas({
         current.current.paused ||
         document.hidden ||
         introRemaining > 0 ||
+        battle.transition ||
         battle.levelChoices.length
       ) {
         heroTaps.reset();
         held.clear();
       }
       if (!current.current.paused && !document.hidden && !finished) {
+        let startedArrival = false;
         if (
           !battle.levelChoices.length &&
-          !introShown &&
+          !battle.epilogue &&
+          !battle.transition &&
+          introShownStage !== battle.rushStage &&
           battle.time + dt >= battle.finalStart
         ) {
           stepBattle(battle, Math.max(0, battle.finalStart - battle.time));
           if (!battle.levelChoices.length) {
-            introShown = true;
+            introShownStage = battle.rushStage;
+            startedArrival = true;
             battle.inputLocked = true;
-            introRemaining = 3;
-            skipArrival.current = false;
+            introRemaining = arrivalDuration(
+              battle.entities.find(
+                (e) => e.boss && !e.done && (e.stage || 0) === battle.rushStage,
+              )?.encounterId,
+            );
             held.clear();
             setMoveAxis(battle, 0);
             setArrival(true);
@@ -339,9 +386,8 @@ export function BattleCanvas({
           }
         }
         if (introRemaining > 0) {
-          introRemaining = skipArrival.current
-            ? 0
-            : Math.max(0, introRemaining - dt);
+          if (!startedArrival)
+            introRemaining = Math.max(0, introRemaining - dt);
           if (introRemaining === 0) {
             battle.inputLocked = false;
             setArrival(false);
@@ -352,7 +398,14 @@ export function BattleCanvas({
           play(battle.lastSound);
         }
       }
-      drawBattle(ctx, w, h, battle, reducedMotion, background);
+      setTransitionArrival((previous) =>
+        previous?.seq === battle.transition?.seq
+          ? previous
+          : battle.transition
+            ? { ...battle.transition }
+            : null,
+      );
+      drawBattle(ctx, w, h, battle, reducedMotion, background, models);
       musicPlayer.setState(
         battleMusic(battle),
         current.current.paused ||
@@ -380,23 +433,55 @@ export function BattleCanvas({
             hp: Math.max(0, target.hp),
             maxHp: target.maxHp,
             chapterBoss,
-            hasSecondPhase: true,
-            phaseThresholds: target.encounterId === 'king' ? [70, 35] : [50],
+            hasSecondPhase:
+              !!target.secondLife ||
+              (target.life || 1) > 1 ||
+              target.mutation === 'angelic',
+            life: target.angelRevived ? 2 : target.life || 1,
+            lives:
+              target.secondLife ||
+              (target.life || 1) > 1 ||
+              target.mutation === 'angelic'
+                ? 2
+                : 1,
+            phaseThresholds: target.encounterId?.startsWith('king')
+              ? [70, 35]
+              : [50],
             status: target.done
               ? '已击败'
-              : battle.entities.some(
-                    (v) => v.guardianOf === target.id && !v.done,
-                  )
-                ? '魂灯护佑'
-                : target.encounterId === 'king'
-                  ? `${['余烬王座', '王冠破碎', '终焉燃尽'][kingPhase(target) - 1]}${battle.enrage ? ' · 狂暴' : ''}`
-                  : battle.enrage
-                    ? '狂暴'
-                    : target.guardUntil > battle.time
-                      ? '正面举盾'
-                      : target.hp < target.maxHp * 0.5
-                        ? '第二阶段'
-                        : '交战中',
+              : (target.rageUntil || 0) > battle.time
+                ? `圣翼狂怒 · 无敌 ${Math.ceil(target.rageUntil! - battle.time)}秒`
+                : target.angelBroken
+                  ? '圣翼已碎 · 凡躯暴露'
+                  : (target.invulnerableUntil || 0) > battle.time
+                    ? `金身不坏 ${Math.ceil(target.invulnerableUntil! - battle.time)}秒`
+                    : (target.mutationShield || 0) > 0
+                      ? '金甲护盾 · 可击碎'
+                      : (target.healingUntil || 0) > battle.time &&
+                          (target.healingPool || 0) > 0
+                        ? '血月汲取 · 正在回生'
+                        : target.mutation === 'angelic'
+                          ? '圣翼护佑 · 减伤与再生'
+                          : target.encounterId === 'deity'
+                            ? '黎明圣约 · 循光破界'
+                            : target.encounterId === 'king-reborn'
+                              ? '第二条命 · 焚誓重生'
+                              : target.encounterId === 'king-ascendant'
+                                ? `登神王权 · 第 ${target.life || 1} 条命`
+                                : battle.entities.some(
+                                      (v) =>
+                                        v.guardianOf === target.id && !v.done,
+                                    )
+                                  ? '魂灯护佑'
+                                  : target.encounterId === 'king'
+                                    ? `${['余烬王座', '王冠破碎', '终焉燃尽'][kingPhase(target) - 1]}${battle.enrage ? ' · 狂暴' : ''}`
+                                    : battle.enrage
+                                      ? '狂暴'
+                                      : target.guardUntil > battle.time
+                                        ? '正面举盾'
+                                        : target.hp < target.maxHp * 0.5
+                                          ? '第二阶段'
+                                          : '交战中',
           }));
         current.current.onSnapshot({
           run: { ...battle.player },
@@ -410,7 +495,7 @@ export function BattleCanvas({
           totalWaves: battle.totalWaves,
           duration: battle.duration,
           enrage: battle.enrage,
-          arriving: introRemaining > 0,
+          arriving: introRemaining > 0 || !!battle.transition,
           pressure: battle.pressure ? { ...battle.pressure } : null,
           ritual: battle.ritual ? { ...battle.ritual } : null,
           encounters,
@@ -472,18 +557,38 @@ export function BattleCanvas({
         className="battle-canvas"
         aria-label="俯视战斗场地：按住方向键或 A D 连续左右移动，空格释放技能。触屏点击任意位置或拖动移动。"
       />
-      {arrival ? (
+      {arrival || transitionArrival?.kind === 'revival' ? (
         <BossArrival
-          profile={profile}
+          key={transitionArrival?.seq || `arrival-${battle.rushStage}`}
+          profile={
+            transitionArrival
+              ? ENCOUNTERS.find(
+                  (e) => e.id === transitionArrival.encounterId,
+                ) || profile
+              : battle.rushStage > 0
+                ? ENCOUNTERS.find(
+                    (e) =>
+                      e.id ===
+                      battle.entities.find(
+                        (e) =>
+                          e.boss && !e.done && e.stage === battle.rushStage,
+                      )?.encounterId,
+                  ) || profile
+                : profile
+          }
           chapterBoss={battle.player.node?.kind === 'boss'}
           paused={paused}
+          duration={
+            transitionArrival?.duration ||
+            arrivalDuration(
+              battle.entities.find(
+                (e) => e.boss && !e.done && (e.stage || 0) === battle.rushStage,
+              )?.encounterId,
+            )
+          }
           pressureAfterSeconds={
             battle.pressure ? battle.pressure.nextAt - battle.finalStart : null
           }
-          onSkip={() => {
-            if (!paused && !document.hidden && battle.inputLocked)
-              skipArrival.current = true;
-          }}
         />
       ) : null}
       <Dialog
@@ -491,6 +596,7 @@ export function BattleCanvas({
           levelChoices.length > 0 &&
           !paused &&
           !arrival &&
+          !transitionArrival &&
           battle.state !== 'lost'
         }
       >

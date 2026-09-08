@@ -15,10 +15,13 @@ import {
 import {
   ENDLESS_REWARDS,
   ENDLESS_CURVE,
+  ENDLESS_ECONOMY,
+  endlessEncounter,
   healthGrowth,
   depthDamage,
   depthIncome,
 } from '../lib/endless.ts';
+import { CHECKPOINT_PRESETS } from '../lib/presets.ts';
 import { setArmy, formatArmy } from '../lib/army.ts';
 
 const families = { all: '通用', knight: '骑士', ranger: '游侠', mage: '法师' };
@@ -156,7 +159,7 @@ for (const exponent of [512, 1024, 32768]) {
     平方伤害提升百分比: (squared / base - 1) * 100,
   });
 }
-const depthCurve = Array.from({ length: 150 }, (_, floor) => {
+const depthCurve = Array.from({ length: 100 }, (_, floor) => {
   const r = createRun('knight', 1, 'endless');
   r.floor = floor;
   return {
@@ -197,7 +200,7 @@ const csv = (values) => {
 };
 mkdirSync('docs/balance', { recursive: true });
 mkdirSync('artifacts', { recursive: true });
-const notes = `# 灰烬之门 1.1.1 数值调试册
+const notes = `# 灰烬之门 1.2 数值调试册
 
 本表由当前游戏代码生成。层按章节首领计：1层＝5关，3层＝15关。重新生成：\`node scripts/export-balance.mjs\`。所有表格都是实际配置或明确注明角色条件的计算示例，不是固定掉落承诺。
 
@@ -249,16 +252,19 @@ ${table(
 
 ## 无尽难度与平方窗口
 
-首次15关采用1.23^floor的生命预算，起步比普通远征平缓。王座之后的预算基准×${ENDLESS_CURVE.postThroneHealth}，以15关为一档，前三次跨档×${ENDLESS_CURVE.earlyStep}，接下来五次跨档×${ENDLESS_CURVE.middleStep}，随后×${ENDLESS_CURVE.deepStep}；档内每关×${ENDLESS_CURVE.withinBandStep}。攻击每15关×${ENDLESS_CURVE.attackStep}。怪物类型、精英、首领、幕次与异化另有独立系数，因此实际首领血量不等于此表的统一预算。敌人不会按玩家当前兵力补涨血。
+前90关共六轮，每轮15关；第3、6轮是陡升节点。首次15关采用${ENDLESS_CURVE.openingBase}^floor生命预算，并使用困难式双章节首领与复燃灰烬之王。之后每轮的起点按第15关基础预算乘轮次系数，轮内以线性方式增加${ENDLESS_CURVE.withinRoundGrowth * 100}%。91—100采用独立长阶预算，第100关侧重机制与完整演出，降低原始攻击压力。怪物类型、精英、首领、幕次、阶段和异化另有独立系数，因此实际首领血量不等于此表的统一预算。敌人不会按玩家当前兵力补涨血。
 
-平方对高兵力提供约2倍火力，下一档增长的主要压力在跨过15关之后；中后期曲线同时计入了符文补充、武器与焚印重铸的复合收益，不能仅靠一次平方永久领先。15关优势是数值设计目标，强弱还取决于进门前兵力、构筑、命中率和操作。实际对照样本另见发布审计。
+平方对高兵力提供约2倍火力；武器、军势与重铸仍可继续成长。重铸对后续转换采用递减收益，保留新契约的价值，避免反复回收普通符文产生远超敌人的指数滚雪球。优势取决于进门前兵力、构筑、命中率和操作。实际引擎对照样本另见发布审计；不能将自动驾驶完成率解释为真人胜率。
 
 当前参数：\`${JSON.stringify(ENDLESS_CURVE)}\`。
 
 ${table(
   ['关', '层', '难度档', '敌人生命预算倍率', '敌人攻击倍率', '金币倍率'],
   depthCurve
-    .filter((r) => r.关 === 1 || r.关 % 15 === 0 || (r.关 - 1) % 15 === 0)
+    .filter(
+      (r) =>
+        r.关 === 1 || r.关 >= 91 || r.关 % 15 === 0 || (r.关 - 1) % 15 === 0,
+    )
     .map((r) =>
       Object.fromEntries(
         Object.entries(r).map(([k, v]) => [k, Number(v.toFixed(3))]),
@@ -281,11 +287,35 @@ ${table(['来源', 'ID', '名称', '职业', '品质', '叠加上限', '金币�
 - 无尽金币倍率=min(1e9,1.045^max(0,floor−14))，当前实现深度指数最多480。普通与困难无此倍率。所有grantGold来源使用该倍率，包括击杀、宝箱、钱币、事件与补给。
 - 商店每次从18件候选中随机展示5件（候选数随职业排除变化），秘钥额外展示；同店每件一次。无尽治疗取商品基础值与最大生命35%两者中的较大值。
 - 秘钥：首把666；开过上一重且持有足够深门残章才出现下一把，价格6666、66666……，最多15个6。普通/困难每局一次；无尽需要继续发现残章。通过试炼先经过5道红门，再选平方或其他路线。
-- 无尽盟约从完成第15关后每5关提供。焚印要求至少18层普通符文且完成20关；伤害×(1＋焚毁层数×0.08)，保留武器、HP、盟约、侍从与秘钥，返还钢刃3层、职业前三符文各1层，并恢复30%生命。此永存提升仅在本局内保留。
+- 无尽盟约从完成第15关后每5关提供。续燃薪火伤害×${1 + ENDLESS_ECONOMY.flameGain}。焚印要求至少18层普通符文且完成20关；伤害×[1＋焚毁层数×${ENDLESS_ECONOMY.reforgePerLayer}/(1＋此前重铸次数×${ENDLESS_ECONOMY.reforgeDiminishing})]，保留武器、HP、盟约、侍从与秘钥，返还钢刃3层、职业前三符文各1层，并恢复30%生命。此永存提升仅在本局内保留。
 - 首领盟友完成20关后可选，40关后第二位；必须已击败该首领。每8秒援击一次，每位伤害为当前期望DPS×2.8。深门残章、盟友与重铸会轮换占用第三张盟约，不保证每次都出现。
 - 普通敌人经验6、弓手8、盾卫10、关底精英20、章节首领45；每级研习一次。敌人金币为4/6/8（随幕），金币箱22/34/46金币并+4兵力；兵装箱+1武器等级。
 - 战斗过关金币：普通28、精英55、章节首领80、禁术精英90；再加每层渡鸦钱币20，并乘无尽金币倍率。
 - 营火二选一：恢复最大生命40%，或武器+1级。队伍受伤会按攻击对应比例损失兵力，完全被护盾吸收则不减兵；章节全屏压力只伤HP不减兵。
+- 每击败章节首领并跨章，恢复50%最大生命，最多回满。无尽第100关正式通关，第101关为祝福尾声，不再生成后续刷榜房间。
+
+## 复生预设与登神长阶
+
+复生预设按固定武器、符文、兵力与攻击预算重建，既不复制旧构筑，也不读取敌人当前生命来补数值。三职业在临时技能启动前使用相同基础期望DPS预算，技能爆发、盾击与走位仍有区别。该DPS不等于实际命中伤害；侧弹、护甲、异化减伤与无敌窗口必须另计。预设参数：\`${JSON.stringify(CHECKPOINT_PRESETS)}\`。
+
+${table(
+  ['关', '战名', '阵容', '异化', '王的第二条命'],
+  Array.from({ length: 100 }, (_, floor) => ({
+    floor,
+    encounter: endlessEncounter({ difficulty: 'endless', floor, seed: 721604 }),
+  }))
+    .filter((row) => row.encounter)
+    .map(({ floor, encounter: e }) => ({
+      关: floor + 1,
+      战名: e.name,
+      阵容: e.groups.map((group) => group.join('＋')).join(' → '),
+      异化:
+        e.mutations?.map((group) => group.join('＋')).join(' → ') ||
+        e.mutation ||
+        '无',
+      王的第二条命: e.secondLives ? '是（仅适用王）' : '否；天使独立复活',
+    })),
+)}
 
 ## 调试入口
 
@@ -298,7 +328,16 @@ writeFileSync('docs/balance/endless-curve.csv', csv(depthCurve));
 writeFileSync(
   'docs/balance/catalog.json',
   JSON.stringify(
-    { version: '1.1.1', ENDLESS_CURVE, rows, curve, depthCurve, eventExamples },
+    {
+      version: '1.2',
+      ENDLESS_CURVE,
+      ENDLESS_ECONOMY,
+      CHECKPOINT_PRESETS,
+      rows,
+      curve,
+      depthCurve,
+      eventExamples,
+    },
     null,
     2,
   ),
@@ -309,7 +348,7 @@ const data = JSON.stringify({ rows, curve, depthCurve }).replaceAll(
 );
 const html = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>灰烬之门 · 数值调试册</title><style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#101714;color:#e5e0d0;font:16px/1.7 system-ui,sans-serif}main{max-width:1200px;margin:auto;padding:40px 24px}h1,h2{font-family:serif;color:#e4c584}small,p{color:#b2b9ad}section{border-top:1px solid #44503e;margin-top:32px;padding-top:20px}.controls{display:flex;gap:20px;flex-wrap:wrap}input,select{background:#1d2922;color:#eee5ce;border:1px solid #617050;padding:10px;font:inherit}input[type=range]{width:100%}.metrics{display:flex;gap:28px;flex-wrap:wrap}.metrics b{display:block;font-size:28px;color:#e7c985}.scroll{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:12px;border-bottom:1px solid #344032;vertical-align:top}th{position:sticky;top:0;background:#263324}td:nth-child(3){min-width:130px}td:nth-child(8){min-width:260px}svg{width:100%;height:260px;background:#152019;margin:16px 0}.note{padding:16px;background:#233020;border-left:3px solid #c6a66a}button{cursor:pointer;padding:10px 14px;background:#36472d;color:#fff0cd;border:1px solid #9c925d}a{color:#e0c584}</style>
-<main><small>ASHEN GATES / BALANCE REFERENCE / 1.1.1</small><h1>军势、长夜与命运的馈赠</h1><p>1层＝一次章节首领＝5关；3层＝15关。此页面用于调试和核对，不改动游戏。</p>
+<main><small>ASHEN GATES / BALANCE REFERENCE / 1.2</small><h1>军势、长夜与命运的馈赠</h1><p>1层＝一次章节首领＝5关；3层＝15关。前90关共六轮，91—100为登神长阶。此页面用于调试和核对，不改动游戏。</p>
 <section><h2>兵力并不等于伤害</h2><p>M(N) = 1 + log₂(1 + N / 12)。拖动数量级，观察翻倍和平方分别带来多少火力。</p><div class="controls"><label>尾数 <input id="mantissa" type="number" min="1" max="9.99" step=".01" value="1"></label><label>10的指数 <input id="exp" type="number" min="0" max="32768" value="16"></label></div><input id="range" aria-label="兵力数量级" type="range" min="0" max="256" value="16"><div class="metrics"><div>当前兵力<b id="army"></b></div><div>兵力伤害倍率<b id="multi"></b></div><div>兵力翻倍的增伤<b id="double"></b></div><div>平方的增伤<b id="square"></b></div></div><svg id="plot" viewBox="0 0 1000 260" role="img" aria-label="兵力指数与伤害倍率曲线"></svg><p id="plot-note"></p><p class="note">高兵力下，平方约让这部分火力翻倍；兵力×2只使倍率增加约1。武器、符文和军势契约还会继续乘在这个倍率上。</p></section>
 <section><h2>长夜每15关提高一档</h2><p>下面显示共同的生命预算，精英、首领、章节和异化另乘各自系数。敌人不会读取你的兵力来补涨血。</p><div class="scroll" id="depth"></div></section>
 <section><h2>全部馈赠与商店</h2><div class="controls"><input id="search" placeholder="搜索名称、效果或ID" aria-label="搜索奖励"><select id="source" aria-label="筛选来源"><option value="">全部来源</option></select><button id="download">下载当前奖励表CSV</button></div><p id="count"></p><div class="scroll" id="rewards"></div><p>事件例子：第13关，法师，1万兵力，200/400生命，武器20级，1200经验。其他深度和角色数值见随附的完整数值册。</p></section></main><script>

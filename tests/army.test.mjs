@@ -97,12 +97,15 @@ test('endless difficulty steps after three chapter bosses (15 rooms), independen
   const a = healthGrowth(r, 1.27);
   r.floor = 18;
   assert.ok(
-    healthGrowth(r, 1.27) / a < 1.03,
+    healthGrowth(r, 1.27) / a < 1.08,
     'three rooms do not trigger a new difficulty tier',
   );
   r.floor = 30;
   assert.ok(
-    Math.abs(healthGrowth(r, 1.27) / a - ENDLESS_CURVE.earlyStep) < 1e-9,
+    Math.abs(
+      healthGrowth(r, 1.27) / a -
+        ENDLESS_CURVE.roundHealth[2] / ENDLESS_CURVE.roundHealth[1],
+    ) < 1e-9,
   );
   assert.ok(depthDamage(r) > depthDamage({ ...r, floor: 15 }));
   const unchanged = healthGrowth(r, 1.27);

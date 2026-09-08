@@ -16,7 +16,7 @@
   background: #080b0b;
   color: #fff4dc;
   text-align: center;
-  cursor: pointer;
+  cursor: default;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }

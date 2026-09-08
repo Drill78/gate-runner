@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { battleMusic, MusicPlayer } from '../lib/music.ts';
+import {
+  battleMusic,
+  sceneMusic,
+  MUSIC_TRACKS,
+  MusicPlayer,
+} from '../lib/music.ts';
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 function fixture() {
@@ -113,4 +118,42 @@ test('late downloaded music cannot replace the active encounter', async () => {
   await flush();
   assert.equal(started.length, 1);
   assert.equal(started[0].buffer.byteLength, 3);
+});
+
+test('Ascension score begins at room 91 and continues through its map and ending', () => {
+  const run = (floor, difficulty = 'endless') => ({ floor, difficulty });
+  const battle = (floor, difficulty) => ({
+    player: { ...run(floor, difficulty), node: { kind: 'boss' } },
+    entities: [{ encounterId: 'king' }],
+  });
+  assert.equal(battleMusic(battle(89)), 'final');
+  for (const floor of [90, 98, 99, 100]) {
+    assert.equal(battleMusic(battle(floor)), 'ascension');
+    assert.equal(sceneMusic('map', run(floor)), 'ascension');
+  }
+  assert.equal(sceneMusic('victory', run(100)), 'ascension');
+  assert.equal(sceneMusic('battle', run(90)), null);
+  assert.equal(sceneMusic('setup', run(100)), 'menu');
+  assert.equal(sceneMusic('defeat', run(95)), 'menu');
+  assert.equal(battleMusic(battle(90, 'hard')), 'final');
+  assert.equal(sceneMusic('map', run(89)), 'map');
+  assert.equal(sceneMusic('event'), 'event');
+  assert.equal(sceneMusic('shop'), 'shop');
+  assert.equal(sceneMusic('victory'), 'menu');
+});
+
+test('Ascension prelude plays once and its body resumes across map and battle', async () => {
+  const { player, started, requested } = fixture();
+  player.setState('ascension', false, false);
+  player.unlock();
+  await flush();
+  assert.equal(started.length, 1);
+  assert.equal(started[0].loop, true);
+  assert.equal(started[0].loopStart, 15);
+  assert.equal(MUSIC_TRACKS.ascension.loopStart, 15);
+  assert.deepEqual(requested, ['/audio/ascension.mp3?v=1.2']);
+  player.setState('ascension', true, false);
+  player.setState('ascension', false, false);
+  await flush();
+  assert.equal(started.length, 1);
 });

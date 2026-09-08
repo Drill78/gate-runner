@@ -212,6 +212,7 @@ export function pilot(
     mode = 'coherent',
   } = {},
 ) {
+  const initialBossStart = b.finalStart;
   let nextDecision = 0,
     skills = 0,
     damage = 0,
@@ -438,6 +439,7 @@ export function pilot(
         }
       }
     }
+    const oldCinematicTime = b.cinematicTime || 0;
     const oldTime = b.time,
       oldHp = b.player.hp,
       oldShield = b.shield,
@@ -467,6 +469,7 @@ export function pilot(
     stepBattle(b, 0.05);
     if (b.time === oldTime && b.state === 'running') {
       if (b.levelChoices.length) continue;
+      if (b.transition || (b.cinematicTime || 0) > oldCinematicTime) continue;
       throw new Error(
         `Battle stopped advancing without an upgrade menu at ${b.time}s.`,
       );
@@ -589,7 +592,9 @@ export function pilot(
   return {
     state: b.state,
     time: b.time,
-    bossTime: Math.max(0, b.time - b.finalStart),
+    cinematicTime: b.cinematicTime || 0,
+    transitions: b.transitionSeq || 0,
+    bossTime: Math.max(0, b.time - initialBossStart),
     skills,
     damage,
     leaks,
@@ -625,6 +630,19 @@ export function pilot(
     squareGatesSeen: squareEvents.length,
     deathCause: b.state === 'running' ? 'timeout' : deathCause,
     bossAttacks: b.entities.find((e) => e.boss)?.attackIndex || 0,
+    bossDetails: b.entities
+      .filter((e) => e.boss)
+      .map((e) => ({
+        id: e.encounterId,
+        stage: e.stage || 0,
+        mutation: e.mutation,
+        life: e.life,
+        angelState: e.angelState,
+        attacks: e.attackIndex,
+        hp: e.hp,
+        maxHp: e.maxHp,
+        done: e.done,
+      })),
   };
 }
 export function scoreRelic(run, id, mode) {

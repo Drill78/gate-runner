@@ -34,10 +34,10 @@ function deepRun(floor = 19, seed = 42) {
   run.talentPicks = 14;
   return run;
 }
-test('endless maps roll over without winning and restore bounded routes beyond 100 floors', () => {
+test('endless maps roll over into one staircase and settle exactly at 100 rooms', () => {
   let run = createRun('mage', 791, 'endless');
   run.phase = 'map';
-  for (let floor = 0; floor < 106; floor++) {
+  for (let floor = 0; floor < 100; floor++) {
     const node = availableNodes(run)[0];
     assert.ok(node, `route at ${floor}`);
     run = completeRoom(enterNode(run, node.id));
@@ -50,10 +50,13 @@ test('endless maps roll over without winning and restore bounded routes beyond 1
     assert.ok(restoreRun(JSON.stringify(run)), `map restore at ${floor + 1}`);
     assert.ok(run.nodes.length <= 15 && run.path.length <= 15);
   }
-  assert.equal(retireEndless(run).retired, true);
+  assert.equal(run.phase, 'ascension');
+  assert.equal(run.ascended, true);
+  assert.equal(run.floor, 100);
+  assert.equal(retireEndless(run), run);
 });
 test('boss rush keeps future stages dormant, heals at the interval and only wins the final stage', () => {
-  const b = createBattle(deepRun(24));
+  const b = createBattle(deepRun(74));
   assert.equal(b.rushStages, 3);
   b.time = b.finalStart + 0.1;
   for (const e of b.entities) if (!e.boss) e.done = true;
@@ -76,24 +79,26 @@ test('boss rush keeps future stages dormant, heals at the interval and only wins
   assert.equal(b.state, 'won');
 });
 test('the encounter sequence includes twin kings, fusion, three simultaneous rulers and changing late waves', () => {
-  const twin = createBattle(deepRun(29)).entities.filter((e) => e.boss);
+  const twin = createBattle(deepRun(44)).entities.filter((e) => e.boss);
   assert.deepEqual(
     twin.map((e) => e.encounterId),
     ['king', 'king'],
   );
   assert.ok(twin[0].lastAttack !== twin[1].lastAttack);
   assert.equal(
-    createBattle(deepRun(39)).entities.find((e) => e.boss).mutation,
+    createBattle(deepRun(59)).entities.find((e) => e.boss && e.stage === 3)
+      .mutation,
     'fusion',
   );
   assert.equal(
-    createBattle(deepRun(44)).entities.filter((e) => e.boss).length,
+    createBattle(deepRun(89)).entities.filter((e) => e.boss && e.stage === 2)
+      .length,
     3,
   );
   const names = new Set(
     Array.from(
       { length: 16 },
-      (_, i) => endlessEncounter(deepRun(59 + i * 5)).name,
+      (_, i) => endlessEncounter(deepRun(4 + i * 5)).name,
     ),
   );
   assert.ok(names.size >= 6);

@@ -22,7 +22,7 @@ interface BossArrivalProps {
   chapterBoss: boolean;
   paused: boolean;
   pressureAfterSeconds: number | null;
-  onSkip: () => void;
+  duration: number;
 }
 
 export function BossArrival({
@@ -30,9 +30,9 @@ export function BossArrival({
   chapterBoss,
   paused,
   pressureAfterSeconds,
-  onSkip,
+  duration,
 }: BossArrivalProps) {
-  const button = useRef<HTMLButtonElement>(null);
+  const button = useRef<HTMLOutputElement>(null);
   const hidden = useSyncExternalStore(
     subscribeVisibility,
     pageHidden,
@@ -56,27 +56,18 @@ export function BossArrival({
   }, []);
 
   return (
-    <button
+    <output
       ref={button}
-      type="button"
+      tabIndex={-1}
       className={`ag-cutin ${chapterBoss ? 'ag-cutin--chapter' : 'ag-cutin--guardian'}`}
       data-paused={frozen}
       style={
         {
           '--ag-cutin-color': profile.color,
-          '--ag-cutin-duration': '3000ms',
+          '--ag-cutin-duration': `${duration * 1000}ms`,
         } as CSSProperties
       }
-      onClick={() => {
-        if (!frozen) onSkip();
-      }}
-      onKeyDown={(event) => {
-        if (event.code !== 'Space' && event.code !== 'Enter') return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (!frozen && !event.repeat) onSkip();
-      }}
-      aria-label={`${profile.name}登场。${profile.hint}。按空格、回车或点击跳过。展示期间战斗暂停。`}
+      aria-label={`${profile.name}登场。${profile.hint}。完整展示${duration}秒，期间战斗暂停。`}
     >
       <span className="ag-cutin__backdrop" aria-hidden="true" />
       <span
@@ -144,10 +135,10 @@ export function BossArrival({
         </span>
       </span>
       <span className="ag-cutin__skip">
-        {frozen ? '演出已暂停' : '点击 / 空格 / 回车 · 应战'}
+        {frozen ? '演出已暂停' : `静候强敌降临 · ${duration}秒完整演出`}
         <span>展示期间战斗暂停</span>
       </span>
       <span className="ag-cutin__time" aria-hidden="true" />
-    </button>
+    </output>
   );
 }

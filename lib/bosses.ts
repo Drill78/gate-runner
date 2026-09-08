@@ -137,6 +137,42 @@ export const ENCOUNTERS: EncounterProfile[] = [
     kind: 'boss',
     act: 2,
   },
+  {
+    id: 'king-reborn',
+    name: '灰烬之王·焚誓重生',
+    title: '冠冕已碎，王誓未熄',
+    portrait: '/art/boss-king-reborn.webp',
+    quote: '连死亡，也休想夺走我的王座。',
+    hint: '踏过熄灭的焰痕 · 击破王誓残碑 · 敕令之后仍有余震',
+    color: '#ff9964',
+    kind: 'boss',
+    description:
+      '王冠破碎后重铸第二条生命。焚誓巡礼将道路依次点燃，灰烬残碑提供护佑；敕令留有安全区，结束后产生镜像余震。双翼焚风与逆行陨火要求持续变换站位。',
+  },
+  {
+    id: 'king-ascendant',
+    name: '登神·灰烬之王',
+    title: '盗取黎明之火的最后王者',
+    portrait: '/art/boss-king-ascendant.webp',
+    quote: '若诸神不肯垂目，我便成为那道光。',
+    hint: '日冕会依次合拢 · 留意明暗圣痕 · 两次斩断王权',
+    color: '#ffe5aa',
+    kind: 'boss',
+    description:
+      '以日冕、圣枪、破晓敕令与逆光王座编织神域。首次倒下后燃尽残冠，第二条生命改换日冕顺序并追加回声圣枪；破晓敕令可打断，始终保留可达的安全区。',
+  },
+  {
+    id: 'deity',
+    name: '主神·无名的黎明',
+    title: '万千远征者仰望的光',
+    portrait: '/art/boss-deity.webp',
+    quote: '走到这里的你，已不必向任何人证明。',
+    hint: '循光而行 · 圣约限制每刻可承受的伤害 · 见证最后的黎明',
+    color: '#fff5cd',
+    kind: 'boss',
+    description:
+      '横跨天穹的主神依次施展创世光柱、星河巡礼、慈悲敕令、晨曦回响、六翼合奏与黎明归途。圣约使生命缓缓消退，保留完整演出；所有审判均有清晰预告与宽阔生路，不施加久战侵蚀。',
+  },
 ];
 export function bossProfile(
   run: Pick<Run, 'floor' | 'node' | 'seed'> & Partial<Pick<Run, 'difficulty'>>,

@@ -4,9 +4,42 @@ import { peakArmyMagnitude } from './army.ts';
 export const CHRONICLE_API = '/api/chronicle';
 const IDENTITY = 'ashen-traveller-v1';
 const OUTBOX = 'ashen-chronicle-outbox-v1';
+const SETTLED = 'ashen-chronicle-settled-v1';
+const settledMemory = new Set<string>();
+function wasSettled(id: string) {
+  if (settledMemory.has(id)) return true;
+  try {
+    const list = JSON.parse(localStorage.getItem(SETTLED) || '[]');
+    return Array.isArray(list) && list.includes(id);
+  } catch {
+    return false;
+  }
+}
+function rememberSettlement(id: string) {
+  settledMemory.add(id);
+  try {
+    const list = JSON.parse(localStorage.getItem(SETTLED) || '[]');
+    localStorage.setItem(
+      SETTLED,
+      JSON.stringify(
+        [
+          ...new Set([
+            ...(Array.isArray(list)
+              ? list.filter((v) => typeof v === 'string')
+              : []),
+            id,
+          ]),
+        ].slice(-200),
+      ),
+    );
+  } catch {
+    /* Session cache still prevents duplicate delivery. */
+  }
+}
 export interface Identity {
   token: string;
   name: string;
+  ascended?: boolean;
 }
 export interface ChronicleRow {
   id: string;
@@ -26,12 +59,17 @@ export interface ChronicleRow {
   status: 'won' | 'lost' | 'retired';
   ranked: number;
   favorite?: number;
+  ascended?: number;
+  start_room?: number;
+  ruleset?: string;
 }
 type Pending = {
   id: string;
   mode: Difficulty;
   classId: ClassId;
   seed: number;
+  startRoom?: number;
+  ruleset?: string;
   started: boolean;
   offline: boolean;
   sentDepth: number;
@@ -84,13 +122,17 @@ export async function chronicleRequest<T = Record<string, unknown>>(
 }
 export async function saveIdentity(name: string) {
   const current = draftIdentity(name);
-  const profile = await chronicleRequest<{ name: string }>('profile', {
-    name: current.name,
-  });
-  return draftIdentity(profile.name);
+  const profile = await chronicleRequest<{ name: string; ascended?: number }>(
+    'profile',
+    {
+      name: current.name,
+    },
+  );
+  return draftIdentity(profile.name, Boolean(profile.ascended));
 }
-export function draftIdentity(name: string) {
+export function draftIdentity(name: string, ascended?: boolean) {
   const current = identity();
+  if (ascended !== undefined) current.ascended = ascended;
   current.name = name.trim() || '无名旅人';
   temporaryIdentity = current;
   try {
@@ -144,7 +186,14 @@ function updatePending(id: string, fn: (record: Pending) => Pending | null) {
   );
 }
 export function trackChronicle(run: Run) {
-  if (!run.runId || ['setup', 'battle'].includes(run.phase)) return;
+  if (
+    run.devMode ||
+    !run.runId ||
+    wasSettled(run.runId) ||
+    ['setup', 'battle', 'fallen'].includes(run.phase) ||
+    (run.ascended && run.phase !== 'ascension')
+  )
+    return;
   const rows = readOutbox().filter(
     (row) => row.result || row.id === run.runId || !row.started,
   );
@@ -155,42 +204,62 @@ export function trackChronicle(run: Run) {
       mode: run.difficulty,
       classId: run.classId,
       seed: run.seed,
+      startRoom: run.checkpointStart || 1,
+      ruleset: run.ruleset,
       started: false,
-      offline: run.floor > 0,
-      sentDepth: 0,
+      offline:
+        Boolean(run.legacyContinuation) ||
+        run.floor > (run.checkpointStart ? run.checkpointStart - 1 : 0),
+      sentDepth: run.checkpointStart ? run.checkpointStart - 1 : 0,
       depth: 0,
     };
     rows.push(record);
   }
-  record.depth = run.floor;
-  if (run.phase === 'victory' || run.phase === 'defeat')
-    record.result = {
-      id: run.runId,
-      depth: run.floor,
-      duration: run.combatTime,
-      peakSquad: Math.max(run.peakSquad, run.squad),
-      peakMagnitude: peakArmyMagnitude(run),
-      gold: run.goldEarned,
-      status:
-        run.phase === 'victory' ? 'won' : run.retired ? 'retired' : 'lost',
-      title: '',
-      details: {
-        weaponTier: run.weaponTier,
-        maxHp: run.maxHp,
-        kills: run.kills,
-        chests: run.chests,
-        gates: run.gates,
-        doubleBossWins: run.doubleBossWins,
-        flawlessBosses: run.flawlessBosses,
-        reforges: run.endless.reforges,
-        keysOpened: run.endless.keysOpened,
-        power: run.endless.power,
-        legion: run.endless.legion,
-        dps: firepower(run).dps,
-        allies: run.endless.allies,
-        relics: run.relics,
-      },
-    };
+  // A restored hundredth-room result is the same settlement, including its
+  // offline title. Only sealTitle may edit a result already waiting for upload.
+  if (!record.result) {
+    // Legacy progress has not defeated the replacement checkpoint boss yet.
+    // Do not backfill that old depth as newly earned server-side authorization.
+    record.depth = run.legacyPendingCheckpoint ? 0 : run.floor;
+    if (
+      run.phase === 'victory' ||
+      run.phase === 'defeat' ||
+      run.phase === 'ascension'
+    )
+      record.result = {
+        id: run.runId,
+        depth: run.floor,
+        duration: run.combatTime,
+        peakSquad: Math.max(run.peakSquad, run.squad),
+        peakMagnitude: peakArmyMagnitude(run),
+        gold: run.goldEarned,
+        status:
+          run.phase === 'victory' || run.phase === 'ascension'
+            ? 'won'
+            : run.retired
+              ? 'retired'
+              : 'lost',
+        title: '',
+        details: {
+          weaponTier: run.weaponTier,
+          maxHp: run.maxHp,
+          kills: run.kills,
+          chests: run.chests,
+          gates: run.gates,
+          doubleBossWins: run.doubleBossWins,
+          flawlessBosses: run.flawlessBosses,
+          reforges: run.endless.reforges,
+          keysOpened: run.endless.keysOpened,
+          power: run.endless.power,
+          legion: run.endless.legion,
+          dps: firepower(run).dps,
+          allies: run.endless.allies,
+          relics: run.relics,
+          revivalsUsed: run.revivalsUsed || 0,
+          checkpointStart: run.checkpointStart || 0,
+        },
+      };
+  }
   writeOutbox(rows);
   void flushChronicle();
 }
@@ -251,6 +320,7 @@ async function drainChronicle() {
           readOutbox().find((row) => row.id === snapshot.id)?.result ||
             snapshot.result,
         );
+        rememberSettlement(snapshot.id);
         updatePending(snapshot.id, () => null);
       }
     }

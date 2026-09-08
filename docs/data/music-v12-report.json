@@ -1,0 +1,103 @@
+{
+  "version": "1.2.0",
+  "title": "破雾登神 · 长阶终誓",
+  "bpm": 128,
+  "bars": 72,
+  "intro_bars": 8,
+  "seed": 120901,
+  "form": "无词圣咏前奏—长阶主题—逆风疾行—故旅回忆—白金重奏—转调登神—誓言再起",
+  "file": "ascension.mp3",
+  "bytes": 3241498,
+  "sha256": "4f137545a0575719f1ba20f5a0fdfb09412545c2b55dbe82259173ef05cc63d8",
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_start_sample": 661500,
+  "loop_start_seconds": 15.0,
+  "codec": "MP3 / LAME 192 kbps CBR, gapless metadata",
+  "target_lufs": -18,
+  "decoded": {
+    "samples": 5953500,
+    "seconds": 135.0,
+    "peak_dbfs": -6.151,
+    "rms_dbfs": -19.66,
+    "clipped_samples": 0,
+    "seam_jump": 0.0823457,
+    "adjacent_step_p99": 0.1335596,
+    "seam_to_p99": 0.617,
+    "edge_20ms_rms_db_delta": -24.902
+  },
+  "loop": {
+    "samples": 5292000,
+    "seconds": 120.0,
+    "peak_dbfs": -6.151,
+    "rms_dbfs": -19.284,
+    "clipped_samples": 0,
+    "seam_jump": 0.0108834,
+    "adjacent_step_p99": 0.1380974,
+    "seam_to_p99": 0.079,
+    "edge_20ms_rms_db_delta": 8.807
+  },
+  "loudness": {
+    "lufs": -17.99,
+    "true_peak_db": -6.15,
+    "loudness_range_lu": 6.2
+  },
+  "preserved_tracks": {
+    "normal.mp3": "12680d9f681d16cb0b5dfd2ece386041a20a0fb232df7235ae6e49d20ffcbc75",
+    "boss.mp3": "b84c296e06594e0e8b125c468b378b72b1364260a17c768124309eb4505b220b",
+    "final.mp3": "7ac4dbef238b649b4ef186e6c865a83d87c438e3472a53f42231ba39d2cb6a5c",
+    "forbidden.mp3": "cb32248e7bd3edc95737d49fe79273f7a2d6808f8298bc080f9c5394d1312c57",
+    "menu.mp3": "57f5dbcebf12b69bafee1d7ff2d29a3f5c8c70161048003ffd0715c6b219a9d4",
+    "map.mp3": "20d72ed2ebbf35aa72da266f6720bbf84819cbfcbef8ba026038dd420cf4ded6",
+    "event.mp3": "5842df9a36b5fe91ab8d46f00fc44a88fbcb24b2b66238f46515fe93642697e2",
+    "shop.mp3": "539f93e34abeb173be98801ca722b3b8afb796c529e006efe74515426e102878"
+  },
+  "sections": [
+    {
+      "seconds": [0, 15],
+      "name": "无词圣咏前奏",
+      "rms_dbfs": -25.24764060974121
+    },
+    {
+      "seconds": [15, 45],
+      "name": "长阶主题",
+      "rms_dbfs": -19.592859268188477
+    },
+    {
+      "seconds": [45, 60],
+      "name": "逆风疾行",
+      "rms_dbfs": -19.545427322387695
+    },
+    {
+      "seconds": [60, 75],
+      "name": "故旅回忆",
+      "rms_dbfs": -23.47225570678711
+    },
+    {
+      "seconds": [75, 105],
+      "name": "白金重奏",
+      "rms_dbfs": -18.51398468017578
+    },
+    {
+      "seconds": [105, 120],
+      "name": "转调登神",
+      "rms_dbfs": -17.649370193481445
+    },
+    {
+      "seconds": [120, 135],
+      "name": "誓言再起",
+      "rms_dbfs": -19.41627311706543
+    }
+  ],
+  "master": {
+    "samples": 5953500,
+    "seconds": 135.0,
+    "peak_dbfs": -5.987,
+    "rms_dbfs": -19.4,
+    "clipped_samples": 0,
+    "seam_jump": 0.0927933,
+    "adjacent_step_p99": 0.1372173,
+    "seam_to_p99": 0.676,
+    "edge_20ms_rms_db_delta": -24.88
+  }
+}

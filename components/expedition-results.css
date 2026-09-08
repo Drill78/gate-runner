@@ -1,0 +1,543 @@
+.expedition-result {
+  position: relative;
+  isolation: isolate;
+  max-width: 850px;
+  margin: auto;
+  padding: 40px 32px;
+  color: #e8dfcf;
+  overflow: hidden;
+  background: linear-gradient(150deg, #242327e8, #101215f5);
+  border: 1px solid #8e76584d;
+  border-radius: 8px;
+}
+.result-heading {
+  text-align: center;
+  position: relative;
+}
+.result-heading h2 {
+  font-family: var(--font-display, serif);
+  font-size: clamp(26px, 4vw, 40px);
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  color: #f2e3c3;
+  margin: 12px 0;
+}
+.result-heading p {
+  max-width: 580px;
+  margin: 0 auto 28px;
+  color: #b4aa9a;
+  line-height: 1.9;
+}
+.result-emblem {
+  width: 80px;
+  height: 80px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+  color: #b7a389;
+  border: 1px solid #8e765844;
+  border-radius: 50%;
+  background: #1e1d1b;
+}
+.result-won .result-emblem {
+  color: #ffe0a0;
+  box-shadow: 0 0 50px #f2c67824;
+}
+.result-radiance {
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0, #b8a37c14, transparent 60%);
+}
+.result-ascended .result-radiance {
+  background: radial-gradient(
+    ellipse at 50% -10%,
+    #fff1c596,
+    #bd872e22 35%,
+    transparent 70%
+  );
+  animation: ascension-breathe 7s ease-in-out infinite;
+}
+.result-ascended {
+  border-color: #e8be60a3;
+  background: linear-gradient(150deg, #2c271c, #101214);
+  box-shadow: inset 0 0 90px #ffda7520;
+}
+.result-dossier {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding: 22px 0;
+  border-block: 1px solid #9b835733;
+}
+.result-dossier img {
+  width: 110px;
+  height: 145px;
+  object-fit: cover;
+  object-position: 50% 15%;
+  border: 1px solid #bd9e6255;
+  mask-image: linear-gradient(#000 65%, transparent);
+}
+.result-dossier h3 {
+  font-size: 27px;
+  color: #f0d8a3;
+  margin: 4px 0 9px;
+}
+.result-dossier strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.result-dossier p {
+  font-size: 12px;
+  color: #9f9688;
+  line-height: 1.8;
+}
+.result-mode {
+  color: #c3a977;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.result-depth {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  min-width: 65px;
+}
+.result-depth b {
+  font-size: 54px;
+  color: #f0d8a3;
+  line-height: 1;
+}
+.result-depth span {
+  font-size: 14px;
+  color: #8f8679;
+}
+.result-depth small {
+  margin-top: 9px;
+  color: #c3a977;
+  font-size: 12px;
+}
+.result-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 22px 0;
+  gap: 22px 12px;
+}
+.result-metrics dt {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: #9c9282;
+  margin-bottom: 8px;
+}
+.result-metrics dd {
+  margin: 0;
+  color: #efddbb;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(14px, 2.1vw, 21px);
+  overflow-wrap: anywhere;
+}
+.result-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 22px 0;
+}
+.result-charts figure {
+  margin: 0;
+  background: #ffffff03;
+  border: 1px solid #97835925;
+  padding: 13px;
+  border-radius: 4px;
+}
+.result-charts figcaption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #c7b286;
+}
+.result-charts figcaption small {
+  font-size: 12px;
+  color: #8f867b;
+  flex-basis: 100%;
+}
+.result-charts svg {
+  width: 100%;
+  height: 85px;
+  overflow: visible;
+}
+.chart-guide {
+  stroke: #94826a26;
+  stroke-width: 1;
+  fill: none;
+}
+.chart-hp,
+.chart-army {
+  fill: none;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-hp {
+  stroke: #a9c3ae;
+}
+.chart-army {
+  stroke: #e7bd6c;
+}
+.chart-caption {
+  grid-column: 1/-1;
+  font-size: 12px;
+  color: #8f867b;
+}
+.result-runes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin: 22px 0;
+}
+.result-runes > span {
+  font-size: 12px;
+  border: 1px solid #ad92612f;
+  background: #dfc08608;
+  padding: 6px 9px;
+  border-radius: 3px;
+  color: #b7aa91;
+}
+.result-runes b {
+  color: #dbbc80;
+  margin-left: 6px;
+}
+.ascension-gifts {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: linear-gradient(100deg, #dab14f14, transparent);
+  border: 1px solid #d5af684d;
+  padding: 18px;
+  margin-block: 24px;
+  color: #f1d28e;
+}
+.ascension-gifts p {
+  margin: 6px 0 0;
+  color: #bbae91;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+  margin-top: 26px;
+}
+.result-actions > button {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.6;
+}
+.creator-credit {
+  text-align: center;
+  padding: 35px 0 15px;
+  border-top: 1px solid #d5af6833;
+}
+.creator-credit > span {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: #bda779;
+}
+.creator-credit strong {
+  display: block;
+  font-size: clamp(18px, 3vw, 26px);
+  margin: 16px 0;
+  color: #f7d997;
+}
+.creator-credit p {
+  font-size: 12px;
+  color: #b1a58c;
+  line-height: 1.9;
+}
+.chapter-interlude {
+  border-left: 2px solid #caa76266;
+  background: linear-gradient(90deg, #cbaa6110, transparent);
+  padding: 18px 24px;
+  max-width: 690px;
+  margin: 0 auto 26px;
+}
+.chapter-interlude > span {
+  color: #b9a172;
+  letter-spacing: 0.16em;
+  font-size: 12px;
+}
+.chapter-interlude h3 {
+  font-size: 23px;
+  color: #e9d5aa;
+  margin: 9px 0;
+}
+.chapter-interlude p {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #b4ad9e;
+}
+.chapter-interlude small {
+  font-size: 12px;
+  color: #b2bea7;
+}
+.has-ascended .brand-icon,
+.has-ascended .hero-avatar,
+.has-ascended .primary-button {
+  box-shadow: 0 0 24px #dcb95826;
+  border-color: #e6c97a;
+}
+.has-ascended .game-header {
+  border-bottom-color: #cfb05d80;
+}
+.has-ascended .hero-name,
+.ascended-name {
+  color: #f6d990 !important;
+  text-shadow: 0 0 16px #e3b85244;
+}
+.ascended-mark {
+  color: #f9d884;
+  margin-right: 5px;
+}
+.stair-map {
+  position: relative;
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 620px;
+  padding: 35px 0 22px;
+  isolation: isolate;
+  border: 1px solid #e6c97a4d;
+  border-radius: 8px;
+  background:
+    linear-gradient(#1216205c, #14151b8c),
+    url('/art/ascension-stair.webp') center/cover;
+  box-shadow:
+    inset 0 0 55px #ffda722c,
+    0 0 35px #ffda7215;
+  overflow: hidden;
+}
+.stair-map::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: conic-gradient(
+    from 20deg at 50% 10%,
+    transparent 0deg,
+    #fff1ae14 10deg,
+    transparent 16deg,
+    #ffefb51a 24deg,
+    transparent 35deg
+  );
+  animation: ascension-breathe 7s ease-in-out infinite;
+  pointer-events: none;
+}
+.stair-map ol {
+  list-style: none;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+  align-items: center;
+}
+.stair-map li {
+  position: relative;
+  width: 210px;
+}
+.stair-map li + li::after {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 17px;
+  top: 100%;
+  left: 50%;
+  background: #e4c9798c;
+}
+.stair-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 13px;
+  border: 1px solid #ceb67655;
+  border-radius: 3px;
+  background: #12151fe3;
+  text-align: left;
+  color: #a89d85;
+  min-height: 39px;
+}
+.stair-node b {
+  font-size: 12px;
+  color: #d9bc7c;
+}
+.stair-node span {
+  font-size: 12px;
+}
+.stair-node.active {
+  background: #4c3f21ed;
+  color: #fff0c7;
+  border-color: #f1d590;
+  box-shadow: 0 0 22px #e4bd5255;
+  cursor: pointer;
+}
+.stair-node.completed {
+  opacity: 0.65;
+  border-color: #98b396;
+}
+.stair-node:disabled {
+  cursor: default;
+}
+.stair-map--epilogue {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+}
+.room-screen.is-ascension-route {
+  background:
+    radial-gradient(ellipse at top, #fff0a415, transparent 65%), #10151b;
+}
+.developer-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: #2a233b;
+  color: #dbcafa;
+  border: 1px solid #a98ad05c;
+  font-size: 12px;
+}
+.developer-banner button {
+  border: 1px solid #bda4df77;
+  padding: 4px 10px;
+  border-radius: 3px;
+}
+.dev-console {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #8d7a5244;
+}
+.dev-console label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #c6b995;
+  font-size: 12px;
+}
+.dev-console input,
+.dev-console select {
+  background: #131720;
+  border: 1px solid #8d7a5266;
+  border-radius: 4px;
+  padding: 9px;
+  color: #e4d7b9;
+  min-width: 0;
+}
+.dev-console .dev-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.dev-presets button {
+  padding: 12px;
+  background: #201f25;
+  border: 1px solid #8d7a5240;
+  border-radius: 4px;
+  text-align: left;
+}
+.dev-presets strong,
+.dev-presets small {
+  display: block;
+}
+.dev-presets strong {
+  font-size: 12px;
+  color: #e4c58b;
+}
+.dev-presets small {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 5px;
+  color: #a39885;
+}
+.dev-note {
+  font-size: 12px;
+  color: #a59780;
+  line-height: 1.8;
+}
+.dev-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dev-fields input {
+  max-width: 100px;
+}
+@keyframes ascension-breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+@media (max-width: 600px) {
+  .expedition-result {
+    padding: 24px 16px;
+  }
+  .result-dossier {
+    grid-template-columns: 70px 1fr;
+    gap: 14px;
+  }
+  .result-dossier img {
+    width: 70px;
+    height: 115px;
+  }
+  .result-depth {
+    grid-column: 1/-1;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
+  }
+  .result-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .result-charts {
+    grid-template-columns: 1fr;
+  }
+  .result-dossier h3 {
+    font-size: 23px;
+  }
+  .stair-map {
+    min-height: 600px;
+  }
+  .dev-console .dev-presets {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .result-ascended .result-radiance,
+  .stair-map::before {
+    animation: none;
+  }
+}
+
+.has-ascended .brand-mark,
+.has-ascended .masthead,
+.has-ascended .ag-entrance__frame {
+  border-color: #e6c97a80;
+  box-shadow: 0 0 24px #dcb95820;
+}

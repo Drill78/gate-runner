@@ -22,6 +22,8 @@ export const expeditions = sqliteTable(
     mode: text('mode').notNull(),
     classId: text('class_id').notNull(),
     seed: integer('seed').notNull(),
+    startRoom: integer('start_room').notNull().default(1),
+    ruleset: text('ruleset').notNull().default('legacy'),
     startedAt: integer('started_at').notNull(),
     finishedAt: integer('finished_at'),
     checkpoint: integer('checkpoint').notNull().default(0),

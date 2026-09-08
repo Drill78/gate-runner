@@ -3,6 +3,7 @@ import { HEROES, type ClassId, type Run } from './game.ts';
 
 export interface CollectionProgress {
   version: 1;
+  progressRuleset?: 'ascension-v1';
   kills: Record<string, number>;
   wins: Record<ClassId, number>;
   secrets: string[];
@@ -11,11 +12,12 @@ export interface CollectionProgress {
 }
 
 const CLASS_IDS: readonly ClassId[] = ['knight', 'ranger', 'mage'];
-const SECRET_IDS = ['forbidden-key'] as const;
+const SECRET_IDS = ['forbidden-key', 'ascension'] as const;
 
 export function emptyCollection(): CollectionProgress {
   return {
     version: 1,
+    progressRuleset: 'ascension-v1',
     kills: {},
     wins: { knight: 0, ranger: 0, mage: 0 },
     secrets: [],
@@ -61,13 +63,30 @@ function normalizeCollection(value: unknown): CollectionProgress {
       'relicKinds',
       'doubleBossWins',
       'flawlessBosses',
+      'legacyEndlessDepth',
     ]) {
       if (validCount(value.records[key]))
         result.records[key] = value.records[key];
     }
+  if (isRecord(value.records)) {
+    if (value.progressRuleset === 'ascension-v1') {
+      for (const key of ['endlessDepth', 'revivalsUsed', 'angelTrials'])
+        if (validCount(value.records[key]))
+          result.records[key] = value.records[key];
+    } else if (validCount(value.records.endlessDepth)) {
+      result.records.legacyEndlessDepth = Math.max(
+        result.records.legacyEndlessDepth || 0,
+        value.records.endlessDepth,
+      );
+    }
+  }
   const secrets = value.secrets;
   if (Array.isArray(secrets))
-    result.secrets = SECRET_IDS.filter((id) => secrets.includes(id));
+    result.secrets = SECRET_IDS.filter(
+      (id) =>
+        secrets.includes(id) &&
+        (id !== 'ascension' || value.progressRuleset === 'ascension-v1'),
+    );
   return result;
 }
 
@@ -87,6 +106,7 @@ export function mergeCollection(
   earnedEncounterKills: Record<string, number> = {},
 ): CollectionProgress {
   const next = normalizeCollection(progress);
+  if (run.devMode) return next;
   for (const encounter of ENCOUNTERS) {
     const earned = earnedEncounterKills[encounter.id];
     if (!validCount(earned) || earned === 0) continue;
@@ -95,7 +115,11 @@ export function mergeCollection(
       (next.kills[encounter.id] || 0) + earned,
     );
   }
-  if (run.phase === 'victory' && CLASS_IDS.includes(run.classId))
+  if (
+    run.phase === 'victory' &&
+    run.difficulty !== 'endless' &&
+    CLASS_IDS.includes(run.classId)
+  )
     next.wins[run.classId] = Math.min(
       Number.MAX_SAFE_INTEGER,
       next.wins[run.classId] + 1,
@@ -123,6 +147,31 @@ export function mergeCollection(
     );
   if (run.secretDiscovered === true && !next.secrets.includes('forbidden-key'))
     next.secrets.push('forbidden-key');
+  if (
+    run.difficulty === 'endless' &&
+    run.ruleset === 'ascension-v1' &&
+    !run.legacyPendingCheckpoint
+  ) {
+    next.records.endlessDepth = Math.max(
+      next.records.endlessDepth || 0,
+      Math.min(100, run.floor || 0),
+    );
+    next.records.revivalsUsed = Math.max(
+      next.records.revivalsUsed || 0,
+      run.revivalsUsed || 0,
+    );
+    next.records.angelTrials = Math.max(
+      next.records.angelTrials || 0,
+      Math.min(8, Math.max(0, (run.floor || 0) - 90)),
+    );
+    if (
+      run.ascended &&
+      run.floor === 100 &&
+      run.phase === 'ascension' &&
+      !next.secrets.includes('ascension')
+    )
+      next.secrets.push('ascension');
+  }
   return next;
 }
 
@@ -148,6 +197,58 @@ export function hardModeUnlocked(progress: CollectionProgress) {
   return CLASS_IDS.some((id) => progress.wins[id] > 0);
 }
 export const ACHIEVEMENTS: readonly AchievementDefinition[] = [
+  ...[
+    [
+      'night-first',
+      '长夜初明',
+      '完成长夜第一轮：十五关，三层。',
+      'endlessDepth',
+      15,
+    ],
+    [
+      'night-third',
+      '越过断崖',
+      '完成长夜第三轮，点亮第四轮的续战篝火。',
+      'endlessDepth',
+      45,
+    ],
+    [
+      'night-sixth',
+      '众王尽落',
+      '完成六轮远征，抵达登神长阶。',
+      'endlessDepth',
+      90,
+    ],
+    ['angel-first', '折翼之人', '跨过登神长阶的第一道试炼。', 'angelTrials', 1],
+    [
+      'angel-eight',
+      '白羽归尘',
+      '跨过八道天使试炼，直面失落的神王。',
+      'angelTrials',
+      8,
+    ],
+    [
+      'rebirth-first',
+      '余烬尚温',
+      '使用一枚归魂币，继续未竟之战。',
+      'revivalsUsed',
+      1,
+    ],
+  ].map(
+    ([id, title, description, metric, target]): AchievementDefinition => ({
+      id: String(id),
+      title: String(title),
+      description: String(description),
+      rule: { type: 'record', metric: String(metric), target: Number(target) },
+    }),
+  ),
+  {
+    id: 'ascension',
+    title: '登神',
+    description: '迷雾尽散。你把凡人的火，带到了诸神之上。',
+    hidden: true,
+    rule: { type: 'secret', secretId: 'ascension' },
+  },
   {
     id: 'hard-victory',
     title: '灰烬再临',

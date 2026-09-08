@@ -1,5 +1,5 @@
 import type { Battle } from './combat';
-import type { Phase } from './game';
+import type { Phase, Run } from './game';
 
 export type MusicTrack =
   | 'normal'
@@ -9,7 +9,8 @@ export type MusicTrack =
   | 'menu'
   | 'map'
   | 'event'
-  | 'shop';
+  | 'shop'
+  | 'ascension';
 export const MUSIC_TRACKS: Record<
   MusicTrack,
   { title: string; src: string; loopStart?: number; volume?: number }
@@ -22,10 +23,27 @@ export const MUSIC_TRACKS: Record<
   map: { title: '灰林远行', src: '/audio/map.mp3?v=1.0', volume: 0.7 },
   event: { title: '命运的岔路', src: '/audio/event.mp3?v=1.0', volume: 0.72 },
   shop: { title: '炉火与铜币', src: '/audio/shop.mp3?v=1.0', volume: 0.72 },
+  ascension: {
+    title: '破雾登神 · 长阶终誓',
+    src: '/audio/ascension.mp3?v=1.2',
+    loopStart: 15,
+    volume: 0.95,
+  },
 };
 
-export function sceneMusic(phase: Phase): MusicTrack | null {
+type MusicRun = Pick<Run, 'difficulty' | 'floor'>;
+function hasAscensionScore(run?: MusicRun | null) {
+  // Run.floor is zero based. Keep the score through the blessing epilogue.
+  return run?.difficulty === 'endless' && run.floor >= 90 && run.floor <= 100;
+}
+
+export function sceneMusic(
+  phase: Phase,
+  run?: MusicRun | null,
+): MusicTrack | null {
   if (phase === 'battle') return null;
+  if (phase !== 'setup' && phase !== 'defeat' && hasAscensionScore(run))
+    return 'ascension';
   if (phase === 'setup' || phase === 'victory' || phase === 'defeat')
     return 'menu';
   if (phase === 'event') return 'event';
@@ -34,6 +52,7 @@ export function sceneMusic(phase: Phase): MusicTrack | null {
 }
 
 export function battleMusic(battle: Battle): MusicTrack {
+  if (hasAscensionScore(battle.player)) return 'ascension';
   if (battle.player.node?.enchanted) return 'forbidden';
   if (battle.player.node?.kind === 'boss')
     return battle.entities.some((e) => e.encounterId === 'king')

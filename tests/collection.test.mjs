@@ -33,6 +33,7 @@ test('missing, malformed and unsupported collections recover to independent empt
   first.secrets.push('forbidden-key');
   assert.deepEqual(emptyCollection(), {
     version: 1,
+    progressRuleset: 'ascension-v1',
     hardWins: { knight: 0, ranger: 0, mage: 0 },
     records: {},
     kills: {},
@@ -45,8 +46,8 @@ test('restoration keeps valid progress, drops invalid counts and deduplicates kn
   const restored = parseCollection(
     JSON.stringify({
       version: 1,
-    hardWins: { knight: 0, ranger: 0, mage: 0 },
-    records: {},
+      hardWins: { knight: 0, ranger: 0, mage: 0 },
+      records: {},
       kills: {
         executioner: 3,
         watcher: 2,
@@ -63,6 +64,7 @@ test('restoration keeps valid progress, drops invalid counts and deduplicates kn
   );
   assert.deepEqual(restored, {
     version: 1,
+    progressRuleset: 'ascension-v1',
     hardWins: { knight: 0, ranger: 0, mage: 0 },
     records: {},
     kills: { executioner: 3, watcher: 2 },
@@ -133,11 +135,11 @@ test('invalid battle increments are ignored and lifetime counters saturate safel
   assert.ok(Number.isSafeInteger(next.wins.knight));
 });
 
-test('the achievement catalog covers ten encounters, three classes and five aggregate or secret goals', () => {
+test('the achievement catalog covers thirteen encounters, three classes and ascension milestones', () => {
   assert.equal(ENCOUNTERS.filter((e) => e.kind === 'elite').length, 5);
-  assert.equal(ENCOUNTERS.filter((e) => e.kind === 'boss').length, 5);
-  assert.equal(ACHIEVEMENTS.length, 29);
-  assert.equal(new Set(ACHIEVEMENTS.map((a) => a.id)).size, 29);
+  assert.equal(ENCOUNTERS.filter((e) => e.kind === 'boss').length, 8);
+  assert.equal(ACHIEVEMENTS.length, 39);
+  assert.equal(new Set(ACHIEVEMENTS.map((a) => a.id)).size, 39);
   for (const encounter of ENCOUNTERS)
     assert.ok(ACHIEVEMENTS.some((a) => a.id === `defeat-${encounter.id}`));
   for (const classId of ['knight', 'ranger', 'mage'])

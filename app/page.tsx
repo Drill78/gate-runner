@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type CSSProperties,
@@ -62,6 +63,9 @@ import {
   createRun,
   enterNode,
   completeRoom,
+  reviveRun,
+  acceptDefeat,
+  beginEpilogue,
   chooseReward,
   skipReward,
   restAction,
@@ -94,11 +98,18 @@ import { actIndex as currentAct, isEndless } from '@/lib/endless';
 import { retireEndless } from '@/lib/game';
 import { trackChronicle, flushChronicle } from '@/lib/chronicle';
 import { ChroniclePanel, TravellerName } from '@/components/chronicle-panel';
+import { DeveloperConsole } from '@/components/developer-console';
+import { createCheckpointRun } from '@/lib/presets';
 
 export default function Home() {
   const [run, setRun] = useState<Run>(() => createRun('knight'));
   const [battle, setBattle] = useState<Battle | null>(null);
   const [snapshot, setSnapshot] = useState<BattleSnapshot | null>(null);
+  const beforeDeveloper = useRef<{
+    run: Run;
+    battle: Battle | null;
+    snapshot: BattleSnapshot | null;
+  } | null>(null);
   const stored = useSyncExternalStore(
     subscribeStorage,
     storageSnapshot,
@@ -171,14 +182,14 @@ export default function Home() {
     if (inBattle) return;
     const syncMusic = () =>
       musicPlayer.setState(
-        sceneMusic(run.phase),
+        sceneMusic(run.phase, { floor: run.floor, difficulty: run.difficulty }),
         document.hidden || paused,
         muted,
       );
     syncMusic();
     document.addEventListener('visibilitychange', syncMusic);
     return () => document.removeEventListener('visibilitychange', syncMusic);
-  }, [inBattle, run.phase, paused, muted]);
+  }, [inBattle, run.phase, run.floor, run.difficulty, paused, muted]);
   useEffect(() => {
     const visibility = () => {
       if (document.hidden && run.phase === 'battle') setPaused(true);
@@ -190,7 +201,13 @@ export default function Home() {
     const next =
       result.state === 'won'
         ? completeRoom(result.player)
-        : { ...result.player, phase: 'defeat' as const };
+        : {
+            ...result.player,
+            phase: (isEndless(result.player) &&
+            (result.player.revivalCoins || 0) > 0
+              ? 'fallen'
+              : 'defeat') as Run['phase'],
+          };
     persistCollection(next, result.encounterKills);
     setRun(next);
     setBattle(null);
@@ -227,6 +244,15 @@ export default function Home() {
     }
   };
   const restart = () => {
+    if (run.devMode && beforeDeveloper.current) {
+      const previous = beforeDeveloper.current;
+      beforeDeveloper.current = null;
+      setRun(previous.run);
+      setBattle(previous.battle);
+      setSnapshot(previous.snapshot);
+      setPaused(Boolean(previous.battle));
+      return;
+    }
     setBattle(null);
     setSnapshot(null);
     setPaused(false);
@@ -237,6 +263,32 @@ export default function Home() {
     if (enabled) musicPlayer.unlock(true);
   };
   const toggleSound = () => setSoundEnabled(muted);
+  const launchPreparedRun = (next: Run) => {
+    setRun(next);
+    setSnapshot(null);
+    setBattle(next.phase === 'battle' ? createBattle(next) : null);
+    setPaused(false);
+  };
+  const launchDeveloper = (next: Run) => {
+    if (!run.devMode) beforeDeveloper.current = { run, battle, snapshot };
+    setOverlay(null);
+    launchPreparedRun(next);
+  };
+  const continueCheckpoint = (room: 46 | 91) => {
+    if ((collection.records.endlessDepth || 0) < room - 1 && !run.devMode)
+      return;
+    const next = createCheckpointRun(
+      run.classId,
+      room,
+      crypto.getRandomValues(new Uint32Array(1))[0],
+    );
+    next.checkpointStart = room;
+    next.revivalCoinsEarned = room === 46 ? 2 : 3;
+    next.devMode = run.devMode;
+    next.runId = next.devMode ? '' : crypto.randomUUID();
+    setOverlay(null);
+    launchPreparedRun(next);
+  };
   const closeOverlay = () => {
     if (activeOverlay === 'help') {
       setTutorialDismissed(true);
@@ -250,7 +302,7 @@ export default function Home() {
 
   return (
     <main
-      className={`game-shell ${run.phase === 'setup' ? 'is-setup' : ''} ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
+      className={`game-shell ${collection.secrets.includes('ascension') ? 'has-ascended' : ''} ${run.phase === 'setup' ? 'is-setup' : ''} ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
     >
       {run.phase === 'setup' ? (
         <GateEntrance
@@ -266,8 +318,7 @@ export default function Home() {
           onContinue={
             saved
               ? () => {
-                  setRun(saved);
-                  setSnapshot(null);
+                  launchPreparedRun(saved);
                 }
               : undefined
           }
@@ -331,9 +382,17 @@ export default function Home() {
               : `ACT ${actIndex + 1} · ${['THE THORN FRONTIER', 'HALLS OF ECLIPSE', 'THE ASHEN THRONE'][actIndex]}`}
           </span>
           <h1>
-            {run.phase === 'setup' ? '命运，始于一道门。' : act.name}
+            {run.phase === 'setup'
+              ? '命运，始于一道门。'
+              : isEndless(run) && run.floor >= 90
+                ? '登神长阶'
+                : act.name}
             <span>
-              {run.phase === 'setup' ? '选择你的冒险者，向高塔进发。' : act.sub}
+              {run.phase === 'setup'
+                ? '选择你的冒险者，向高塔进发。'
+                : isEndless(run) && run.floor >= 90
+                  ? '迷雾尽处，愿凡人的火照亮诸神。'
+                  : act.sub}
             </span>
           </h1>
         </div>
@@ -347,10 +406,10 @@ export default function Home() {
           <i />第{' '}
           {String(
             isEndless(run)
-              ? run.floor + 1
+              ? Math.min(run.ascended ? 101 : 100, run.floor + 1)
               : Math.min(TOTAL_FLOORS, run.floor + 1),
           ).padStart(2, '0')}{' '}
-          / {isEndless(run) ? '∞' : TOTAL_FLOORS} 关
+          / {isEndless(run) ? (run.ascended ? '101' : '100') : TOTAL_FLOORS} 关
         </div>
       </section>
       <div className="game-layout">
@@ -363,9 +422,13 @@ export default function Home() {
           <div className="arena-vignette" />
           <div className="arena-top">
             <span className="area-badge">
-              {act.roman}
+              {isEndless(run) && run.floor >= 90 ? '✦' : act.roman}
               <i />
-              {act.name}
+              {isEndless(run) && run.floor >= 90
+                ? run.floor >= 100
+                  ? '最后的祝福'
+                  : '登神长阶'
+                : act.name}
             </span>
             {inBattle ? (
               <button
@@ -432,9 +495,15 @@ export default function Home() {
                   <span className="edge-floor">
                     第{' '}
                     {isEndless(run)
-                      ? run.floor + 1
+                      ? Math.min(run.ascended ? 101 : 100, run.floor + 1)
                       : Math.min(TOTAL_FLOORS, run.floor + 1)}{' '}
-                    / {isEndless(run) ? '∞' : TOTAL_FLOORS} 关
+                    /{' '}
+                    {isEndless(run)
+                      ? run.ascended
+                        ? '101'
+                        : '100'
+                      : TOTAL_FLOORS}{' '}
+                    关
                   </span>
                 )}
               </div>
@@ -522,6 +591,9 @@ export default function Home() {
                         <span className="encounter-health-title">
                           <small>
                             {encounter.chapterBoss ? '章节 BOSS' : '关底精英'}
+                            {encounter.lives > 1
+                              ? ` · 第${encounter.life}/${encounter.lives}命`
+                              : ''}
                           </small>
                           <strong title={encounter.name}>
                             {encounter.name}
@@ -691,6 +763,17 @@ export default function Home() {
               onEvent={(action) => setRun((r) => eventAction(r, action))}
               onRestart={restart}
               onRetire={() => setRun((r) => retireEndless(r))}
+              onRevive={() => {
+                const next = reviveRun(run);
+                persistCollection(next, {});
+                launchPreparedRun(next);
+              }}
+              onAcceptDefeat={() => setRun((r) => acceptDefeat(r))}
+              onEpilogue={() => launchPreparedRun(beginEpilogue(run))}
+              onCheckpoint={continueCheckpoint}
+              checkpointDepth={
+                run.devMode ? 90 : collection.records.endlessDepth || 0
+              }
             />
           ) : null}
         </section>
@@ -698,6 +781,13 @@ export default function Home() {
           <ClassPicker id={run.classId} onSelect={selectClass} />
         ) : null}
       </div>
+      {run.devMode && (
+        <div className="developer-banner">
+          <span>开发者演练 · 正式存档与史册不受影响</span>
+          <button onClick={restart}>退出演练</button>
+          <button onClick={() => setOverlay('settings')}>演武场设置</button>
+        </div>
+      )}
       <footer className="game-footer">
         <span>
           <Shield size={14} />
@@ -715,7 +805,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          正式版 <b>v1.1.1</b>
+          正式版 <b>v1.2.0</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>
@@ -791,7 +881,9 @@ export default function Home() {
           </DialogDescription>
           {activeOverlay === 'settings' ? (
             <>
-              <TravellerName />
+              <TravellerName
+                ascended={collection.secrets.includes('ascension')}
+              />
               <button
                 className="secondary-button"
                 onClick={() => setOverlay('chronicle')}
@@ -834,6 +926,22 @@ export default function Home() {
               <p className="settings-note">
                 收藏记录自动保存在当前浏览器，新开远征不会清空。
               </p>
+              {(run.phase === 'setup' || run.phase === 'defeat') &&
+                (collection.records.endlessDepth || 0) >= 45 && (
+                  <div className="dev-presets">
+                    <button onClick={() => continueCheckpoint(46)}>
+                      <strong>余火重聚 · 第四轮</strong>
+                      <small>以固定誓装从第46关续战，另列史册。</small>
+                    </button>
+                    {(collection.records.endlessDepth || 0) >= 90 && (
+                      <button onClick={() => continueCheckpoint(91)}>
+                        <strong>群星之约 · 登神长阶</strong>
+                        <small>以固定誓装从第91关续战，另列史册。</small>
+                      </button>
+                    )}
+                  </div>
+                )}
+              <DeveloperConsole onLaunch={launchDeveloper} />
             </>
           ) : activeOverlay === 'chronicle' ? (
             <ChroniclePanel />

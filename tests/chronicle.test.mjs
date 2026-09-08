@@ -102,7 +102,7 @@ async function result(env, mode = 'normal', token = tokenA, override = {}) {
   await call(
     env,
     'start',
-    { id: runId, mode, classId: 'knight', seed: 42 },
+    { id: runId, mode, classId: 'knight', seed: 42, ruleset: 'ascension-v1' },
     token,
   );
   for (let depth = 1; depth <= 15; depth++)
@@ -128,6 +128,190 @@ async function result(env, mode = 'normal', token = tokenA, override = {}) {
   };
   return { payload, response: await call(env, 'finish', payload, token) };
 }
+
+test('ascension settles at 100, permanently marks the name, and epilogue cannot replace the ranked result', async () => {
+  const env = database();
+  await call(env, 'profile', { name: '最后的旅人' });
+  const runId = id();
+  assert.equal(
+    (
+      await call(env, 'start', {
+        id: runId,
+        mode: 'endless',
+        classId: 'ranger',
+        seed: 17,
+        ruleset: 'ascension-v1',
+      })
+    ).status,
+    200,
+  );
+  for (let depth = 1; depth <= 100; depth++)
+    assert.equal(
+      (await call(env, 'checkpoint', { id: runId, depth })).status,
+      200,
+    );
+  assert.equal(
+    (await call(env, 'checkpoint', { id: runId, depth: 101 })).status,
+    400,
+  );
+  env.sqlite
+    .prepare('UPDATE expeditions SET started_at=started_at-60000 WHERE id=?')
+    .run(runId);
+  const payload = {
+    id: runId,
+    status: 'won',
+    depth: 100,
+    duration: 50,
+    peakSquad: 1e20,
+    gold: 9000,
+    details,
+    title: '破雾者',
+  };
+  assert.equal((await call(env, 'finish', payload)).data.ranked, true);
+  assert.equal((await call(env, 'profile')).data.ascended, 1);
+  await call(env, 'profile', { name: '新的名字' });
+  const board = (await call(env, 'board?mode=endless&sort=duration')).data.rows;
+  assert.equal(board.length, 1);
+  assert.equal(board[0].name, '新的名字');
+  assert.equal(board[0].ascended, 1);
+  assert.equal(board[0].depth, 100);
+  await call(env, 'finish', { ...payload, depth: 101, gold: 999999 });
+  const row = (await call(env, 'history')).data.rows[0];
+  assert.equal(row.depth, 100);
+  assert.equal(row.gold, 9000);
+  env.sqlite.close();
+});
+
+test('checkpoint starts require a real earned milestone and are ranked separately from full journeys', async () => {
+  const env = database();
+  await call(env, 'profile', { name: '篝火旅人' });
+  const resume = {
+    id: id(),
+    mode: 'endless',
+    classId: 'mage',
+    seed: 19,
+    ruleset: 'ascension-v1',
+    startRoom: 46,
+  };
+  assert.equal((await call(env, 'start', resume)).status, 403);
+  const original = id();
+  await call(env, 'start', {
+    id: original,
+    mode: 'endless',
+    classId: 'knight',
+    seed: 1,
+    ruleset: 'ascension-v1',
+  });
+  for (let depth = 1; depth <= 45; depth++)
+    await call(env, 'checkpoint', { id: original, depth });
+  assert.equal((await call(env, 'start', resume)).status, 200);
+  assert.equal(
+    env.sqlite
+      .prepare('SELECT checkpoint FROM expeditions WHERE id=?')
+      .get(resume.id).checkpoint,
+    45,
+  );
+  assert.equal(
+    (await call(env, 'start', { ...resume, id: id(), startRoom: 91 })).status,
+    403,
+  );
+  for (let depth = 46; depth <= 100; depth++)
+    await call(env, 'checkpoint', { id: resume.id, depth });
+  env.sqlite
+    .prepare('UPDATE expeditions SET started_at=started_at-60000 WHERE id=?')
+    .run(resume.id);
+  assert.equal(
+    (
+      await call(env, 'finish', {
+        id: resume.id,
+        status: 'won',
+        depth: 100,
+        duration: 45,
+        peakSquad: 1e20,
+        gold: 3000,
+        details,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await call(env, 'board?mode=endless&sort=duration&route=1')).data.rows
+      .length,
+    0,
+  );
+  const board = (await call(env, 'board?mode=endless&sort=duration&route=46'))
+    .data.rows;
+  assert.equal(board.length, 1);
+  assert.equal(board[0].start_room, 46);
+  assert.equal(
+    (await call(env, 'start', { ...resume, id: id(), startRoom: 91 })).status,
+    200,
+  );
+  env.sqlite.close();
+});
+
+test('old endless records remain in history without granting new honours or dominating the new finite board', async () => {
+  const env = database();
+  await call(env, 'profile', { name: '旧世旅人' });
+  const legacy = id();
+  await call(env, 'start', {
+    id: legacy,
+    mode: 'endless',
+    classId: 'mage',
+    seed: 2,
+  });
+  env.sqlite
+    .prepare(
+      'UPDATE expeditions SET checkpoint=150,started_at=started_at-60000 WHERE id=?',
+    )
+    .run(legacy);
+  assert.equal(
+    (
+      await call(env, 'finish', {
+        id: legacy,
+        status: 'retired',
+        depth: 150,
+        duration: 45,
+        peakSquad: 1e30,
+        gold: 4000,
+        details,
+      })
+    ).status,
+    200,
+  );
+  assert.equal((await call(env, 'history')).data.rows.length, 1);
+  assert.equal((await call(env, 'profile')).data.ascended, 0);
+  assert.equal(
+    (await call(env, 'board?mode=endless&sort=depth')).data.rows.length,
+    0,
+  );
+  assert.equal(
+    (
+      await call(env, 'start', {
+        id: id(),
+        mode: 'endless',
+        classId: 'mage',
+        seed: 2,
+        startRoom: 91,
+        ruleset: 'ascension-v1',
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(env, 'start', {
+        id: id(),
+        mode: 'endless',
+        classId: 'mage',
+        seed: 2,
+        devMode: true,
+      })
+    ).status,
+    400,
+  );
+  env.sqlite.close();
+});
 
 test('favorites persist privately, filter before pagination, reject outsiders and leave scores intact', async () => {
   const env = database();

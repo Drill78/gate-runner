@@ -308,7 +308,9 @@ test('burn damage scales with current player firepower and focus changes physica
   assert.ok(stats(run).bulletRadius > base * 2);
 });
 
-for (const profile of ENCOUNTERS)
+for (const profile of ENCOUNTERS.filter(
+  (p) => p.kind === 'elite' || p.act !== undefined,
+))
   test(`${profile.id} has a distinct telegraphed signature and a surviving safe position`, () => {
     const b = arena(profile.kind === 'elite' ? 0 : profile.act * 5 + 4);
     const boss = b.entities.find((e) => e.boss);

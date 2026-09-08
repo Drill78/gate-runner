@@ -17,7 +17,7 @@ const origins = new Set([
 export interface ChronicleEnv {
   DB: D1Database;
 }
-type Traveller = { id: string; name: string };
+type Traveller = { id: string; name: string; ascended?: number };
 type Expedition = {
   id: string;
   traveller_id: string;
@@ -28,6 +28,8 @@ type Expedition = {
   status: string;
   checkpoint: number;
   ranked: number;
+  start_room?: number;
+  ruleset?: string;
 };
 const fail = (message: string, status = 400): never => {
   throw Object.assign(new Error(message), { status });
@@ -71,7 +73,16 @@ export function validateResult(
   if (!['won', 'lost', 'retired'].includes(String(status)))
     fail('结算状态无效。');
   if (
-    !numeric(data.depth, 0, run.mode === 'endless' ? 999999 : 15, true) ||
+    !numeric(
+      data.depth,
+      0,
+      run.mode === 'endless'
+        ? run.ruleset === 'ascension-v1'
+          ? 100
+          : 999999
+        : 15,
+      true,
+    ) ||
     !numeric(data.duration, 0, 1e9) ||
     !numeric(data.peakSquad, 1, ARMY_PROJECTION_LIMIT) ||
     !numeric(data.gold, 0, Number.MAX_SAFE_INTEGER, true)
@@ -90,7 +101,9 @@ export function validateResult(
     fail('军势印记无效。');
   if (
     status === 'won' &&
-    (run.mode === 'endless' || data.depth !== 15 || Number(data.duration) < 20)
+    (data.depth !== (run.mode === 'endless' ? 100 : 15) ||
+      Number(data.duration) < 20 ||
+      (run.mode === 'endless' && run.ruleset !== 'ascension-v1'))
   )
     fail('尚未完成远征。');
   if (
@@ -107,6 +120,10 @@ export function validateResult(
     fail('缺少远征档案。');
   const details = raw as Record<string, unknown>;
   const safe: Record<string, unknown> = {};
+  safe.revivalsUsed = numeric(details.revivalsUsed, 0, 3, true)
+    ? details.revivalsUsed
+    : 0;
+  safe.checkpointStart = (run.start_room || 1) > 1 ? run.start_room : 0;
   for (const key of [
     'weaponTier',
     'maxHp',
@@ -194,7 +211,7 @@ export async function chronicleHandler(
     const action = url.pathname.split('/').filter(Boolean).at(-1);
     if (request.method === 'GET' && action === 'health') {
       await env.DB.prepare('SELECT id FROM travellers LIMIT 1').all();
-      return reply({ ready: true, version: '1.1.1' });
+      return reply({ ready: true, version: '1.2.0' });
     }
     const page =
       Math.max(0, Math.min(10000, Number(url.searchParams.get('page')) || 0)) |
@@ -217,9 +234,14 @@ export async function chronicleHandler(
         gold: 'gold DESC, depth DESC',
       };
       const order = orders[metric];
-      if (!order || (mode === 'endless' && metric === 'duration'))
-        fail('未知的史册排序。');
-      const query = `WITH ranked_runs AS (SELECT e.id, p.name, e.title, e.mode, e.class_id, e.depth, e.duration, e.peak_squad, e.peak_mantissa, e.peak_exponent, e.gold, e.finished_at, e.details, e.seed, e.status, e.ranked, ROW_NUMBER() OVER (PARTITION BY e.traveller_id ORDER BY ${order}, e.finished_at ASC, e.id ASC) AS best FROM expeditions e JOIN travellers p ON p.id = e.traveller_id WHERE e.mode = ? AND e.ranked = 1 AND ${mode === 'endless' ? "e.status IN ('lost','retired') AND e.depth >= 5" : "e.status = 'won'"} ${classId === 'all' ? '' : 'AND e.class_id = ?'}) SELECT * FROM ranked_runs WHERE best = 1 ORDER BY ${order}, finished_at ASC, id ASC LIMIT 21 OFFSET ?`;
+      if (!order) fail('未知的史册排序。');
+      const route = url.searchParams.get('route') || '1';
+      if (!['1', '46', '91', 'all'].includes(route)) fail('未知的启程篝火。');
+      const routeClause =
+        mode === 'endless' && route !== 'all'
+          ? `AND e.start_room = ${Number(route)}`
+          : '';
+      const query = `WITH ranked_runs AS (SELECT e.id, p.name, e.title, e.mode, e.class_id, e.depth, e.duration, e.peak_squad, e.peak_mantissa, e.peak_exponent, e.gold, e.finished_at, e.details, e.seed, e.status, e.ranked, e.start_room, e.ruleset, EXISTS(SELECT 1 FROM expeditions a WHERE a.traveller_id=p.id AND a.mode='endless' AND a.status='won' AND a.depth=100 AND a.ruleset='ascension-v1') AS ascended, ROW_NUMBER() OVER (PARTITION BY e.traveller_id ORDER BY ${order}, e.finished_at ASC, e.id ASC) AS best FROM expeditions e JOIN travellers p ON p.id = e.traveller_id WHERE e.mode = ? AND e.ranked = 1 AND ${mode === 'endless' ? `e.ruleset = 'ascension-v1' AND e.status IN ('won','lost','retired') AND e.depth >= 5 ${metric === 'duration' ? "AND e.status = 'won'" : ''}` : "e.status = 'won'"} ${routeClause} ${classId === 'all' ? '' : 'AND e.class_id = ?'}) SELECT * FROM ranked_runs WHERE best = 1 ORDER BY ${order}, finished_at ASC, id ASC LIMIT 21 OFFSET ?`;
       const params =
         classId === 'all' ? [mode, page * 20] : [mode, classId, page * 20];
       const { results } = await env.DB.prepare(query)
@@ -236,7 +258,7 @@ export async function chronicleHandler(
     if (!/^[a-f0-9]{64}$/.test(token)) fail('请先留下旅人之名。', 401);
     const tokenHash = await hash(token);
     let traveller = await env.DB.prepare(
-      'SELECT id, name FROM travellers WHERE token_hash = ?',
+      "SELECT p.id, p.name, EXISTS(SELECT 1 FROM expeditions a WHERE a.traveller_id=p.id AND a.mode='endless' AND a.status='won' AND a.depth=100 AND a.ruleset='ascension-v1') AS ascended FROM travellers p WHERE token_hash = ?",
     )
       .bind(tokenHash)
       .first<Traveller>();
@@ -246,7 +268,7 @@ export async function chronicleHandler(
       if (!traveller) fail('尚未登记旅人之名。', 401);
       const favoritesOnly = url.searchParams.get('favorite') === '1';
       const { results } = await env.DB.prepare(
-        `SELECT e.id, p.name, e.title, e.mode, e.class_id, e.depth, e.duration, e.peak_squad, e.peak_mantissa, e.peak_exponent, e.gold, e.finished_at, e.details, e.seed, e.status, e.ranked, e.favorite FROM expeditions e JOIN travellers p ON p.id=e.traveller_id WHERE e.traveller_id = ? AND e.status != 'active' ${favoritesOnly ? 'AND e.favorite = 1' : ''} ORDER BY e.finished_at DESC, e.id ASC LIMIT 21 OFFSET ?`,
+        `SELECT e.id, p.name, e.title, e.mode, e.class_id, e.depth, e.duration, e.peak_squad, e.peak_mantissa, e.peak_exponent, e.gold, e.finished_at, e.details, e.seed, e.status, e.ranked, e.favorite, e.start_room, e.ruleset, EXISTS(SELECT 1 FROM expeditions a WHERE a.traveller_id=p.id AND a.mode='endless' AND a.status='won' AND a.depth=100 AND a.ruleset='ascension-v1') AS ascended FROM expeditions e JOIN travellers p ON p.id=e.traveller_id WHERE e.traveller_id = ? AND e.status != 'active' ${favoritesOnly ? 'AND e.favorite = 1' : ''} ORDER BY e.finished_at DESC, e.id ASC LIMIT 21 OFFSET ?`,
       )
         .bind(traveller!.id, page * 20)
         .all();
@@ -307,7 +329,7 @@ export async function chronicleHandler(
         .bind(id, tokenHash, name, now)
         .run();
       traveller = await env.DB.prepare(
-        'SELECT id, name FROM travellers WHERE token_hash = ?',
+        "SELECT p.id, p.name, EXISTS(SELECT 1 FROM expeditions a WHERE a.traveller_id=p.id AND a.mode='endless' AND a.status='won' AND a.depth=100 AND a.ruleset='ascension-v1') AS ascended FROM travellers p WHERE token_hash = ?",
       )
         .bind(tokenHash)
         .first<Traveller>();
@@ -316,14 +338,31 @@ export async function chronicleHandler(
     if (!traveller) fail('请先留下旅人之名。', 401);
     if (!UUID.test(String(data.id))) fail('远征印记无效。');
     if (action === 'start') {
+      if (data.devMode === true) fail('演练不记入正式史册。');
       if (
         !MODES.includes(String(data.mode)) ||
         !CLASSES.includes(String(data.classId)) ||
         !numeric(data.seed, 0, 4294967295, true)
       )
         fail('启程档案无效。');
+      const startRoom = data.startRoom ?? 1;
+      if (
+        typeof startRoom !== 'number' ||
+        ![1, 46, 91].includes(startRoom) ||
+        (startRoom !== 1 && data.mode !== 'endless')
+      )
+        fail('启程篝火无效。');
+      if (Number(startRoom) > 1) {
+        const earned = await env.DB.prepare(
+          "SELECT MAX(checkpoint) AS depth FROM expeditions WHERE traveller_id=? AND mode='endless' AND ruleset='ascension-v1'",
+        )
+          .bind(traveller!.id)
+          .first<{ depth: number }>();
+        if ((earned?.depth || 0) < Number(startRoom) - 1)
+          fail('这座篝火尚未点亮。', 403);
+      }
       await env.DB.prepare(
-        'INSERT INTO expeditions (id, traveller_id, mode, class_id, seed, started_at, ranked) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING',
+        'INSERT INTO expeditions (id, traveller_id, mode, class_id, seed, started_at, ranked, start_room, checkpoint, ruleset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING',
       )
         .bind(
           data.id,
@@ -333,11 +372,14 @@ export async function chronicleHandler(
           data.seed,
           now,
           data.offline === true ? 0 : 1,
+          startRoom,
+          Number(startRoom) - 1,
+          data.ruleset === 'ascension-v1' ? 'ascension-v1' : 'legacy',
         )
         .run();
     }
     const run = await env.DB.prepare(
-      'SELECT id, traveller_id, mode, class_id, seed, started_at, status, checkpoint, ranked FROM expeditions WHERE id = ? AND traveller_id = ?',
+      'SELECT id, traveller_id, mode, class_id, seed, started_at, status, checkpoint, ranked, start_room, ruleset FROM expeditions WHERE id = ? AND traveller_id = ?',
     )
       .bind(data.id, traveller!.id)
       .first<Expedition>();
@@ -345,7 +387,18 @@ export async function chronicleHandler(
     if (action === 'start')
       return reply({ id: run!.id, ranked: Boolean(run!.ranked) });
     if (action === 'checkpoint') {
-      if (!numeric(data.depth, 0, run!.mode === 'endless' ? 999999 : 15, true))
+      if (
+        !numeric(
+          data.depth,
+          0,
+          run!.mode === 'endless'
+            ? run!.ruleset === 'ascension-v1'
+              ? 100
+              : 999999
+            : 15,
+          true,
+        )
+      )
         fail('关数无效。');
       if (Number(data.depth) > run!.checkpoint + 1)
         fail('远征足迹尚未连贯。', 409);

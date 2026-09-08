@@ -39,16 +39,21 @@ export function depthHealth(run: Pick<Run, 'difficulty' | 'floor'>) {
 }
 export const ENDLESS_CURVE = {
   bandSize: 15,
-  openingBase: 1.23,
-  postThroneHealth: 2.5,
-  earlyBands: 3,
-  earlyStep: 2.4,
-  middleBands: 5,
-  middleStep: 5,
-  deepStep: 6,
-  withinBandStep: 1.008,
-  attackStep: 1.18,
+  openingBase: 1.26,
+  // Relative to the last room of the opening round. Only rounds III and VI
+  // deliberately make a sharp jump; the other rounds grow linearly inside it.
+  roundHealth: [0, 1.35, 5.4, 7.3, 9.9, 32.4],
+  withinRoundGrowth: 0.32,
+  roundDamage: [1, 1.1, 1.38, 1.5, 1.65, 2.12],
+  stairHealth: [34, 36, 39, 43, 47, 51, 55, 59, 67, 74],
+  stairDamage: [2.05, 2.08, 2.12, 2.12, 2.16, 2.18, 2.2, 2.24, 2.28, 1.72],
 } as const;
+export const ENDLESS_ROOMS = 100;
+export const CELEBRATION_ROOM = 101;
+export const endlessRound = (floor: number) =>
+  Math.min(6, Math.floor(Math.max(0, floor) / 15) + 1);
+export const isAscensionStair = (run: Pick<Run, 'difficulty' | 'floor'>) =>
+  isEndless(run) && run.floor >= 90 && run.floor < 100;
 export function healthGrowth(
   run: Pick<Run, 'difficulty' | 'floor'>,
   campaignBase: number,
@@ -56,104 +61,211 @@ export function healthGrowth(
   if (!isEndless(run)) return Math.pow(campaignBase, run.floor);
   const c = ENDLESS_CURVE;
   if (run.floor < c.bandSize) return c.openingBase ** run.floor;
-  // A layer ends at a chapter boss: three layers are fifteen rooms. This budget
-  // depends only on depth, never on the player's army or a square-gate reward.
+  const openingEnd = c.openingBase ** 14;
+  // Old saves past the former endless limit still get a finite budget while
+  // their migration sends them back to the staircase. There is no new cycle.
+  if (run.floor >= 90)
+    return openingEnd * c.stairHealth[Math.min(9, run.floor - 90)];
   const band = Math.floor(run.floor / c.bandSize);
-  const log =
-    14 * Math.log(c.openingBase) +
-    Math.log(c.postThroneHealth) +
-    Math.min(band, c.earlyBands) * Math.log(c.earlyStep) +
-    Math.min(c.middleBands, Math.max(0, band - c.earlyBands)) *
-      Math.log(c.middleStep) +
-    Math.max(0, band - c.earlyBands - c.middleBands) * Math.log(c.deepStep) +
-    (run.floor % c.bandSize) * Math.log(c.withinBandStep);
-  return Math.exp(Math.min(430, log));
+  return (
+    openingEnd *
+    c.roundHealth[band] *
+    (1 + (c.withinRoundGrowth * (run.floor % c.bandSize)) / 14)
+  );
 }
 export function depthDamage(run: Pick<Run, 'difficulty' | 'floor'>) {
-  return isEndless(run)
-    ? Math.min(
-        1e7,
-        ENDLESS_CURVE.attackStep **
-          Math.floor(run.floor / ENDLESS_CURVE.bandSize),
-      )
-    : 1;
+  if (!isEndless(run)) return 1;
+  if (run.floor >= 90)
+    return ENDLESS_CURVE.stairDamage[Math.min(9, run.floor - 90)];
+  return ENDLESS_CURVE.roundDamage[Math.floor(Math.max(0, run.floor) / 15)];
 }
 export function depthIncome(run: Pick<Run, 'difficulty' | 'floor'>) {
   return isEndless(run)
     ? Math.min(1e9, Math.pow(1.045, Math.min(480, Math.max(0, run.floor - 14))))
     : 1;
 }
-export type BossMutation = 'ashen' | 'frenzied' | 'hollow' | 'fusion';
+// hollow is accepted only to read old saves; new encounters use golden.
+export type BossMutation =
+  | 'ashen'
+  | 'frenzied'
+  | 'golden'
+  | 'fusion'
+  | 'angelic'
+  | 'hollow';
 export interface EndlessEncounter {
   name: string;
   omen: string;
   groups: EncounterId[][];
   mutation?: BossMutation;
+  mutations?: (BossMutation | undefined)[][];
+  secondLives?: boolean;
 }
 export function endlessEncounter(
   run: Pick<Run, 'difficulty' | 'floor' | 'seed'>,
 ): EndlessEncounter | null {
-  if (!isEndless(run) || run.floor < 19 || run.floor % 5 !== 4) return null;
-  const chapter = Math.floor((run.floor - 19) / 5);
-  const variants: EndlessEncounter[] = [
-    {
-      name: '双誓守陵',
-      omen: '两道誓言，在同一座坟前醒来。',
-      groups: [['watcher', 'wyvern']],
-    },
-    {
-      name: '不息追猎',
-      omen: '第一声钟响之后，尚有脚步逼近。',
-      groups: [['commander'], ['lich'], ['oracle']],
-      mutation: 'ashen',
-    },
-    {
-      name: '王影相噬',
-      omen: '王座只有一座，归来的王却有两位。',
-      groups: [['king', 'king']],
-    },
-    {
-      name: '血月畸变',
-      omen: '血月缝合了伤口，也唤醒了另一颗心。',
-      groups: [['broodmother', 'hexblade']],
-      mutation: 'frenzied',
-    },
-    {
-      name: '合葬圣体',
-      omen: '同一个胸腔中，响起两位君主的祷词。',
-      groups: [['king']],
-      mutation: 'fusion',
-    },
-    {
-      name: '无冠王庭',
-      omen: '三盏烛火，为一个闯入者点亮。',
-      groups: [['watcher', 'lich', 'king']],
-      mutation: 'hollow',
-    },
-    {
-      name: '长夜加冕',
-      omen: '不要在第一位王倒下时，放下武器。',
-      groups: [['king'], ['wyvern', 'oracle'], ['king', 'king']],
-      mutation: 'ashen',
-    },
-    {
-      name: '畸星巡礼',
-      omen: '群星坠入墓穴，旧日的守门人正在蜕皮。',
-      groups: [
-        ['stonewarden', 'broodmother'],
-        ['lich', 'king'],
-      ],
-      mutation: 'fusion',
-    },
-  ];
-  // Teach each encounter once, then shuffle deterministic late-night surprises.
-  const index =
-    chapter < variants.length
-      ? chapter
-      : (Math.imul(chapter + 1, 1664525) + run.seed) >>> 0;
-  return variants[index % variants.length];
+  if (!isEndless(run) || run.floor < 0 || run.floor >= 100) return null;
+  if (run.floor >= 90) return staircaseEncounter(run.floor + 1);
+  if (run.floor % 5 !== 4) return null;
+  const round = endlessRound(run.floor);
+  const chapter = Math.floor((run.floor % 15) / 5);
+  const hash = (Math.imul(run.floor + 1, 1664525) + run.seed) >>> 0;
+  const mutations: BossMutation[] = ['ashen', 'frenzied', 'golden', 'fusion'];
+  if (chapter === 2) {
+    const finals: EndlessEncounter[] = [
+      {
+        name: '余烬复王',
+        omen: '王冠落地，王的誓言却尚未燃尽。',
+        groups: [['king']],
+        secondLives: true,
+      },
+      {
+        name: '重叠的王座',
+        omen: '一位王的葬钟，唤来另一位王的脚步。',
+        groups: [['king'], ['king']],
+        secondLives: true,
+      },
+      {
+        name: '双日同陨',
+        omen: '两轮黑日升起。别让其中一轮遮住另一轮的火。',
+        groups: [['king', 'king']],
+        secondLives: true,
+      },
+      {
+        name: '四劫王庭',
+        omen: '黑影、血月、金身与合葬，依次献上旧世界最后的誓言。',
+        groups: [
+          ['watcher', 'executioner'],
+          ['lich', 'hexblade'],
+          ['wyvern', 'stonewarden'],
+          ['oracle', 'broodmother'],
+        ],
+        mutations: [
+          ['ashen', 'ashen'],
+          ['frenzied', 'frenzied'],
+          ['golden', 'golden'],
+          ['fusion', 'fusion'],
+        ],
+        secondLives: true,
+      },
+      {
+        name: '三度焚冠',
+        omen: '三位王接过同一簇火；每一顶冠冕都将重燃一次。',
+        groups: [['king'], ['king'], ['king']],
+        mutations: [['ashen'], ['frenzied'], ['golden']],
+        secondLives: true,
+      },
+      {
+        name: '旧世的最后守门人',
+        omen: '四位守门人之后，三顶异色王冠同时点燃。踏过这里，天阶才会显现。',
+        groups: [
+          ['watcher', 'lich'],
+          ['wyvern', 'oracle'],
+          ['king', 'king', 'king'],
+        ],
+        mutations: [
+          ['ashen', 'frenzied'],
+          ['golden', 'fusion'],
+          ['ashen', 'frenzied', 'golden'],
+        ],
+        secondLives: true,
+      },
+    ];
+    return finals[round - 1];
+  }
+  const pair = chapter === 0 ? ['watcher', 'wyvern'] : ['lich', 'oracle'];
+  if (round <= 2)
+    return {
+      name: chapter === 0 ? '双誓守陵' : '蚀月双相',
+      omen:
+        chapter === 0
+          ? '风暴与荆棘，共守一条归途。'
+          : '两道预言，在同一轮死去的月下相遇。',
+      groups: [pair],
+      secondLives: true,
+    };
+  let groups: string[][];
+  if (round === 3) groups = hash % 2 ? [pair] : pair.map((id) => [id]);
+  else if (round < 6) {
+    const elites =
+      chapter === 0
+        ? ['commander', 'hexblade']
+        : ['stonewarden', 'broodmother'];
+    groups = [[pair[hash % pair.length], ...elites]];
+  } else
+    groups =
+      hash % 2
+        ? [[...pair, 'executioner']]
+        : [
+            [pair[0], 'commander'],
+            [pair[1], 'hexblade'],
+          ];
+  return {
+    name: round === 3 ? '异誓醒转' : round < 6 ? '失落的仪仗' : '终夜围猎',
+    omen:
+      round === 3
+        ? '古老的敌人披上异色；留意黑影、血光与金色护佑的退潮。'
+        : round < 6
+          ? '守门人的身旁，仍有不肯放下兵刃的近卫。'
+          : '这已是旧世最后的防线。每一束异光都有破绽。',
+    groups,
+    mutations: groups.map((group, stage) =>
+      group.map((_, i) => mutations[(hash + stage + i) % mutations.length]),
+    ),
+    secondLives: true,
+  };
 }
 
+function staircaseEncounter(room: number): EndlessEncounter {
+  const groups: string[][][] = [
+    [['executioner']],
+    [['commander'], ['hexblade']],
+    [['stonewarden', 'broodmother']],
+    [['watcher']],
+    [['wyvern']],
+    [['lich']],
+    [['oracle']],
+    [['king']],
+    [['king-ascendant']],
+    [['deity']],
+  ];
+  const names = [
+    '断罪之翼',
+    '双刃洗礼',
+    '石与丝的圣歌',
+    '荆冠圣门',
+    '天穹折翼',
+    '不朽月冕',
+    '最后的预言',
+    '灰烬圣徒',
+    '日冕之上的王',
+    '万光之源',
+  ];
+  const index = room - 91;
+  return {
+    name: names[index],
+    omen:
+      room < 99
+        ? '白翼护佑着尚未离去的灵魂。击破后，守过十息狂潮，等待圣约碎裂。'
+        : room === 99
+          ? '他已舍弃灰烬，却仍未放下王冠。跨过两重日冕，听见天穹的回声。'
+          : '不再是征服。一百道门后，所有曾与你同行的微光，将一同作答。',
+    groups: groups[index],
+    mutation: room < 99 ? 'angelic' : undefined,
+    secondLives: room === 99,
+  };
+}
+
+export const ENDLESS_ECONOMY = {
+  flameGain: 0.18,
+  reforgePerLayer: 0.08,
+  reforgeDiminishing: 0.6,
+} as const;
+export function reforgeGain(layers: number, previousReforges: number) {
+  return (
+    (Math.max(0, layers) * ENDLESS_ECONOMY.reforgePerLayer) /
+    (1 + Math.max(0, previousReforges) * ENDLESS_ECONOMY.reforgeDiminishing)
+  );
+}
 export const ENDLESS_REWARDS: Relic[] = [
   {
     id: 'abyss-flame',
@@ -161,7 +273,7 @@ export const ENDLESS_REWARDS: Relic[] = [
     family: 'all',
     tag: '长夜契约',
     rarity: '史诗',
-    desc: '本次远征的伤害永久提高 24%。焚印后仍保留。',
+    desc: '本次远征的伤害永久提高 18%。焚印后仍保留。',
     max: 1,
     icon: 'flame',
   },
@@ -191,7 +303,7 @@ export const ENDLESS_REWARDS: Relic[] = [
     family: 'all',
     tag: '薪火轮回',
     rarity: '传说',
-    desc: '焚毁所有普通符文；每层化作 8% 永存伤害，再获三层淬火钢刃与本职业三项符文。武器、生命、契约及侍从保留。',
+    desc: '焚毁普通符文，转为永存伤害；首铸每层8%，此后按已重铸次数逐渐衰减。再获三层淬火钢刃与本职业三项符文，保留武器、生命、契约与侍从。',
     max: 1,
     icon: 'spark',
   },
