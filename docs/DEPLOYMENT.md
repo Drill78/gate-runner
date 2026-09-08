@@ -1,6 +1,16 @@
-# 试玩版部署
+# 灰烬之门部署
 
-## 当前线上版本（v0.7）
+## 当前线上版本（1.0 正式版）
+
+**[打开灰烬之门 1.0](https://gate-runner-seven.vercel.app)**。2026-09-08 已发布到原 Vercel 生产地址，结束 Early Access。部署 `dpl_4t1DBxNFDrT3Gmh1Dno4kBuC1qx1` 状态 READY；内容提交 `b17463f18d6721066404b7bd025bcbf3217203bd` 已推送 GitHub main。完整内容见 [1.0 发布说明](V1_0_RELEASE.md)。
+
+本版重作三首战斗曲、新增四首场景曲、保留禁忌配乐，并将困难双首领血条左右并排。玩法与存档不变。按用户要求没有重跑玩法测试、难度模拟或浏览器测试；TypeScript、lint、生产构建和音频导出检查已完成。
+
+发布后匿名核对 33 项运行资源：首页、脚本、样式、19 张 WebP、八首 MP3、字体、授权和 favicon 全部返回 200，MIME 与内容通过。31 项 SHA256 与本地完全一致；首页仅构建文件名不同，CSS 仅已确认的 Windows/Linux OKLab 舍入差异，精确比较未忽略其他内容。详见 [1.0 部署核验](releases/v1.0-verification.json)。七首新曲使用 v=1.0 查询标识，禁忌文件与历史版本相同。静态资源核验不代表浏览器或真人听测。
+
+沿用固定 Git 提交的 Vercel 构建入口，Node.js 24、npm ci、npm run build，输出 release/dist。本地复用入口为 artifacts/vercel-v1-bootstrap/，核验脚本为 artifacts/verify-release-vercel-v1.mjs。Git 自动部署仍未接通；Netlify 仍是下文记录的历史临时试部署，本轮正式发布使用 Vercel。
+
+## 历史部署（v0.7）
 
 **[打开灰烬之门](https://gate-runner-seven.vercel.app)**。v0.7于2026-09-08 02:21:44 UTC达到READY，原域名已指向生产部署`dpl_3ocFb7EMRnSZM2Ex4hA2fixPbSc6`。内容提交`1ef41a9647e77f066707d6e7e115f3b02ccf2697`已推送GitHub main。完整改动见[v0.7说明](V0_7_UPDATE.md)。
 
