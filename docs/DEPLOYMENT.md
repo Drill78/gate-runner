@@ -65,6 +65,14 @@ vercel --prod
 
 ## Netlify
 
+2026-09-08已按用户要求试部署同一v0.7构建：[Netlify试部署](https://unrivaled-malasada-3e1166.netlify.app)。项目ID `370f209c-e80c-4b18-98fc-af19afc43d26`，部署ID `6a9f73098b1aa6fd2b39c2bd`。采用Netlify官方CLI 27.5.0的免登录预构建上传，本次没有接通Git自动部署。
+
+这是带临时密码的可认领站点，创建时认领截止为 **2026-09-08 03:29:28 UTC**（日本12:29、北京11:29）；未认领会过期，不能当成永久发布地址。认领入口与访问密码只提供在用户会话和本地忽略产物中，不写入公开仓库。Netlify的[官方说明](https://docs.netlify.com/deploy/create-deploys/)记录了免登录项目一小时认领规则。
+
+使用该站点生成的临时访问密码登录后，29项运行文件全部返回200，SHA256与本地v0.7构建完全一致。字体响应采用历史WOFF MIME别名application/font-woff，校验按[W3C类型说明](https://www.w3.org/Fonts/REC-WOFF-20121213-errata.html)单独识别，未忽略文件内容差异。见[Netlify核验记录](releases/v0.7-netlify-verification.json)。本次验证不等于浏览器或真机试玩，也未测量不同运营商的访问速度。
+
+本地已准备可再次手动上传的 `artifacts/ashen-gates-v07-netlify.zip`（8,988,254字节，29项运行文件与_redirects/_headers），不包含账号信息。长期使用时，认领项目并连接下述Git仓库构建配置。
+
 从同一 GitHub 仓库创建站点，构建 `npm run build`，发布目录 `dist`。`netlify.toml` 设置 Node.js 24、单页 fallback 和缓存。也可把构建得到的 `dist` 文件夹交给 Netlify 静态部署。
 
 ## 中国大陆访问
