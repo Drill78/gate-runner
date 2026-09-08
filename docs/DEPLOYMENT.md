@@ -1,6 +1,14 @@
 # 灰烬之门部署
 
-## 当前线上版本（1.2.0 · 登神远征）
+## 当前线上版本（1.2.1 · 真人反馈修复）
+
+正式入口 https://gate-runner-seven.vercel.app 已更新1.2.1。Vercel部署 `dpl_GK4WgFrd2Gzb182uD2NAKMJgvqxc`，READY；固定源码 `9a89c870dc4aa154bb63699fe24a613a9ee9c6e4`，标签 `v1.2.1`。同版Sites服务为版本6、部署 `appgdep_6a9ffcd9a7bc8191b3330d5a27ab6d90`，succeeded，API仍由原域名代理。没有新增数据库迁移。
+
+216项测试与两套生产构建通过；12组最终引擎样本、浏览器交互、线上41项资源及19项接口核验完成。详见[发布交接](RELEASE_HANDOFF.md)、[修复说明](V1_2_1_FIXES.md)与[数值依据](V1_2_FEEDBACK_BALANCE_AUDIT.md)。
+
+复用 `artifacts/vercel-v121-bootstrap/` 固定源码构建入口；先更新兼容API，再发布前端。演武场口令721604；默认倍率1用于难度试玩，测试记录不进入正式史册。GitHub推送不自动发布。
+
+## 历史线上版本（1.2.0 · 登神远征）
 
 正式入口 https://gate-runner-seven.vercel.app 已发布1.2.0。Vercel部署 `dpl_5pFPTy6JkaZGiNndkc6bDad66rt8`，READY；内容提交 `2a0152b1457d906de0fd95e7c19a863db4a2cd7b`，标签 `v1.2.0`。公共史册继续代理到 https://ashen-gates-zhour.green-salnut.chatgpt.site。Sites版本5，部署 `appgdep_6a9fdf96ba3481919e0677a7fd6df5e7` 已成功，使用相同源码。
 

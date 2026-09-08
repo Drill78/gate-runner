@@ -17,5 +17,10 @@
     "UI checks use optional 10x HP and 100x firepower for entrance inspection; these values were not used for balance validation",
     "98/99 phase transitions and all 11 deity spells validated by engine tests; no claim of a full manual 1-to-100 run",
     "Browser background throttling lengthens wall time; entrance durations are game-clock durations"
-  ]
+  ],
+  "production": {
+    "url": "https://gate-runner-seven.vercel.app",
+    "versionText": "v1.2.1",
+    "errorLogsObserved": 0
+  }
 }

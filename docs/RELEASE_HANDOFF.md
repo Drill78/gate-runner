@@ -1,4 +1,29 @@
-# 灰烬之门 · 1.2.0 发布交接已完成
+# 灰烬之门 · 1.2.1 发布交接已完成
+
+2026-09-08。当前正式版 **1.2.1 · 真人反馈修复** 已发布到原网址。
+
+- 正式游戏：https://gate-runner-seven.vercel.app
+- 内容提交 `9a89c870dc4aa154bb63699fe24a613a9ee9c6e4`，发布标签 `v1.2.1`；GitHub https://github.com/Drill78/gate-runner。
+- Vercel 部署 `dpl_GK4WgFrd2Gzb182uD2NAKMJgvqxc`，READY，原域名已绑定。
+- 公共史册与镜像：https://ashen-gates-zhour.green-salnut.chatgpt.site，public；Sites版本6：`appgprj_6a9e636d67b0819191dcf937245fdd08~appgver_9069b22d405081918f1f6c84f853864b`，部署 `appgdep_6a9ffcd9a7bc8191b3330d5a27ab6d90`，succeeded。两端同一内容提交。
+
+三位新首领的战斗形象恢复为程序模型；98天使王碎翼后正确衔接复燃，99蚀日阶段有独立六招与移位，主神增加五招至十一招。双／三首领和同时复生分别排队突入。强化天使80%减伤与91—99压力，保持100相对宽松。删除误导装饰圆圈，保留真实危险区域。
+
+修复结算滚动、101入口和演武场返回；默认游戏文本不再提前暴露命数与结尾。指定首领演练直达交锋，完整路线照常。设置口令仍为 `721604`；先用默认1倍测试难度。66,666秘钥保留，已以真实路线证实87关买到；删除更高档和无用残章。另修契约池耗尽产生重复奖励、导致存档恢复失败的问题，并兼容已写出的相应旧存档。
+
+验证：**216项自动测试、TypeScript、lint、静态及Worker构建通过**。12组最终引擎复核包含三职业独立99关通过、三职业站桩失败、三职业91预设长阶通过、三职业自然构筑续长阶通过。自然经济样本从正常开局实际跑至90，未注入金币。详见[修复说明](V1_2_1_FIXES.md)与[数值复核](V1_2_FEEDBACK_BALANCE_AUDIT.md)。确定性程序样本不等同真人胜率。
+
+本版经用户授权做了浏览器交互验证：默认及390×640窄屏结算能滚到底，101实际完成并显示30宝箱与制作者署名；战斗／结算返回演武场可用；90关实际看到守望者和巫妖分别完整突入，期间战斗倒计时不动；程序模型与五招演出对比页通过目视核验。未声称人工完整游玩1—100；98／99全阶段和主神11招由引擎测试覆盖。线上浏览器确认版本1.2.1，未观察到error级控制台消息。
+
+线上**41/41资源**通过，39项SHA-256完全一致；HTML仅映射构建文件名，CSS仅接受已核实的跨平台OKLab舍入差异。**19项API检查**通过，包含三模式榜、私人收藏与分起点榜。只写明确标记的零关私人校验记录，没有伪造公开通关或荣誉。
+
+报告：[资源](releases/v1.2.1-verification.json)、[接口](releases/v1.2.1-chronicle-verification.json)、[浏览器](releases/v1.2.1-browser-verification.json)、[战斗样本](releases/v1.2-feedback-combat.json)、[经济](releases/v1.2-feedback-economy.json)、[自然长阶](releases/v1.2-feedback-natural-stair.json)。完整数值册、75项奖励与100关曲线同步刷新。
+
+本版没有数据库迁移或音乐更换。继续使用Vercel前端＋Sites Worker/D1。发布工具复用 `artifacts/vercel-v121-bootstrap/`、`artifacts/verify-release-vercel-v121.mjs`、`artifacts/verify-chronicle-live-v121.mjs`，IDs见 `artifacts/release-v121-ids.json`。官方发布包117文件，45,178,880字节。后续文档归档提交不改变已上线内容提交；GitHub推送仍不会自动部署。
+
+---
+
+## 1.2.0 历史发布记录
 
 2026-09-08。当前正式版为 **1.2.0 · 登神远征**，已在原地址上线。
 
