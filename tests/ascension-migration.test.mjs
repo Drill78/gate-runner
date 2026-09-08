@@ -10,6 +10,7 @@ import {
   enterNode,
   completeRoom,
   beginEpilogue,
+  chooseReward,
 } from '../lib/game.ts';
 import {
   emptyCollection,
@@ -112,6 +113,7 @@ test('carried builds get a fresh private identity and must defeat the replacemen
     assert.equal(options[0].kind, 'boss');
     const completed = completeRoom(enterNode(roundtrip, options[0].id));
     assert.equal(completed.floor, checkpoint);
+    assert.equal(new Set(completed.reward).size, completed.reward.length);
     assert.equal(completed.legacyPendingCheckpoint, undefined);
     assert.equal(
       mergeCollection(before, completed).records.endlessDepth,
@@ -140,6 +142,45 @@ test('carried builds get a fresh private identity and must defeat the replacemen
     legacyPendingCheckpoint: 45,
   };
   assert.equal(restoreRun(JSON.stringify(invalid)), null);
+});
+
+test('historical duplicate legion drafts recover three claimable choices without weakening other reward validation', () => {
+  for (const floor of [30, 90]) {
+    const saved = {
+      ...createRun('ranger', 721604, 'endless'),
+      phase: 'reward',
+      floor,
+      gold: 6789,
+      relics: { steel: 3, hunter: 1 },
+      runId: crypto.randomUUID(),
+      nodes: createRunMap(721604, 'endless', floor),
+      reward: ['abyss-legion', 'abyss-heart', 'abyss-legion'],
+    };
+    const restored = restoreRun(JSON.stringify(saved));
+    assert.ok(restored);
+    assert.deepEqual(restored.reward, [
+      'abyss-flame',
+      'abyss-heart',
+      'abyss-legion',
+    ]);
+    assert.equal(restored.runId, saved.runId);
+    assert.equal(restored.floor, floor);
+    assert.equal(restored.gold, saved.gold);
+    assert.deepEqual(restored.relics, saved.relics);
+    assert.deepEqual(restoreRun(JSON.stringify(restored)), restored);
+    for (const id of restored.reward) {
+      const claimed = chooseReward(restored, id);
+      assert.equal(claimed.phase, 'map');
+      assert.equal(claimed.endless.covenantAt, floor);
+      assert.ok(restoreRun(JSON.stringify(claimed)));
+    }
+    for (const reward of [
+      ['steel', 'steel'],
+      ['abyss-heart', 'abyss-heart', 'abyss-legion'],
+      ['abyss-legion', 'abyss-heart', 'unknown'],
+    ])
+      assert.equal(restoreRun(JSON.stringify({ ...saved, reward })), null);
+  }
 });
 
 function browserFixture() {

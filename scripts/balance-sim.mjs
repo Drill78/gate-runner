@@ -720,9 +720,20 @@ export function scoreReward(run, id, mode) {
 }
 function visitShop(run, mode, noSquare = false) {
   const purchases = [];
+  const purchaseLog = [];
   const buy = (id) => {
+    const beforeGold = run.gold;
+    const item = shopInventory(run).find((entry) => entry.id === id);
     const next = shopBuy(run, id);
-    if (next !== run) purchases.push(id);
+    if (next !== run) {
+      purchases.push(id);
+      purchaseLog.push({
+        id,
+        price: item?.cost,
+        goldBefore: beforeGold,
+        goldAfter: next.gold,
+      });
+    }
     run = next;
   };
   const missing = run.maxHp - run.hp;
@@ -755,7 +766,7 @@ function visitShop(run, mode, noSquare = false) {
     if (!candidate) break;
     buy(candidate.id);
   }
-  return { run, purchases };
+  return { run, purchases, purchaseLog };
 }
 export function expedition(classId, seed, mode = 'coherent', options = {}) {
   if (mode === 'weak') mode = 'economy';
@@ -811,6 +822,10 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
         next: n.next,
       })),
       hpBefore: run.hp,
+      goldBefore: run.gold,
+      goldEarnedBefore: run.goldEarned,
+      keysOpenedBefore: run.endless.keysOpened,
+      keyLoreBefore: run.endless.keyLore,
       squadBefore: run.squad,
       weaponBefore: run.weaponTier,
       relicsBefore: { ...run.relics },
@@ -843,6 +858,7 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
       const shop = visitShop(run, mode, options.noSquare);
       run = shop.run;
       decision.purchases = shop.purchases;
+      decision.purchaseLog = shop.purchaseLog;
       run = completeRoom(run, false);
     } else if (run.phase === 'event') {
       const preference =
@@ -882,6 +898,8 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
       decision.rewardChosen = selected ?? null;
     }
     decision.hpAfter = run.hp;
+    decision.goldAfter = run.gold;
+    decision.goldEarnedAfter = run.goldEarned;
     decision.squadAfter = run.squad;
     decision.relicsAfter = { ...run.relics };
     decision.floorAfter = run.floor;
@@ -891,6 +909,7 @@ export function expedition(classId, seed, mode = 'coherent', options = {}) {
   }
   if (mode === 'none' && Object.values(run.relics).some((count) => count > 0))
     throw new Error('Zero-relic mode acquired a relic.');
+  options.onFinish?.(structuredClone(run));
   return {
     classId,
     seed,

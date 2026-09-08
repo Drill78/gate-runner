@@ -18,6 +18,10 @@ import {
   spectacleDuration,
   EPILOGUE_BLESSINGS,
   skipBattleUpgrade,
+  bossAttackInterval,
+  DEITY_SKILLS,
+  ASCENDANT_SOLAR_SKILLS,
+  ASCENDANT_ECLIPSE_SKILLS,
 } from '../lib/combat.ts';
 
 function arena(ids = ['king'], mutations = [], secondLives = false) {
@@ -160,7 +164,10 @@ test('angelic protection regenerates, revives once, rages for ten seconds, then 
     e = b.entities[0];
   const hp = e.hp;
   hitEntity(b, e, 100, false, false);
-  assert.ok(Math.abs(hp - e.hp - 58) < 1e-6);
+  assert.ok(
+    Math.abs(hp - e.hp - 20) < 1e-6,
+    'white wings absorb eighty percent of an otherwise unmitigated hit',
+  );
   const wounded = e.hp;
   advance(b, 0.1);
   assert.ok(e.hp > wounded);
@@ -190,16 +197,19 @@ test('angelic protection regenerates, revives once, rages for ten seconds, then 
   assert.equal(e.done, true);
 });
 
-for (const [id, spells] of [
+for (const [id, spells, form] of [
   ['king-reborn', 5],
-  ['king-ascendant', 6],
-  ['deity', 6],
+  ['king-ascendant', 6, 'solar'],
+  ['king-ascendant', 6, 'eclipse'],
+  ['deity', 11],
 ]) {
-  test(`${id} offers ${spells} distinct, fully telegraphed spell sequences with a reachable safe route`, () => {
+  test(`${id} ${form || ''} offers ${spells} distinct, fully telegraphed spell sequences with a reachable safe route`, () => {
     const names = new Set();
     for (let spell = 0; spell < spells; spell++) {
       const b = arena([id]),
         e = b.entities[0];
+      if (form) e.ascendantForm = form;
+      if (form === 'eclipse') e.life = 2;
       e.attackIndex = spell;
       e.lastAttack = -100;
       stepBattle(b, 0.05);
@@ -328,9 +338,130 @@ test('royal stage budgets are shared across damage sources and ascendant has two
   overwhelm(b, e);
   assert.equal(e.life, 2);
   assert.equal(e.encounterId, 'king-ascendant');
+  assert.equal(e.ascendantForm, 'eclipse');
+  assert.equal(b.transition.form, 'eclipse');
+  assert.equal(b.transition.entityId, e.id);
   advance(b, 4);
   overwhelm(b, e);
   assert.ok(e.hp > 0, 'the new life has a fresh shared budget');
+});
+
+test('the actual angelic king burns its crown directly after shattered wings without a third health pool', () => {
+  const run = createRun('ranger', 721604, 'endless');
+  run.floor = 97;
+  run.phase = 'battle';
+  run.nodes = createRunMap(run.seed, run.difficulty, run.floor);
+  run.node = run.nodes.find((row) => row[0].floor === 97)[0];
+  const b = createBattle(run),
+    e = b.entities[0],
+    originalHp = e.maxHp;
+  b.time = e.start + 13;
+  b.shootTimer = Infinity;
+  b.pressure = null;
+  assert.equal(e.encounterId, 'king');
+  assert.equal(e.mutation, 'angelic');
+  assert.equal(e.secondLife, true);
+  overwhelm(b, e);
+  e.lastAttack = Infinity;
+  assert.equal(e.angelRevived, true);
+  assert.equal(
+    e.life,
+    1,
+    'angel revival does not consume the royal transformation',
+  );
+  assert.equal(e.pendingRebirth, true);
+  while (!b.transition) stepBattle(b, 0.05);
+  assert.equal(b.transition.kind, 'shatter');
+  const frozen = b.time;
+  while (b.transition?.kind === 'shatter') stepBattle(b, 0.05);
+  assert.equal(b.transition.kind, 'revival');
+  assert.equal(b.transition.duration, 4);
+  assert.equal(e.encounterId, 'king-reborn');
+  assert.equal(e.life, 2);
+  assert.equal(e.hp, originalHp * 0.85);
+  assert.equal(e.mutation, undefined);
+  assert.equal(b.player.encountersDefeated.king, undefined);
+  while (b.transition) stepBattle(b, 0.05);
+  assert.equal(
+    b.time,
+    frozen,
+    'shatter and portrait form one frozen transition',
+  );
+  b.time += 19;
+  overwhelm(b, e);
+  assert.equal(e.done, true);
+  assert.equal(b.transition, null);
+  assert.equal(b.player.encountersDefeated.king, 1);
+});
+
+test('simultaneous angelic kings queue every shatter and royal cutin without overwriting another', () => {
+  const b = arena(['king', 'king'], ['angelic', 'angelic'], true),
+    [a, z] = b.entities;
+  b.time = a.start + 13;
+  overwhelm(b, a);
+  overwhelm(b, z);
+  a.lastAttack = z.lastAttack = Infinity;
+  while (!b.transition) stepBattle(b, 0.05);
+  const frozen = b.time,
+    seen = [];
+  while (b.transition) {
+    const { seq, entityId, kind } = b.transition;
+    seen.push([entityId, kind]);
+    for (let step = 0; step < 100 && b.transition?.seq === seq; step++)
+      stepBattle(b, 0.05);
+    assert.notEqual(b.transition?.seq, seq);
+  }
+  assert.deepEqual(seen, [
+    [a.id, 'shatter'],
+    [a.id, 'revival'],
+    [z.id, 'shatter'],
+    [z.id, 'revival'],
+  ]);
+  assert.equal(a.life, 2);
+  assert.equal(z.life, 2);
+  assert.equal(b.transitionQueue.length, 0);
+  assert.equal(b.time, frozen);
+  assert.equal(b.state, 'running');
+});
+
+test('the ascendant eclipse form replaces the solar skill pool, relocates the throne and accelerates its cadence', () => {
+  const b = arena(['king-ascendant'], [], true),
+    e = b.entities[0];
+  const solar = bossAttackInterval(e);
+  b.time = e.start + 25;
+  overwhelm(b, e);
+  assert.equal(e.ascendantForm, 'eclipse');
+  assert.notEqual(e.x, 0);
+  assert.ok(bossAttackInterval(e) < solar * 0.85);
+  assert.equal(spectacleDuration(e), 30);
+  while (b.transition) stepBattle(b, 0.05);
+  e.lastAttack = -100;
+  advance(b, 2.5);
+  assert.ok(ASCENDANT_ECLIPSE_SKILLS.includes(e.castName));
+  assert.equal(ASCENDANT_SOLAR_SKILLS.includes(e.castName), false);
+  assert.equal(
+    new Set(b.threats.map((t) => t.resolveAt)).size,
+    3,
+    'the opening oath has three movement beats',
+  );
+  assert.ok(e.castUntil > e.castStartedAt);
+});
+
+test('the deity performs all eleven oaths during its protected encounter window', () => {
+  const b = arena(['deity']),
+    e = b.entities[0],
+    seen = new Set();
+  e.lastAttack = -100;
+  for (let i = 0; i < 1400; i++) {
+    stepBattle(b, 0.05);
+    if (e.castName) seen.add(e.castName);
+  }
+  assert.equal(b.state, 'running');
+  assert.equal(b.pressure, null);
+  assert.equal(b.enrage, false);
+  assert.equal(DEITY_SKILLS.length, 11);
+  assert.deepEqual([...seen], [...DEITY_SKILLS]);
+  assert.ok(b.time - e.start < 72);
 });
 
 test('the deity cannot be burst skipped and floating point remnants do not make it immortal', () => {

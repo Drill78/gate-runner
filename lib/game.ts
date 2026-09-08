@@ -1,6 +1,8 @@
 import {
   ENDLESS_REWARDS,
   ENDLESS_ECONOMY,
+  ENDLESS_KEY_PRICES,
+  canLearnKeyLore,
   reforgeGain,
   freshEndless,
   isEndless,
@@ -1188,6 +1190,12 @@ export function skipReward(run: Run): Run {
   return run.phase === 'reward' ? { ...run, phase: 'map', reward: [] } : run;
 }
 function chooseCovenant(run: Run, id: string): Run {
+  if (isEndless(run) && id === 'abyss-lore' && !canLearnKeyLore(run)) {
+    const next = structuredClone(run);
+    next.reward = covenantChoices(next);
+    logRun(next, '残章已读尽 · 烛火映出了新的契约。');
+    return next;
+  }
   if (!isEndless(run) || !covenantChoices(run).includes(id)) return run;
   let n = structuredClone(run);
   const e = n.endless;
@@ -1380,23 +1388,27 @@ export function shopInventory(
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   const stock = pool.slice(0, 5).map((item) => ({ ...item }));
-  if (!run.relics.square_key && !run.squareGateSeen)
+  if (
+    !run.relics.square_key &&
+    !run.squareGateSeen &&
+    (run.difficulty !== 'endless' ||
+      !run.endless ||
+      run.endless.keysOpened === 0)
+  )
     stock.push(SHOP_ITEMS.find((item) => item.id === 'relic-square_key')!);
   if (run.difficulty === 'endless' && run.endless) {
     if (
       run.squareGateSeen &&
       !run.relics.square_key &&
       run.endless.keysOpened > 0 &&
+      run.endless.keysOpened < ENDLESS_KEY_PRICES.length &&
       run.endless.keyLore >= run.endless.keysOpened
     ) {
       const tier = run.endless.keysOpened;
       stock.push({
         ...SHOP_ITEMS.find((item) => item.id === 'relic-square_key')!,
         name: `禁忌秘钥 · 第${tier + 1}重`,
-        cost: Math.min(
-          Number.MAX_SAFE_INTEGER,
-          Number('6'.repeat(Math.min(15, tier + 3))),
-        ),
+        cost: ENDLESS_KEY_PRICES[tier],
       });
     }
     for (const item of stock) {
@@ -1967,6 +1979,21 @@ export function restoreRun(text: string): Run | null {
       raw.purchases = [];
     }
     const r = raw as Run;
+    // Older chapter rewards could replace flame with legion even when legion
+    // already occupied the third slot. Repair only that known generated draft;
+    // keep rejecting other duplicate rewards and preserve all saved resources.
+    if (
+      isEndless(r) &&
+      r.phase === 'reward' &&
+      r.floor >= 20 &&
+      r.floor % 10 === 0 &&
+      Array.isArray(r.reward) &&
+      r.reward.length === 3 &&
+      r.reward[0] === 'abyss-legion' &&
+      r.reward[1] === 'abyss-heart' &&
+      r.reward[2] === 'abyss-legion'
+    )
+      r.reward = ['abyss-flame', 'abyss-heart', 'abyss-legion'];
     if (
       r.version !== 4 ||
       typeof r.squareGateSeen !== 'boolean' ||

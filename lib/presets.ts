@@ -7,13 +7,17 @@ import {
   type Run,
 } from './game.ts';
 import { setArmy } from './army.ts';
-import { type BossMutation, type EndlessEncounter } from './endless.ts';
+import {
+  endlessEncounter,
+  type BossMutation,
+  type EndlessEncounter,
+} from './endless.ts';
 
 export type CheckpointRoom = 46 | 91;
 export const CHECKPOINT_PRESETS = {
   46: {
     weapon: 48,
-    hp: 360,
+    hpByClass: { knight: 420, ranger: 360, mage: 340 },
     armyExponent: 18,
     legion: 1.3,
     dps: 140000,
@@ -21,7 +25,7 @@ export const CHECKPOINT_PRESETS = {
   },
   91: {
     weapon: 90,
-    hp: 540,
+    hpByClass: { knight: 400, ranger: 560, mage: 540 },
     armyExponent: 42,
     legion: 1.7,
     dps: 1600000,
@@ -59,8 +63,7 @@ export function createCheckpointRun(
   run.xp = 40000;
   run.talentPicks = 14;
   run.weaponTier = preset.weapon;
-  run.maxHp =
-    preset.hp + (classId === 'knight' ? 60 : classId === 'mage' ? -20 : 0);
+  run.maxHp = preset.hpByClass[classId];
   run.hp = run.maxHp;
   run.relics = { ...COMMON_RUNES, ...CLASS_RUNES[classId] };
   run.gold = preset.gold;
@@ -183,6 +186,12 @@ export function createDeveloperRun(
     };
     run.node = { ...node, kind: 'boss' };
     run.phase = 'battle';
+    // Dedicated ruler tests start at the actual encounter. Full-route presets
+    // still retain their normal maps, waves, rewards and economy.
+    if (!run.devEncounter) {
+      const encounter = endlessEncounter(run);
+      if (encounter) run.devEncounter = structuredClone(encounter);
+    }
   }
   return run;
 }

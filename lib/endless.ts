@@ -45,11 +45,21 @@ export const ENDLESS_CURVE = {
   roundHealth: [0, 1.35, 5.4, 7.3, 9.9, 32.4],
   withinRoundGrowth: 0.32,
   roundDamage: [1, 1.1, 1.38, 1.5, 1.65, 2.12],
-  stairHealth: [34, 36, 39, 43, 47, 51, 55, 59, 67, 74],
-  stairDamage: [2.05, 2.08, 2.12, 2.12, 2.16, 2.18, 2.2, 2.24, 2.28, 1.72],
+  stairHealth: [46, 49, 53, 58, 64, 69, 74, 80, 402, 74],
+  stairDamage: [2.3, 2.33, 2.37, 2.37, 2.42, 2.44, 2.46, 2.51, 2.55, 1.72],
 } as const;
 export const ENDLESS_ROOMS = 100;
 export const CELEBRATION_ROOM = 101;
+export const ENDLESS_KEY_PRICES = [666, 6666, 66666] as const;
+export function canLearnKeyLore(run: Run) {
+  return (
+    isEndless(run) &&
+    run.floor >= 20 &&
+    run.floor < 90 &&
+    run.endless.keyLore <
+      Math.min(ENDLESS_KEY_PRICES.length - 1, run.endless.keysOpened)
+  );
+}
 export const endlessRound = (floor: number) =>
   Math.min(6, Math.floor(Math.max(0, floor) / 15) + 1);
 export const isAscensionStair = (run: Pick<Run, 'difficulty' | 'floor'>) =>
@@ -113,26 +123,26 @@ export function endlessEncounter(
   if (chapter === 2) {
     const finals: EndlessEncounter[] = [
       {
-        name: '余烬复王',
-        omen: '王冠落地，王的誓言却尚未燃尽。',
+        name: '余烬王座',
+        omen: '王座下的灰，比来时更烫。',
         groups: [['king']],
         secondLives: true,
       },
       {
-        name: '重叠的王座',
-        omen: '一位王的葬钟，唤来另一位王的脚步。',
+        name: '回音王庭',
+        omen: '空殿深处，葬钟迟迟不肯散去。',
         groups: [['king'], ['king']],
         secondLives: true,
       },
       {
-        name: '双日同陨',
-        omen: '两轮黑日升起。别让其中一轮遮住另一轮的火。',
+        name: '晦日王庭',
+        omen: '天色暗了下来，灰烬却映出了陌生的光。',
         groups: [['king', 'king']],
         secondLives: true,
       },
       {
-        name: '四劫王庭',
-        omen: '黑影、血月、金身与合葬，依次献上旧世界最后的誓言。',
+        name: '失色王庭',
+        omen: '圣坛上的颜色已被岁月磨去，誓言仍留在石缝里。',
         groups: [
           ['watcher', 'executioner'],
           ['lich', 'hexblade'],
@@ -148,15 +158,15 @@ export function endlessEncounter(
         secondLives: true,
       },
       {
-        name: '三度焚冠',
-        omen: '三位王接过同一簇火；每一顶冠冕都将重燃一次。',
+        name: '焚冠长夜',
+        omen: '旧冠冕沉在火中，没有人再数过它们。',
         groups: [['king'], ['king'], ['king']],
         mutations: [['ashen'], ['frenzied'], ['golden']],
         secondLives: true,
       },
       {
-        name: '旧世的最后守门人',
-        omen: '四位守门人之后，三顶异色王冠同时点燃。踏过这里，天阶才会显现。',
+        name: '旧世守门人',
+        omen: '来路已被大雪掩去。门后传来盔甲碰撞的声音。',
         groups: [
           ['watcher', 'lich'],
           ['wyvern', 'oracle'],
@@ -175,7 +185,7 @@ export function endlessEncounter(
   const pair = chapter === 0 ? ['watcher', 'wyvern'] : ['lich', 'oracle'];
   if (round <= 2)
     return {
-      name: chapter === 0 ? '双誓守陵' : '蚀月双相',
+      name: chapter === 0 ? '誓约守陵' : '蚀月王庭',
       omen:
         chapter === 0
           ? '风暴与荆棘，共守一条归途。'
@@ -203,10 +213,10 @@ export function endlessEncounter(
     name: round === 3 ? '异誓醒转' : round < 6 ? '失落的仪仗' : '终夜围猎',
     omen:
       round === 3
-        ? '古老的敌人披上异色；留意黑影、血光与金色护佑的退潮。'
+        ? '旧日的誓言染上了陌生的颜色。'
         : round < 6
           ? '守门人的身旁，仍有不肯放下兵刃的近卫。'
-          : '这已是旧世最后的防线。每一束异光都有破绽。',
+          : '风停在城墙之外，火把却仍向同一处倾斜。',
     groups,
     mutations: groups.map((group, stage) =>
       group.map((_, i) => mutations[(hash + stage + i) % mutations.length]),
@@ -230,12 +240,12 @@ function staircaseEncounter(room: number): EndlessEncounter {
   ];
   const names = [
     '断罪之翼',
-    '双刃洗礼',
+    '铸刃洗礼',
     '石与丝的圣歌',
     '荆冠圣门',
     '天穹折翼',
     '不朽月冕',
-    '最后的预言',
+    '无声的预言',
     '灰烬圣徒',
     '日冕之上的王',
     '万光之源',
@@ -245,13 +255,13 @@ function staircaseEncounter(room: number): EndlessEncounter {
     name: names[index],
     omen:
       room < 99
-        ? '白翼护佑着尚未离去的灵魂。击破后，守过十息狂潮，等待圣约碎裂。'
+        ? '白羽落在肩头，轻得像一个未被回答的祈愿。'
         : room === 99
-          ? '他已舍弃灰烬，却仍未放下王冠。跨过两重日冕，听见天穹的回声。'
-          : '不再是征服。一百道门后，所有曾与你同行的微光，将一同作答。',
+          ? '他已舍弃灰烬，却仍未放下王冠。天穹静得只剩心跳。'
+          : '群星低垂，所有曾与你同行的微光都还在。',
     groups: groups[index],
     mutation: room < 99 ? 'angelic' : undefined,
-    secondLives: room === 99,
+    secondLives: room === 98 || room === 99,
   };
 }
 
@@ -313,7 +323,7 @@ export const ENDLESS_REWARDS: Relic[] = [
     family: 'all',
     tag: '禁忌秘闻',
     rarity: '传说',
-    desc: '读懂更深一重的门。开启已有禁门后，渡鸦将出售下一把秘钥：6,666、66,666……',
+    desc: '读懂下一重封印。开启已有禁门后，渡鸦将出售更深的秘钥；残章共有两重，对应6,666与66,666金币。',
     max: 1,
     icon: 'key',
   },
@@ -336,8 +346,7 @@ export function covenantChoices(run: Run): string[] {
   );
   const special: string[] = [];
   if (run.floor >= 20 && layers >= 18) special.push('abyss-reforge');
-  if (run.floor >= 20 && run.endless.keyLore <= run.endless.keysOpened)
-    special.push('abyss-lore');
+  if (canLearnKeyLore(run)) special.push('abyss-lore');
   if (
     run.floor >= 20 &&
     run.endless.allies.length < (run.floor >= 40 ? 2 : 1) &&
@@ -350,6 +359,6 @@ export function covenantChoices(run: Run): string[] {
     choices[2] =
       special[(Math.floor(run.floor / 5) + run.seed) % special.length];
   // Alternate the repeatable offer so legion growth is not crowded out by special contracts.
-  if (run.floor % 10 === 0) choices[0] = 'abyss-legion';
+  if (special.length && run.floor % 10 === 0) choices[0] = 'abyss-legion';
   return choices;
 }

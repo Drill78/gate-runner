@@ -1,0 +1,3077 @@
+{
+  "createdAt": "2026-09-08T11:45:50.253Z",
+  "method": "Existing 12 actual v1.2 natural runs define the comparison sample. Economy is rechecked on unmodified natural play, with every actual shop debit logged; the script grants no coins or keys. This sample establishes reachability, not a random-player probability.",
+  "comparison": [
+    {
+      "classId": "knight",
+      "room": 46,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 135485.0330535027,
+        "q25": 159909.6018530859,
+        "median": 170874.7664944877,
+        "q75": 176787.19141798036,
+        "max": 186053.54106383608
+      },
+      "naturalHp": {
+        "min": 244,
+        "q25": 282.25,
+        "median": 381.5,
+        "q75": 470.5,
+        "max": 478
+      },
+      "presetDps": 140000,
+      "presetHp": 420
+    },
+    {
+      "classId": "knight",
+      "room": 91,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 7776968.524521215,
+        "q25": 9068318.065664567,
+        "median": 12478672.481392007,
+        "q75": 15463322.498530786,
+        "max": 15477558.843908146
+      },
+      "naturalHp": {
+        "min": 271,
+        "q25": 316,
+        "median": 429.5,
+        "q75": 559.5,
+        "max": 654
+      },
+      "presetDps": 1600000.0000000002,
+      "presetHp": 400
+    },
+    {
+      "classId": "knight",
+      "room": 99,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 9153184.65225239,
+        "q25": 12725415.09504103,
+        "median": 16089839.005891094,
+        "q75": 19380939.96291447,
+        "max": 22733201.544223044
+      },
+      "naturalHp": {
+        "min": 271,
+        "q25": 316,
+        "median": 432.5,
+        "q75": 564,
+        "max": 654
+      },
+      "presetDps": 1600000.0000000002,
+      "presetHp": 400
+    },
+    {
+      "classId": "ranger",
+      "room": 46,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 266911.79244935466,
+        "q25": 420266.50360342785,
+        "median": 489344.1396860309,
+        "q75": 513344.8826066047,
+        "max": 531468.9142745902
+      },
+      "naturalHp": {
+        "min": 377,
+        "q25": 393.5,
+        "median": 408,
+        "q75": 435.75,
+        "max": 492
+      },
+      "presetDps": 140000.00000000003,
+      "presetHp": 360
+    },
+    {
+      "classId": "ranger",
+      "room": 91,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 21563254.722543042,
+        "q25": 22633819.962245956,
+        "median": 23530069.608261634,
+        "q75": 26432998.445665173,
+        "max": 33523601.25953168
+      },
+      "naturalHp": {
+        "min": 726,
+        "q25": 750,
+        "median": 763.5,
+        "q75": 787.25,
+        "max": 842
+      },
+      "presetDps": 1599999.9999999998,
+      "presetHp": 560
+    },
+    {
+      "classId": "ranger",
+      "room": 99,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 25444640.57260079,
+        "q25": 26707907.555450227,
+        "median": 28363991.03618437,
+        "q75": 30580139.456859443,
+        "max": 33523601.25953168
+      },
+      "naturalHp": {
+        "min": 774,
+        "q25": 798,
+        "median": 811.5,
+        "q75": 861.25,
+        "max": 994
+      },
+      "presetDps": 1599999.9999999998,
+      "presetHp": 560
+    },
+    {
+      "classId": "mage",
+      "room": 46,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 261718.85817525024,
+        "q25": 312240.0103814263,
+        "median": 335545.6338502925,
+        "q75": 344671.136552118,
+        "max": 352651.92645717214
+      },
+      "naturalHp": {
+        "min": 187,
+        "q25": 246.25,
+        "median": 325.5,
+        "q75": 393,
+        "max": 417
+      },
+      "presetDps": 140000,
+      "presetHp": 340
+    },
+    {
+      "classId": "mage",
+      "room": 91,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 13893994.361408152,
+        "q25": 20352227.435724042,
+        "median": 22548584.015423127,
+        "q75": 23728079.478727534,
+        "max": 27135729.20385942
+      },
+      "naturalHp": {
+        "min": 396,
+        "q25": 437.25,
+        "median": 503.5,
+        "q75": 568.75,
+        "max": 607
+      },
+      "presetDps": 1600000,
+      "presetHp": 540
+    },
+    {
+      "classId": "mage",
+      "room": 99,
+      "sampleSize": 4,
+      "naturalDps": {
+        "min": 19150526.02333447,
+        "q25": 25799885.117881373,
+        "median": 32096063.92735713,
+        "q75": 36823714.82028294,
+        "max": 38767490.16517999
+      },
+      "naturalHp": {
+        "min": 417,
+        "q25": 478.5,
+        "median": 535,
+        "q75": 583.75,
+        "max": 622
+      },
+      "presetDps": 1600000,
+      "presetHp": 540
+    }
+  ],
+  "historicKeys": [
+    {
+      "classId": "knight",
+      "seed": 734,
+      "opened": 2,
+      "lore": 3
+    },
+    {
+      "classId": "knight",
+      "seed": 1743,
+      "opened": 2,
+      "lore": 3
+    },
+    {
+      "classId": "ranger",
+      "seed": 734,
+      "opened": 3,
+      "lore": 4
+    },
+    {
+      "classId": "ranger",
+      "seed": 1743,
+      "opened": 2,
+      "lore": 3
+    },
+    {
+      "classId": "mage",
+      "seed": 734,
+      "opened": 2,
+      "lore": 3
+    },
+    {
+      "classId": "mage",
+      "seed": 1743,
+      "opened": 2,
+      "lore": 3
+    }
+  ],
+  "hashes": {
+    "game": "928449ee2d28a98ad5f7793913fba3018a578b2b4dd19dbc2b9ecc3dd47032d8",
+    "combat": "105902e4b91d2b412036ff57a13826bc2fa334decdfeb54cdb2516d8961b4d90",
+    "endless": "6c25a2bb4f6109c625d606b1522e33e7937fa22959aec47646a368dc85cbb795",
+    "presets": "0fde5b1ca3a9d9610a1130aee603d3d01c25c96b7edee1fa9e0974060ccc32e6"
+  },
+  "economy": [
+    {
+      "classId": "knight",
+      "seed": 734,
+      "floor": 90,
+      "failure": null,
+      "goldEarned": 75133,
+      "keysOpened": 2,
+      "shops": [
+        {
+          "floor": 2,
+          "nodeId": "1-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "1-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "2-0"
+              ]
+            },
+            {
+              "id": "1-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "2-0",
+                "2-2"
+              ]
+            }
+          ],
+          "hpBefore": 146,
+          "goldBefore": 145,
+          "goldEarnedBefore": 105,
+          "keysOpenedBefore": 0,
+          "keyLoreBefore": 0,
+          "squadBefore": 30,
+          "weaponBefore": 2,
+          "relicsBefore": {
+            "vitality": 1,
+            "plate": 1
+          },
+          "squareGateSeenBefore": false,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-focus"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-focus",
+              "price": 85,
+              "goldBefore": 145,
+              "goldAfter": 60
+            }
+          ],
+          "hpAfter": 146,
+          "goldAfter": 60,
+          "goldEarnedAfter": 105,
+          "squadAfter": 30,
+          "relicsAfter": {
+            "vitality": 1,
+            "plate": 1,
+            "focus": 1
+          },
+          "floorAfter": 2,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 12,
+          "nodeId": "11-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "11-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "12-0"
+              ]
+            },
+            {
+              "id": "11-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "12-0",
+                "12-2"
+              ]
+            }
+          ],
+          "hpBefore": 188,
+          "goldBefore": 1129,
+          "goldEarnedBefore": 1174,
+          "keysOpenedBefore": 0,
+          "keyLoreBefore": 0,
+          "squadBefore": 12084,
+          "weaponBefore": 16,
+          "relicsBefore": {
+            "vitality": 1,
+            "plate": 3,
+            "focus": 1,
+            "bash": 3,
+            "aegis": 3,
+            "split": 1,
+            "vampire": 2,
+            "bulwark": 1,
+            "paladin": 1
+          },
+          "squareGateSeenBefore": false,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-square_key",
+            "relic-split",
+            "relic-heavy",
+            "relic-velocity"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-square_key",
+              "price": 666,
+              "goldBefore": 1129,
+              "goldAfter": 463
+            },
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 463,
+              "goldAfter": 308
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 308,
+              "goldAfter": 223
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 223,
+              "goldAfter": 148
+            }
+          ],
+          "hpAfter": 188,
+          "goldAfter": 148,
+          "goldEarnedAfter": 1174,
+          "squadAfter": 12084,
+          "relicsAfter": {
+            "vitality": 1,
+            "plate": 3,
+            "focus": 1,
+            "bash": 3,
+            "aegis": 3,
+            "split": 2,
+            "vampire": 2,
+            "bulwark": 1,
+            "paladin": 1,
+            "square_key": 1,
+            "heavy": 1,
+            "velocity": 1
+          },
+          "floorAfter": 12,
+          "pathLengthAfter": 12
+        },
+        {
+          "floor": 22,
+          "nodeId": "21-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "21-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "22-2",
+                "22-4"
+              ]
+            },
+            {
+              "id": "21-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "22-4"
+              ]
+            }
+          ],
+          "hpBefore": 250,
+          "goldBefore": 1436,
+          "goldEarnedBefore": 2462,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 1997112047537,
+          "weaponBefore": 30,
+          "relicsBefore": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 1,
+            "aegis": 1,
+            "split": 1,
+            "lifebloom": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 6,
+          "purchases": [
+            "relic-bash",
+            "relic-focus",
+            "relic-velocity",
+            "relic-execute",
+            "weapon"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-bash",
+              "price": 145,
+              "goldBefore": 1436,
+              "goldAfter": 1291
+            },
+            {
+              "id": "relic-focus",
+              "price": 85,
+              "goldBefore": 1291,
+              "goldAfter": 1206
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 1206,
+              "goldAfter": 1131
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 1131,
+              "goldAfter": 1021
+            },
+            {
+              "id": "weapon",
+              "price": 70,
+              "goldBefore": 1021,
+              "goldAfter": 951
+            }
+          ],
+          "hpAfter": 253,
+          "goldAfter": 951,
+          "goldEarnedAfter": 2462,
+          "squadAfter": 1997112047537,
+          "relicsAfter": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 2,
+            "aegis": 1,
+            "split": 1,
+            "lifebloom": 1,
+            "focus": 1,
+            "velocity": 1,
+            "execute": 1
+          },
+          "floorAfter": 22,
+          "pathLengthAfter": 7
+        },
+        {
+          "floor": 27,
+          "nodeId": "26-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "26-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "27-2",
+                "27-4"
+              ]
+            },
+            {
+              "id": "26-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "27-4"
+              ]
+            }
+          ],
+          "hpBefore": 265,
+          "goldBefore": 1729,
+          "goldEarnedBefore": 3240,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 19858404226407,
+          "weaponBefore": 37,
+          "relicsBefore": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 3,
+            "aegis": 1,
+            "split": 1,
+            "lifebloom": 1,
+            "focus": 1,
+            "velocity": 2,
+            "execute": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-heavy",
+            "relic-execute"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 1729,
+              "goldAfter": 1644
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 1644,
+              "goldAfter": 1534
+            }
+          ],
+          "hpAfter": 268,
+          "goldAfter": 1534,
+          "goldEarnedAfter": 3240,
+          "squadAfter": 19858404226407,
+          "relicsAfter": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 3,
+            "aegis": 1,
+            "split": 1,
+            "lifebloom": 1,
+            "focus": 1,
+            "velocity": 2,
+            "execute": 2,
+            "heavy": 1
+          },
+          "floorAfter": 27,
+          "pathLengthAfter": 12
+        },
+        {
+          "floor": 32,
+          "nodeId": "31-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "31-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "32-0"
+              ]
+            },
+            {
+              "id": "31-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "32-0",
+                "32-2"
+              ]
+            }
+          ],
+          "hpBefore": 283,
+          "goldBefore": 2521,
+          "goldEarnedBefore": 4227,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 751867260911034,
+          "weaponBefore": 43,
+          "relicsBefore": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 1,
+            "aegis": 1,
+            "paladin": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-split",
+            "relic-heavy",
+            "relic-velocity",
+            "relic-execute"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 2521,
+              "goldAfter": 2366
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 2366,
+              "goldAfter": 2281
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 2281,
+              "goldAfter": 2206
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 2206,
+              "goldAfter": 2096
+            }
+          ],
+          "hpAfter": 283,
+          "goldAfter": 2096,
+          "goldEarnedAfter": 4227,
+          "squadAfter": 751867260911034,
+          "relicsAfter": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 1,
+            "aegis": 1,
+            "paladin": 1,
+            "split": 1,
+            "heavy": 1,
+            "velocity": 1,
+            "execute": 1
+          },
+          "floorAfter": 32,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 47,
+          "nodeId": "46-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "46-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "47-2",
+                "47-4"
+              ]
+            },
+            {
+              "id": "46-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "47-4"
+              ]
+            }
+          ],
+          "hpBefore": 295,
+          "goldBefore": 6935,
+          "goldEarnedBefore": 9253,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 1,
+          "squadBefore": 1.1087632186571901e+21,
+          "weaponBefore": 64,
+          "relicsBefore": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 3,
+            "aegis": 2,
+            "split": 2
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-square_key",
+            "relic-heavy",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-square_key",
+              "price": 6666,
+              "goldBefore": 6935,
+              "goldAfter": 269
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 269,
+              "goldAfter": 184
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 184,
+              "goldAfter": 99
+            }
+          ],
+          "hpAfter": 295,
+          "goldAfter": 99,
+          "goldEarnedAfter": 9253,
+          "squadAfter": 1.1087632186571901e+21,
+          "relicsAfter": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 3,
+            "aegis": 3,
+            "split": 2,
+            "square_key": 1,
+            "heavy": 1
+          },
+          "floorAfter": 47,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 52,
+          "nodeId": "51-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "51-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "52-2",
+                "52-4"
+              ]
+            },
+            {
+              "id": "51-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "52-4"
+              ]
+            }
+          ],
+          "hpBefore": 315,
+          "goldBefore": 1969,
+          "goldEarnedBefore": 11481,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 1.52080195672762e+43,
+          "weaponBefore": 75,
+          "relicsBefore": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 3,
+            "aegis": 3,
+            "split": 2,
+            "heavy": 1,
+            "plate": 1,
+            "vitality": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 6,
+          "purchases": [
+            "relic-velocity",
+            "weapon"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 1969,
+              "goldAfter": 1894
+            },
+            {
+              "id": "weapon",
+              "price": 70,
+              "goldBefore": 1894,
+              "goldAfter": 1824
+            }
+          ],
+          "hpAfter": 315,
+          "goldAfter": 1824,
+          "goldEarnedAfter": 11481,
+          "squadAfter": 1.52080195672762e+43,
+          "relicsAfter": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 3,
+            "aegis": 3,
+            "split": 2,
+            "heavy": 1,
+            "plate": 1,
+            "vitality": 1,
+            "velocity": 1
+          },
+          "floorAfter": 52,
+          "pathLengthAfter": 7
+        },
+        {
+          "floor": 62,
+          "nodeId": "61-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "61-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "62-0"
+              ]
+            },
+            {
+              "id": "61-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "62-0",
+                "62-2"
+              ]
+            }
+          ],
+          "hpBefore": 347,
+          "goldBefore": 9929,
+          "goldEarnedBefore": 19586,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 9.627650954214249e+46,
+          "weaponBefore": 89,
+          "relicsBefore": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 1,
+            "aegis": 1,
+            "paladin": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-split",
+            "relic-heavy",
+            "relic-pierce",
+            "relic-blast",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 9929,
+              "goldAfter": 9774
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 9774,
+              "goldAfter": 9689
+            },
+            {
+              "id": "relic-pierce",
+              "price": 125,
+              "goldBefore": 9689,
+              "goldAfter": 9564
+            },
+            {
+              "id": "relic-blast",
+              "price": 145,
+              "goldBefore": 9564,
+              "goldAfter": 9419
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 9419,
+              "goldAfter": 9334
+            }
+          ],
+          "hpAfter": 347,
+          "goldAfter": 9334,
+          "goldEarnedAfter": 19586,
+          "squadAfter": 9.627650954214249e+46,
+          "relicsAfter": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 1,
+            "aegis": 1,
+            "paladin": 1,
+            "split": 1,
+            "heavy": 1,
+            "pierce": 1,
+            "blast": 1,
+            "plate": 1
+          },
+          "floorAfter": 62,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 77,
+          "nodeId": "76-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "76-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "77-2",
+                "77-4"
+              ]
+            },
+            {
+              "id": "76-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "77-4"
+              ]
+            }
+          ],
+          "hpBefore": 380,
+          "goldBefore": 30156,
+          "goldEarnedBefore": 40408,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 2.4108664814208903e+52,
+          "weaponBefore": 110,
+          "relicsBefore": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 1,
+            "aegis": 1,
+            "split": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-focus",
+            "relic-pierce",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-focus",
+              "price": 85,
+              "goldBefore": 30156,
+              "goldAfter": 30071
+            },
+            {
+              "id": "relic-pierce",
+              "price": 125,
+              "goldBefore": 30071,
+              "goldAfter": 29946
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 29946,
+              "goldAfter": 29861
+            }
+          ],
+          "hpAfter": 380,
+          "goldAfter": 29861,
+          "goldEarnedAfter": 40408,
+          "squadAfter": 2.4108664814208903e+52,
+          "relicsAfter": {
+            "steel": 3,
+            "bulwark": 1,
+            "bash": 1,
+            "aegis": 1,
+            "split": 1,
+            "focus": 1,
+            "pierce": 1,
+            "thorns": 1
+          },
+          "floorAfter": 77,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 87,
+          "nodeId": "86-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "86-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "87-0"
+              ]
+            },
+            {
+              "id": "86-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "87-0",
+                "87-2"
+              ]
+            }
+          ],
+          "hpBefore": 380,
+          "goldBefore": 49866,
+          "goldEarnedBefore": 60413,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 1.4721769641657602e+56,
+          "weaponBefore": 123,
+          "relicsBefore": {
+            "steel": 3,
+            "bulwark": 3,
+            "bash": 3,
+            "aegis": 1,
+            "split": 1,
+            "focus": 2,
+            "pierce": 1,
+            "thorns": 1,
+            "paladin": 1,
+            "plate": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-split",
+            "relic-velocity",
+            "relic-execute",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 49866,
+              "goldAfter": 49711
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 49711,
+              "goldAfter": 49636
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 49636,
+              "goldAfter": 49526
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 49526,
+              "goldAfter": 49441
+            }
+          ],
+          "hpAfter": 380,
+          "goldAfter": 49441,
+          "goldEarnedAfter": 60413,
+          "squadAfter": 1.4721769641657602e+56,
+          "relicsAfter": {
+            "steel": 3,
+            "bulwark": 3,
+            "bash": 3,
+            "aegis": 1,
+            "split": 2,
+            "focus": 2,
+            "pierce": 1,
+            "thorns": 1,
+            "paladin": 1,
+            "plate": 2,
+            "velocity": 1,
+            "execute": 1
+          },
+          "floorAfter": 87,
+          "pathLengthAfter": 12
+        }
+      ],
+      "checkpoints": [
+        {
+          "room": 46,
+          "gold": 6469,
+          "goldEarned": 8787,
+          "dps": 186573.68357068032,
+          "hp": 295,
+          "keysOpened": 1,
+          "keyLore": 1
+        },
+        {
+          "room": 76,
+          "gold": 28390,
+          "goldEarned": 38642,
+          "dps": 3731301.7769442736,
+          "hp": 380,
+          "keysOpened": 2,
+          "keyLore": 2
+        },
+        {
+          "room": 91,
+          "gold": 64161,
+          "goldEarned": 75133,
+          "dps": 11424611.086186677,
+          "hp": 426,
+          "keysOpened": 2,
+          "keyLore": 2
+        }
+      ]
+    },
+    {
+      "classId": "ranger",
+      "seed": 734,
+      "floor": 90,
+      "failure": null,
+      "goldEarned": 103764,
+      "keysOpened": 3,
+      "shops": [
+        {
+          "floor": 2,
+          "nodeId": "1-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "1-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "2-0"
+              ]
+            },
+            {
+              "id": "1-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "2-0",
+                "2-2"
+              ]
+            }
+          ],
+          "hpBefore": 122,
+          "goldBefore": 161,
+          "goldEarnedBefore": 121,
+          "keysOpenedBefore": 0,
+          "keyLoreBefore": 0,
+          "squadBefore": 53,
+          "weaponBefore": 2,
+          "relicsBefore": {
+            "vitality": 1,
+            "steel": 1,
+            "hunter": 1
+          },
+          "squareGateSeenBefore": false,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-focus"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-focus",
+              "price": 85,
+              "goldBefore": 161,
+              "goldAfter": 76
+            }
+          ],
+          "hpAfter": 122,
+          "goldAfter": 76,
+          "goldEarnedAfter": 121,
+          "squadAfter": 53,
+          "relicsAfter": {
+            "vitality": 1,
+            "steel": 1,
+            "hunter": 1,
+            "focus": 1
+          },
+          "floorAfter": 2,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 12,
+          "nodeId": "11-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "11-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "12-0"
+              ]
+            },
+            {
+              "id": "11-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "12-0",
+                "12-2"
+              ]
+            }
+          ],
+          "hpBefore": 161,
+          "goldBefore": 1145,
+          "goldEarnedBefore": 1190,
+          "keysOpenedBefore": 0,
+          "keyLoreBefore": 0,
+          "squadBefore": 91142,
+          "weaponBefore": 18,
+          "relicsBefore": {
+            "vitality": 1,
+            "steel": 1,
+            "hunter": 1,
+            "focus": 1,
+            "deadeye": 3,
+            "quiver": 2,
+            "keen": 3,
+            "lifebloom": 1,
+            "split": 1
+          },
+          "squareGateSeenBefore": false,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-square_key",
+            "relic-split",
+            "relic-heavy",
+            "relic-velocity"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-square_key",
+              "price": 666,
+              "goldBefore": 1145,
+              "goldAfter": 479
+            },
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 479,
+              "goldAfter": 324
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 324,
+              "goldAfter": 239
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 239,
+              "goldAfter": 164
+            }
+          ],
+          "hpAfter": 164,
+          "goldAfter": 164,
+          "goldEarnedAfter": 1190,
+          "squadAfter": 91142,
+          "relicsAfter": {
+            "vitality": 1,
+            "steel": 1,
+            "hunter": 1,
+            "focus": 1,
+            "deadeye": 3,
+            "quiver": 2,
+            "keen": 3,
+            "lifebloom": 1,
+            "split": 2,
+            "square_key": 1,
+            "heavy": 1,
+            "velocity": 1
+          },
+          "floorAfter": 12,
+          "pathLengthAfter": 12
+        },
+        {
+          "floor": 22,
+          "nodeId": "21-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "21-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "22-2",
+                "22-4"
+              ]
+            },
+            {
+              "id": "21-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "22-4"
+              ]
+            }
+          ],
+          "hpBefore": 238,
+          "goldBefore": 1452,
+          "goldEarnedBefore": 2478,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 127364055533776,
+          "weaponBefore": 32,
+          "relicsBefore": {
+            "steel": 3,
+            "keen": 2,
+            "quiver": 2,
+            "deadeye": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 6,
+          "purchases": [
+            "relic-deadeye",
+            "relic-focus",
+            "relic-velocity",
+            "relic-execute",
+            "weapon"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-deadeye",
+              "price": 145,
+              "goldBefore": 1452,
+              "goldAfter": 1307
+            },
+            {
+              "id": "relic-focus",
+              "price": 85,
+              "goldBefore": 1307,
+              "goldAfter": 1222
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 1222,
+              "goldAfter": 1147
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 1147,
+              "goldAfter": 1037
+            },
+            {
+              "id": "weapon",
+              "price": 70,
+              "goldBefore": 1037,
+              "goldAfter": 967
+            }
+          ],
+          "hpAfter": 238,
+          "goldAfter": 967,
+          "goldEarnedAfter": 2478,
+          "squadAfter": 127364055533776,
+          "relicsAfter": {
+            "steel": 3,
+            "keen": 2,
+            "quiver": 2,
+            "deadeye": 2,
+            "focus": 1,
+            "velocity": 1,
+            "execute": 1
+          },
+          "floorAfter": 22,
+          "pathLengthAfter": 7
+        },
+        {
+          "floor": 27,
+          "nodeId": "26-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "26-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "27-2",
+                "27-4"
+              ]
+            },
+            {
+              "id": "26-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "27-4"
+              ]
+            }
+          ],
+          "hpBefore": 238,
+          "goldBefore": 1745,
+          "goldEarnedBefore": 3256,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 1515582285720410,
+          "weaponBefore": 39,
+          "relicsBefore": {
+            "steel": 3,
+            "keen": 2,
+            "quiver": 3,
+            "deadeye": 2,
+            "focus": 1,
+            "velocity": 1,
+            "execute": 1,
+            "hunter": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-deadeye",
+            "relic-heavy",
+            "relic-execute"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-deadeye",
+              "price": 145,
+              "goldBefore": 1745,
+              "goldAfter": 1600
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 1600,
+              "goldAfter": 1515
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 1515,
+              "goldAfter": 1405
+            }
+          ],
+          "hpAfter": 238,
+          "goldAfter": 1405,
+          "goldEarnedAfter": 3256,
+          "squadAfter": 1515582285720410,
+          "relicsAfter": {
+            "steel": 3,
+            "keen": 2,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 1,
+            "velocity": 1,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 1
+          },
+          "floorAfter": 27,
+          "pathLengthAfter": 12
+        },
+        {
+          "floor": 32,
+          "nodeId": "31-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "31-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "32-0"
+              ]
+            },
+            {
+              "id": "31-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "32-0",
+                "32-2"
+              ]
+            }
+          ],
+          "hpBefore": 244,
+          "goldBefore": 2392,
+          "goldEarnedBefore": 4243,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 78552152690878600,
+          "weaponBefore": 45,
+          "relicsBefore": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 1,
+            "velocity": 1,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 1,
+            "ricochet": 1,
+            "lifebloom": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-split",
+            "relic-heavy",
+            "relic-velocity"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 2392,
+              "goldAfter": 2237
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 2237,
+              "goldAfter": 2152
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 2152,
+              "goldAfter": 2077
+            }
+          ],
+          "hpAfter": 247,
+          "goldAfter": 2077,
+          "goldEarnedAfter": 4243,
+          "squadAfter": 78552152690878600,
+          "relicsAfter": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 1,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 1,
+            "lifebloom": 1,
+            "split": 1
+          },
+          "floorAfter": 32,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 47,
+          "nodeId": "46-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "46-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "47-2",
+                "47-4"
+              ]
+            },
+            {
+              "id": "46-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "47-4"
+              ]
+            }
+          ],
+          "hpBefore": 383,
+          "goldBefore": 6916,
+          "goldEarnedBefore": 9269,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 1,
+          "squadBefore": 1.08526547794231e+24,
+          "weaponBefore": 66,
+          "relicsBefore": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 2,
+            "blast": 1,
+            "mirror": 1,
+            "vampire": 1,
+            "ambush": 1,
+            "pierce": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-square_key",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-square_key",
+              "price": 6666,
+              "goldBefore": 6916,
+              "goldAfter": 250
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 250,
+              "goldAfter": 165
+            }
+          ],
+          "hpAfter": 389,
+          "goldAfter": 165,
+          "goldEarnedAfter": 9269,
+          "squadAfter": 1.08526547794231e+24,
+          "relicsAfter": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 2,
+            "blast": 1,
+            "mirror": 1,
+            "vampire": 1,
+            "ambush": 2,
+            "pierce": 1,
+            "square_key": 1
+          },
+          "floorAfter": 47,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 52,
+          "nodeId": "51-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "51-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "52-2",
+                "52-4"
+              ]
+            },
+            {
+              "id": "51-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "52-4"
+              ]
+            }
+          ],
+          "hpBefore": 413,
+          "goldBefore": 2035,
+          "goldEarnedBefore": 11497,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 1,
+          "squadBefore": 1.2710163240190301e+50,
+          "weaponBefore": 78,
+          "relicsBefore": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 2,
+            "blast": 1,
+            "mirror": 1,
+            "vampire": 2,
+            "ambush": 2,
+            "pierce": 1,
+            "army": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 6,
+          "purchases": [
+            "weapon"
+          ],
+          "purchaseLog": [
+            {
+              "id": "weapon",
+              "price": 70,
+              "goldBefore": 2035,
+              "goldAfter": 1965
+            }
+          ],
+          "hpAfter": 419,
+          "goldAfter": 1965,
+          "goldEarnedAfter": 11497,
+          "squadAfter": 1.2710163240190301e+50,
+          "relicsAfter": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 2,
+            "blast": 1,
+            "mirror": 1,
+            "vampire": 2,
+            "ambush": 2,
+            "pierce": 1,
+            "army": 1
+          },
+          "floorAfter": 52,
+          "pathLengthAfter": 7
+        },
+        {
+          "floor": 62,
+          "nodeId": "61-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "61-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "62-0"
+              ]
+            },
+            {
+              "id": "61-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "62-0",
+                "62-2"
+              ]
+            }
+          ],
+          "hpBefore": 524,
+          "goldBefore": 11838,
+          "goldEarnedBefore": 21370,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 7.081657783809481e+54,
+          "weaponBefore": 92,
+          "relicsBefore": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 3,
+            "blast": 2,
+            "mirror": 1,
+            "vampire": 3,
+            "ambush": 2,
+            "pierce": 1,
+            "army": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-pierce",
+            "relic-blast",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-pierce",
+              "price": 125,
+              "goldBefore": 11838,
+              "goldAfter": 11713
+            },
+            {
+              "id": "relic-blast",
+              "price": 145,
+              "goldBefore": 11713,
+              "goldAfter": 11568
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 11568,
+              "goldAfter": 11483
+            }
+          ],
+          "hpAfter": 530,
+          "goldAfter": 11483,
+          "goldEarnedAfter": 21370,
+          "squadAfter": 7.081657783809481e+54,
+          "relicsAfter": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 3,
+            "blast": 3,
+            "mirror": 1,
+            "vampire": 3,
+            "ambush": 3,
+            "pierce": 2,
+            "army": 1
+          },
+          "floorAfter": 62,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 77,
+          "nodeId": "76-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "76-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "77-2",
+                "77-4"
+              ]
+            },
+            {
+              "id": "76-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "77-4"
+              ]
+            }
+          ],
+          "hpBefore": 674,
+          "goldBefore": 38311,
+          "goldEarnedBefore": 48198,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 1.2815282360992e+62,
+          "weaponBefore": 113,
+          "relicsBefore": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 3,
+            "blast": 3,
+            "mirror": 2,
+            "vampire": 3,
+            "ambush": 3,
+            "pierce": 3,
+            "army": 1,
+            "vitality": 3
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 38311,
+              "goldAfter": 38685
+            }
+          ],
+          "hpAfter": 680,
+          "goldAfter": 38685,
+          "goldEarnedAfter": 48657,
+          "squadAfter": 1.2815282360992e+62,
+          "relicsAfter": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 3,
+            "blast": 3,
+            "mirror": 2,
+            "vampire": 3,
+            "ambush": 3,
+            "pierce": 3,
+            "army": 1,
+            "vitality": 3,
+            "bounty": 1
+          },
+          "floorAfter": 77,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 87,
+          "nodeId": "86-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "86-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "87-0"
+              ]
+            },
+            {
+              "id": "86-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "87-0",
+                "87-2"
+              ]
+            }
+          ],
+          "hpBefore": 734,
+          "goldBefore": 68639,
+          "goldEarnedBefore": 78611,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 4.92952365198913e+67,
+          "weaponBefore": 126,
+          "relicsBefore": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 3,
+            "blast": 3,
+            "mirror": 3,
+            "vampire": 3,
+            "ambush": 3,
+            "pierce": 3,
+            "army": 1,
+            "vitality": 3,
+            "bounty": 1,
+            "recruit": 3
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-square_key",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-square_key",
+              "price": 66666,
+              "goldBefore": 68639,
+              "goldAfter": 1973
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 1973,
+              "goldAfter": 2601
+            }
+          ],
+          "hpAfter": 740,
+          "goldAfter": 2601,
+          "goldEarnedAfter": 79324,
+          "squadAfter": 4.92952365198913e+67,
+          "relicsAfter": {
+            "steel": 3,
+            "keen": 3,
+            "quiver": 3,
+            "deadeye": 3,
+            "focus": 2,
+            "velocity": 2,
+            "execute": 2,
+            "hunter": 1,
+            "heavy": 2,
+            "ricochet": 3,
+            "lifebloom": 2,
+            "split": 2,
+            "constitution": 3,
+            "blast": 3,
+            "mirror": 3,
+            "vampire": 3,
+            "ambush": 3,
+            "pierce": 3,
+            "army": 1,
+            "vitality": 3,
+            "bounty": 2,
+            "recruit": 3,
+            "square_key": 1
+          },
+          "floorAfter": 87,
+          "pathLengthAfter": 12
+        }
+      ],
+      "checkpoints": [
+        {
+          "room": 46,
+          "gold": 6450,
+          "goldEarned": 8803,
+          "dps": 696284.8172859555,
+          "hp": 377,
+          "keysOpened": 1,
+          "keyLore": 1
+        },
+        {
+          "room": 76,
+          "gold": 34707,
+          "goldEarned": 44594,
+          "dps": 8682907.636562653,
+          "hp": 668,
+          "keysOpened": 2,
+          "keyLore": 2
+        },
+        {
+          "room": 91,
+          "gold": 27041,
+          "goldEarned": 103764,
+          "dps": 43820914.01680115,
+          "hp": 758,
+          "keysOpened": 3,
+          "keyLore": 2
+        }
+      ]
+    },
+    {
+      "classId": "mage",
+      "seed": 734,
+      "floor": 90,
+      "failure": null,
+      "goldEarned": 78690,
+      "keysOpened": 2,
+      "shops": [
+        {
+          "floor": 2,
+          "nodeId": "1-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "1-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "2-0"
+              ]
+            },
+            {
+              "id": "1-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "2-0",
+                "2-2"
+              ]
+            }
+          ],
+          "hpBefore": 92,
+          "goldBefore": 161,
+          "goldEarnedBefore": 121,
+          "keysOpenedBefore": 0,
+          "keyLoreBefore": 0,
+          "squadBefore": 47,
+          "weaponBefore": 2,
+          "relicsBefore": {
+            "surge": 1,
+            "ward": 1,
+            "archmage": 1
+          },
+          "squareGateSeenBefore": false,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-focus"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-focus",
+              "price": 85,
+              "goldBefore": 161,
+              "goldAfter": 76
+            }
+          ],
+          "hpAfter": 92,
+          "goldAfter": 76,
+          "goldEarnedAfter": 121,
+          "squadAfter": 47,
+          "relicsAfter": {
+            "surge": 1,
+            "ward": 1,
+            "archmage": 1,
+            "focus": 1
+          },
+          "floorAfter": 2,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 12,
+          "nodeId": "11-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "11-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "12-0"
+              ]
+            },
+            {
+              "id": "11-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "12-0",
+                "12-2"
+              ]
+            }
+          ],
+          "hpBefore": 148,
+          "goldBefore": 1145,
+          "goldEarnedBefore": 1190,
+          "keysOpenedBefore": 0,
+          "keyLoreBefore": 0,
+          "squadBefore": 589886,
+          "weaponBefore": 17,
+          "relicsBefore": {
+            "surge": 3,
+            "ward": 3,
+            "archmage": 1,
+            "focus": 1,
+            "execute": 1,
+            "vampire": 1,
+            "heavy": 1,
+            "velocity": 1,
+            "vitality": 1,
+            "echo": 1,
+            "split": 1
+          },
+          "squareGateSeenBefore": false,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-square_key",
+            "relic-echo",
+            "relic-split",
+            "relic-heavy",
+            "relic-velocity"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-square_key",
+              "price": 666,
+              "goldBefore": 1145,
+              "goldAfter": 479
+            },
+            {
+              "id": "relic-echo",
+              "price": 145,
+              "goldBefore": 479,
+              "goldAfter": 334
+            },
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 334,
+              "goldAfter": 179
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 179,
+              "goldAfter": 94
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 94,
+              "goldAfter": 19
+            }
+          ],
+          "hpAfter": 148,
+          "goldAfter": 19,
+          "goldEarnedAfter": 1190,
+          "squadAfter": 589886,
+          "relicsAfter": {
+            "surge": 3,
+            "ward": 3,
+            "archmage": 1,
+            "focus": 1,
+            "execute": 1,
+            "vampire": 1,
+            "heavy": 2,
+            "velocity": 2,
+            "vitality": 1,
+            "echo": 2,
+            "split": 2,
+            "square_key": 1
+          },
+          "floorAfter": 12,
+          "pathLengthAfter": 12
+        },
+        {
+          "floor": 22,
+          "nodeId": "21-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "21-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "22-2",
+                "22-4"
+              ]
+            },
+            {
+              "id": "21-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "22-4"
+              ]
+            }
+          ],
+          "hpBefore": 166,
+          "goldBefore": 1307,
+          "goldEarnedBefore": 2478,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 61220818858203800,
+          "weaponBefore": 30,
+          "relicsBefore": {
+            "steel": 3,
+            "ember": 1,
+            "echo": 1,
+            "summon": 1,
+            "ward": 1,
+            "split": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 6,
+          "purchases": [
+            "relic-echo",
+            "relic-focus",
+            "relic-velocity",
+            "relic-execute",
+            "weapon"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-echo",
+              "price": 145,
+              "goldBefore": 1307,
+              "goldAfter": 1162
+            },
+            {
+              "id": "relic-focus",
+              "price": 85,
+              "goldBefore": 1162,
+              "goldAfter": 1077
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 1077,
+              "goldAfter": 1002
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 1002,
+              "goldAfter": 892
+            },
+            {
+              "id": "weapon",
+              "price": 70,
+              "goldBefore": 892,
+              "goldAfter": 822
+            }
+          ],
+          "hpAfter": 166,
+          "goldAfter": 822,
+          "goldEarnedAfter": 2478,
+          "squadAfter": 61220818858203800,
+          "relicsAfter": {
+            "steel": 3,
+            "ember": 1,
+            "echo": 2,
+            "summon": 1,
+            "ward": 1,
+            "split": 1,
+            "focus": 1,
+            "velocity": 1,
+            "execute": 1
+          },
+          "floorAfter": 22,
+          "pathLengthAfter": 7
+        },
+        {
+          "floor": 27,
+          "nodeId": "26-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "26-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "27-2",
+                "27-4"
+              ]
+            },
+            {
+              "id": "26-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "27-4"
+              ]
+            }
+          ],
+          "hpBefore": 166,
+          "goldBefore": 1600,
+          "goldEarnedBefore": 3256,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 734750039988795000,
+          "weaponBefore": 37,
+          "relicsBefore": {
+            "steel": 3,
+            "ember": 1,
+            "echo": 2,
+            "summon": 1,
+            "ward": 1,
+            "split": 1,
+            "focus": 1,
+            "velocity": 1,
+            "execute": 1,
+            "surge": 1,
+            "archmage": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-echo",
+            "relic-heavy",
+            "relic-execute"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-echo",
+              "price": 145,
+              "goldBefore": 1600,
+              "goldAfter": 1455
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 1455,
+              "goldAfter": 1370
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 1370,
+              "goldAfter": 1260
+            }
+          ],
+          "hpAfter": 166,
+          "goldAfter": 1260,
+          "goldEarnedAfter": 3256,
+          "squadAfter": 734750039988795000,
+          "relicsAfter": {
+            "steel": 3,
+            "ember": 1,
+            "echo": 3,
+            "summon": 1,
+            "ward": 1,
+            "split": 1,
+            "focus": 1,
+            "velocity": 1,
+            "execute": 2,
+            "surge": 1,
+            "archmage": 1,
+            "heavy": 1
+          },
+          "floorAfter": 27,
+          "pathLengthAfter": 12
+        },
+        {
+          "floor": 32,
+          "nodeId": "31-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "31-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "32-0"
+              ]
+            },
+            {
+              "id": "31-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "32-0",
+                "32-2"
+              ]
+            }
+          ],
+          "hpBefore": 172,
+          "goldBefore": 2247,
+          "goldEarnedBefore": 4243,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 0,
+          "squadBefore": 61021875491201500000,
+          "weaponBefore": 43,
+          "relicsBefore": {
+            "steel": 3,
+            "ember": 1,
+            "echo": 2,
+            "summon": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-split",
+            "relic-heavy",
+            "relic-velocity",
+            "relic-execute"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 2247,
+              "goldAfter": 2092
+            },
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 2092,
+              "goldAfter": 2007
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 2007,
+              "goldAfter": 1932
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 1932,
+              "goldAfter": 1822
+            }
+          ],
+          "hpAfter": 172,
+          "goldAfter": 1822,
+          "goldEarnedAfter": 4243,
+          "squadAfter": 61021875491201500000,
+          "relicsAfter": {
+            "steel": 3,
+            "ember": 1,
+            "echo": 2,
+            "summon": 1,
+            "split": 1,
+            "heavy": 1,
+            "velocity": 1,
+            "execute": 1
+          },
+          "floorAfter": 32,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 47,
+          "nodeId": "46-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "46-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "47-2",
+                "47-4"
+              ]
+            },
+            {
+              "id": "46-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "47-4"
+              ]
+            }
+          ],
+          "hpBefore": 190,
+          "goldBefore": 6661,
+          "goldEarnedBefore": 9269,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 1,
+          "squadBefore": 4.279073078711871e+26,
+          "weaponBefore": 64,
+          "relicsBefore": {
+            "steel": 3,
+            "ember": 2,
+            "echo": 3,
+            "summon": 1,
+            "split": 1,
+            "heavy": 1,
+            "velocity": 1,
+            "execute": 1,
+            "archmage": 1,
+            "surge": 3,
+            "focus": 1,
+            "ward": 3,
+            "lifebloom": 2
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-heavy",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-heavy",
+              "price": 85,
+              "goldBefore": 6661,
+              "goldAfter": 6576
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 6576,
+              "goldAfter": 6491
+            }
+          ],
+          "hpAfter": 196,
+          "goldAfter": 6491,
+          "goldEarnedAfter": 9269,
+          "squadAfter": 4.279073078711871e+26,
+          "relicsAfter": {
+            "steel": 3,
+            "ember": 3,
+            "echo": 3,
+            "summon": 1,
+            "split": 1,
+            "heavy": 2,
+            "velocity": 1,
+            "execute": 1,
+            "archmage": 1,
+            "surge": 3,
+            "focus": 1,
+            "ward": 3,
+            "lifebloom": 2
+          },
+          "floorAfter": 47,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 52,
+          "nodeId": "51-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "51-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "52-2",
+                "52-4"
+              ]
+            },
+            {
+              "id": "51-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "52-4"
+              ]
+            }
+          ],
+          "hpBefore": 220,
+          "goldBefore": 8161,
+          "goldEarnedBefore": 11297,
+          "keysOpenedBefore": 1,
+          "keyLoreBefore": 1,
+          "squadBefore": 1.89934741047825e+28,
+          "weaponBefore": 75,
+          "relicsBefore": {
+            "steel": 3,
+            "ember": 3,
+            "echo": 3,
+            "summon": 1,
+            "split": 2,
+            "heavy": 2,
+            "velocity": 1,
+            "execute": 1,
+            "archmage": 1,
+            "surge": 3,
+            "focus": 1,
+            "ward": 3,
+            "lifebloom": 2,
+            "army": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 6,
+          "purchases": [
+            "relic-square_key",
+            "relic-velocity",
+            "weapon"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-square_key",
+              "price": 6666,
+              "goldBefore": 8161,
+              "goldAfter": 1495
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 1495,
+              "goldAfter": 1420
+            },
+            {
+              "id": "weapon",
+              "price": 70,
+              "goldBefore": 1420,
+              "goldAfter": 1350
+            }
+          ],
+          "hpAfter": 226,
+          "goldAfter": 1350,
+          "goldEarnedAfter": 11297,
+          "squadAfter": 1.89934741047825e+28,
+          "relicsAfter": {
+            "steel": 3,
+            "ember": 3,
+            "echo": 3,
+            "summon": 1,
+            "split": 2,
+            "heavy": 2,
+            "velocity": 2,
+            "execute": 1,
+            "archmage": 1,
+            "surge": 3,
+            "focus": 1,
+            "ward": 3,
+            "lifebloom": 2,
+            "army": 1,
+            "square_key": 1
+          },
+          "floorAfter": 52,
+          "pathLengthAfter": 7
+        },
+        {
+          "floor": 62,
+          "nodeId": "61-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "61-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "62-0"
+              ]
+            },
+            {
+              "id": "61-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "62-0",
+                "62-2"
+              ]
+            }
+          ],
+          "hpBefore": 300,
+          "goldBefore": 12113,
+          "goldEarnedBefore": 22060,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 5.49452390130215e+60,
+          "weaponBefore": 89,
+          "relicsBefore": {
+            "steel": 3,
+            "ember": 3,
+            "echo": 3,
+            "summon": 1,
+            "split": 2,
+            "heavy": 2,
+            "velocity": 2,
+            "execute": 1,
+            "archmage": 1,
+            "surge": 3,
+            "focus": 2,
+            "ward": 3,
+            "lifebloom": 2,
+            "army": 1,
+            "vitality": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-pierce",
+            "relic-blast",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-pierce",
+              "price": 125,
+              "goldBefore": 12113,
+              "goldAfter": 11988
+            },
+            {
+              "id": "relic-blast",
+              "price": 145,
+              "goldBefore": 11988,
+              "goldAfter": 11843
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 11843,
+              "goldAfter": 11758
+            }
+          ],
+          "hpAfter": 306,
+          "goldAfter": 11758,
+          "goldEarnedAfter": 22060,
+          "squadAfter": 5.49452390130215e+60,
+          "relicsAfter": {
+            "steel": 3,
+            "ember": 3,
+            "echo": 3,
+            "summon": 2,
+            "split": 2,
+            "heavy": 2,
+            "velocity": 2,
+            "execute": 1,
+            "archmage": 1,
+            "surge": 3,
+            "focus": 2,
+            "ward": 3,
+            "lifebloom": 2,
+            "army": 1,
+            "vitality": 1,
+            "pierce": 1,
+            "blast": 1
+          },
+          "floorAfter": 62,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 77,
+          "nodeId": "76-4",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "76-3",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "77-2",
+                "77-4"
+              ]
+            },
+            {
+              "id": "76-4",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "77-4"
+              ]
+            }
+          ],
+          "hpBefore": 362,
+          "goldBefore": 33663,
+          "goldEarnedBefore": 43965,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 1.00279774895545e+67,
+          "weaponBefore": 110,
+          "relicsBefore": {
+            "steel": 3,
+            "ember": 1,
+            "echo": 3,
+            "summon": 1,
+            "surge": 2,
+            "blast": 1,
+            "archmage": 1,
+            "lifebloom": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 1,
+          "purchases": [
+            "relic-focus",
+            "relic-pierce",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-focus",
+              "price": 85,
+              "goldBefore": 33663,
+              "goldAfter": 33578
+            },
+            {
+              "id": "relic-pierce",
+              "price": 125,
+              "goldBefore": 33578,
+              "goldAfter": 33453
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 33453,
+              "goldAfter": 33368
+            }
+          ],
+          "hpAfter": 365,
+          "goldAfter": 33368,
+          "goldEarnedAfter": 43965,
+          "squadAfter": 1.00279774895545e+67,
+          "relicsAfter": {
+            "steel": 3,
+            "ember": 1,
+            "echo": 3,
+            "summon": 2,
+            "surge": 2,
+            "blast": 1,
+            "archmage": 1,
+            "lifebloom": 1,
+            "focus": 1,
+            "pierce": 1
+          },
+          "floorAfter": 77,
+          "pathLengthAfter": 2
+        },
+        {
+          "floor": 87,
+          "nodeId": "86-0",
+          "kind": "shop",
+          "enchanted": false,
+          "choices": [
+            {
+              "id": "86-0",
+              "kind": "shop",
+              "enchanted": false,
+              "next": [
+                "87-0"
+              ]
+            },
+            {
+              "id": "86-1",
+              "kind": "event",
+              "enchanted": false,
+              "next": [
+                "87-0",
+                "87-2"
+              ]
+            }
+          ],
+          "hpBefore": 407,
+          "goldBefore": 53373,
+          "goldEarnedBefore": 63970,
+          "keysOpenedBefore": 2,
+          "keyLoreBefore": 2,
+          "squadBefore": 4.5563914115488404e+70,
+          "weaponBefore": 123,
+          "relicsBefore": {
+            "steel": 3,
+            "ember": 2,
+            "echo": 3,
+            "summon": 2,
+            "surge": 3,
+            "blast": 2,
+            "archmage": 1,
+            "lifebloom": 2,
+            "focus": 2,
+            "pierce": 1,
+            "heavy": 1,
+            "velocity": 1
+          },
+          "squareGateSeenBefore": true,
+          "pathLengthBefore": 11,
+          "purchases": [
+            "relic-split",
+            "relic-velocity",
+            "relic-execute",
+            "relic"
+          ],
+          "purchaseLog": [
+            {
+              "id": "relic-split",
+              "price": 155,
+              "goldBefore": 53373,
+              "goldAfter": 53218
+            },
+            {
+              "id": "relic-velocity",
+              "price": 75,
+              "goldBefore": 53218,
+              "goldAfter": 53143
+            },
+            {
+              "id": "relic-execute",
+              "price": 110,
+              "goldBefore": 53143,
+              "goldAfter": 53033
+            },
+            {
+              "id": "relic",
+              "price": 85,
+              "goldBefore": 53033,
+              "goldAfter": 52948
+            }
+          ],
+          "hpAfter": 413,
+          "goldAfter": 52948,
+          "goldEarnedAfter": 63970,
+          "squadAfter": 4.5563914115488404e+70,
+          "relicsAfter": {
+            "steel": 3,
+            "ember": 2,
+            "echo": 3,
+            "summon": 3,
+            "surge": 3,
+            "blast": 2,
+            "archmage": 1,
+            "lifebloom": 2,
+            "focus": 2,
+            "pierce": 1,
+            "heavy": 1,
+            "velocity": 2,
+            "split": 1,
+            "execute": 1
+          },
+          "floorAfter": 87,
+          "pathLengthAfter": 12
+        }
+      ],
+      "checkpoints": [
+        {
+          "room": 46,
+          "gold": 6195,
+          "goldEarned": 8803,
+          "dps": 450763.07863532245,
+          "hp": 187,
+          "keysOpened": 1,
+          "keyLore": 1
+        },
+        {
+          "room": 76,
+          "gold": 31897,
+          "goldEarned": 42199,
+          "dps": 8362013.045050294,
+          "hp": 362,
+          "keysOpened": 2,
+          "keyLore": 2
+        },
+        {
+          "room": 91,
+          "gold": 67668,
+          "goldEarned": 78690,
+          "dps": 29542072.137799244,
+          "hp": 451,
+          "keysOpened": 2,
+          "keyLore": 2
+        }
+      ]
+    }
+  ]
+}

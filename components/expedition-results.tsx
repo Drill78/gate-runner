@@ -28,6 +28,7 @@ export function ExpeditionResults({
   onEpilogue,
   onCheckpoint,
   checkpointDepth = 0,
+  onDeveloperMenu,
 }: {
   run: Run;
   onRestart: () => void;
@@ -36,6 +37,7 @@ export function ExpeditionResults({
   onEpilogue: () => void;
   onCheckpoint: (room: 46 | 91) => void;
   checkpointDepth?: number;
+  onDeveloperMenu?: () => void;
 }) {
   const hero = HEROES.find((h) => h.id === run.classId)!;
   const name = useSyncExternalStore(subscribe, nameSnapshot, serverName);
@@ -61,6 +63,18 @@ export function ExpeditionResults({
       className={`expedition-result ${won ? 'result-won' : ''} ${ascension || epilogue ? 'result-ascended' : ''}`}
     >
       <div className="result-radiance" aria-hidden="true" />
+      {run.devMode && (
+        <nav className="result-test-navigation" aria-label="演武场导航">
+          {onDeveloperMenu && (
+            <button className="secondary-button" onClick={onDeveloperMenu}>
+              返回演武场
+            </button>
+          )}
+          <button className="text-button" onClick={onRestart}>
+            退出演练
+          </button>
+        </nav>
+      )}
       <header className="result-heading">
         <span className="result-emblem">
           {won ? <Crown size={42} /> : <Flame size={40} />}
@@ -105,6 +119,14 @@ export function ExpeditionResults({
                     : '这段路值得被记住。歇一会儿，火种会等你。'}
         </p>
       </header>
+      {ascension && (
+        <div className="result-next-journey">
+          <p>风已停息。前方，还有一份留给你的礼物。</p>
+          <button className="primary-button" onClick={onEpilogue}>
+            走向最后的祝福 <ArrowRight size={18} />
+          </button>
+        </div>
+      )}
       <div className="result-dossier">
         <img
           src={`/art/${run.classId}.webp`}
@@ -260,7 +282,8 @@ export function ExpeditionResults({
         ) : (
           <>
             <button className="primary-button" onClick={onRestart}>
-              返回启程之地 <ArrowRight size={18} />
+              {run.devMode ? '退出演练' : '返回启程之地'}{' '}
+              <ArrowRight size={18} />
             </button>
             {run.difficulty === 'endless' && !won && checkpointDepth >= 45 && (
               <button
@@ -268,7 +291,7 @@ export function ExpeditionResults({
                 onClick={() => onCheckpoint(checkpointDepth >= 90 ? 91 : 46)}
               >
                 <RotateCcw size={17} />
-                从第{checkpointDepth >= 90 ? 91 : 46}关的篝火续行 · 固定构筑
+                从第{checkpointDepth >= 90 ? 91 : 46}关的篝火续行 · 余火誓装
               </button>
             )}
           </>
@@ -281,15 +304,15 @@ export function ExpeditionResults({
 const ROUND_TEXT = [
   [
     '第一轮 · 余火重燃',
-    '你曾见过王座的尽头。今夜，守门人的誓言更深，倒下的王也将再次起身。',
+    '你曾见过王座的尽头。今夜，守门人的誓言更深，灰烬中仍有不愿熄灭的火。',
   ],
   [
     '第二轮 · 王影未散',
-    '第一顶王冠落入尘埃，回声却从更远的王座传来。不要在第一位王倒下时放下武器。',
+    '王冠落入尘埃，回声却从更远的王座传来。风中仍有尚未偿还的誓言。',
   ],
   [
     '第三轮 · 长夜断崖',
-    '黑影、血月与金光开始侵蚀旧日的君主。这一轮，长夜将真正试探你的构筑。',
+    '黑影、血月与金光开始侵蚀旧日的君主。这一夜，你携带的每一道誓印都将经受考验。',
   ],
   [
     '第四轮 · 诸誓合围',
@@ -318,7 +341,7 @@ export function ChapterInterlude({ run }: { run: Run }) {
       : run.floor === 90
         ? [
             '登神长阶',
-            '群王已尽，长夜已终。前方只剩一条路。白翼会在陨落后再度展开；撑过十秒的狂怒，便能听见神性破碎的声音。',
+            '群王已尽，长夜已终。前方只剩一条路。白羽缓缓落下，石阶的尽头传来不属于人间的钟声。',
           ]
         : endless && act === 0
           ? ROUND_TEXT[round]

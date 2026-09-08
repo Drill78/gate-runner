@@ -10,6 +10,44 @@
   border: 1px solid #8e76584d;
   border-radius: 8px;
 }
+.game-shell.is-expedition .room-results {
+  display: block;
+  padding: calc(env(safe-area-inset-top) + 18px) 14px
+    calc(env(safe-area-inset-bottom) + 28px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-gutter: stable;
+}
+.room-results > .expedition-result {
+  width: 100%;
+  margin: 0 auto;
+  min-height: min-content;
+}
+.result-test-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.result-next-journey {
+  text-align: center;
+  margin: 0 0 26px;
+  color: #d7bf8d;
+  font-size: 14px;
+}
+.result-next-journey p {
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+.result-next-journey button {
+  max-width: 100%;
+  white-space: normal;
+}
+.game-shell.is-expedition.is-developer .game-layout {
+  height: calc(100dvh - 48px - env(safe-area-inset-bottom));
+}
 .result-heading {
   text-align: center;
   position: relative;
@@ -405,11 +443,17 @@
     radial-gradient(ellipse at top, #fff0a415, transparent 65%), #10151b;
 }
 .developer-banner {
+  position: fixed;
+  z-index: 45;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(48px + env(safe-area-inset-bottom));
   display: flex;
   gap: 12px;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   background: #2a233b;
   color: #dbcafa;
   border: 1px solid #a98ad05c;

@@ -59,7 +59,7 @@ test('the opening round uses hard-style pairs and round three introduces determi
   assert.ok(encounter(50).groups.some((g) => g.length === 3));
   assert.notDeepEqual(encounter(35, 1), encounter(35, 2));
 });
-test('the final ten rooms are a finite, exact roster; angel revival does not stack king revival', () => {
+test('the final ten rooms are finite and both late kings preserve their royal second life', () => {
   const expected = [
     [['executioner']],
     [['commander'], ['hexblade']],
@@ -76,7 +76,7 @@ test('the final ten rooms are a finite, exact roster; angel revival does not sta
     const e = encounter(room);
     assert.deepEqual(e.groups, expected[room - 91]);
     assert.equal(e.mutation, room < 99 ? 'angelic' : undefined);
-    assert.equal(e.secondLives, room === 99);
+    assert.equal(e.secondLives, room === 98 || room === 99);
   }
   for (const room of [1, 6, 16, 101, 102, 1000])
     assert.equal(encounter(room), null);

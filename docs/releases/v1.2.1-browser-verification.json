@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-09-08T12:12:50.253826+00:00",
+  "environment": "Authorized Codex in-app browser; local development preview",
+  "checks": [
+    "390x640 results scroll reaches bottom without horizontal overflow",
+    "Default-width result scroll reaches 509px maximum",
+    "Both near-top and bottom hundredth-room epilogue controls are reachable",
+    "Actual epilogue entered and completed with 30 chests and creator credits",
+    "Developer result and fixed bottom controls return to unlocked settings",
+    "First actual round-90 portrait is darkened watcher with its own 3000ms duration; click does not skip",
+    "Second actual round-90 portrait is bloodmoon lich, /art/boss-lich.webp, with its own 3000ms duration",
+    "Battle pressure timer remains at 17.0 seconds throughout both entrance portraits",
+    "Canvas review page visually checked: reborn, solar, eclipse, deity and five new skill effects",
+    "No browser error-level console messages observed during local QA"
+  ],
+  "limits": [
+    "UI checks use optional 10x HP and 100x firepower for entrance inspection; these values were not used for balance validation",
+    "98/99 phase transitions and all 11 deity spells validated by engine tests; no claim of a full manual 1-to-100 run",
+    "Browser background throttling lengthens wall time; entrance durations are game-clock durations"
+  ]
+}

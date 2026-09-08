@@ -157,7 +157,7 @@ export function GateEntrance({
             <div className="gate-holy-light" />
           </div>
           <div className="entrance-brand">
-            <span>ASHEN GATES · 1.0 正式版</span>
+            <span>ASHEN GATES · 登神远征</span>
             <h1>灰烬之门</h1>
             <p>门扉之后，命运由你抉择。</p>
           </div>

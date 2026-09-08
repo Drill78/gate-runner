@@ -211,7 +211,7 @@ export async function chronicleHandler(
     const action = url.pathname.split('/').filter(Boolean).at(-1);
     if (request.method === 'GET' && action === 'health') {
       await env.DB.prepare('SELECT id FROM travellers LIMIT 1').all();
-      return reply({ ready: true, version: '1.2.0' });
+      return reply({ ready: true, version: '1.2.1' });
     }
     const page =
       Math.max(0, Math.min(10000, Number(url.searchParams.get('page')) || 0)) |

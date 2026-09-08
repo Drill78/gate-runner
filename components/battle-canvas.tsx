@@ -12,10 +12,9 @@ import {
   chooseBattleUpgrade,
   skipBattleUpgrade,
   kingPhase,
-  arrivalDuration,
-  battleEncounter,
   type BattleTransition,
 } from '@/lib/combat';
+import { arrivalRoster, type ArrivalCard } from '@/lib/arrivals';
 import { pointerToWorldX, screenX, screenY, VIEW } from '@/lib/view';
 import { createHeroTapTracker } from '@/lib/controls';
 import { RelicCard } from '@/components/game-panels';
@@ -78,38 +77,10 @@ export function BattleCanvas({
   onPause: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const [arrival, setArrival] = useState(false);
+  const [arrival, setArrival] = useState<ArrivalCard | null>(null);
   const [transitionArrival, setTransitionArrival] =
     useState<BattleTransition | null>(null);
   const [levelChoices, setLevelChoices] = useState(battle.levelChoices);
-  const firstBoss = battle.entities.find((e) => e.boss);
-  const primaryProfile =
-    ENCOUNTERS.find((e) => e.id === firstBoss?.encounterId) ||
-    bossProfile(battle.player);
-  const endlessProfile = battleEncounter(battle.player);
-  const partner = battle.entities.find(
-    (e) => e.boss && (e.stage || 0) === 0 && e.id !== firstBoss?.id,
-  );
-  const partnerProfile = ENCOUNTERS.find((e) => e.id === partner?.encounterId);
-  const profile = endlessProfile
-    ? {
-        ...primaryProfile,
-        name: endlessProfile.name,
-        title: `长夜远征 · ${battle.rushStages > 1 ? `${battle.rushStages} 幕追猎` : '失冠者降临'}`,
-        quote: endlessProfile.omen,
-        hint:
-          battle.rushStages > 1
-            ? '每幕清场后短暂喘息 · 所有追猎者倒下方可前行'
-            : '留意交错预兆 · 集中击破其中一位',
-      }
-    : partnerProfile
-      ? {
-          ...primaryProfile,
-          name: `${primaryProfile.name} · ${partnerProfile.name}`,
-          title: '困难远征 · 双王会猎',
-          hint: '击败两位首领才可前行 · 双方轮流进攻，共享压力计时',
-        }
-      : primaryProfile;
   const current = useRef({
     paused,
     muted,
@@ -143,20 +114,13 @@ export function BattleCanvas({
       lastSound = 0,
       introRemaining = 0,
       introShownStage = -1;
+    let introQueue: ArrivalCard[] = [];
     const background = new Image();
     background.src =
       battle.player.difficulty === 'endless' && battle.player.floor >= 90
         ? '/art/ascension-stair.webp'
         : `/art/battlefield-${actIndex(battle.player) + 1}.webp`;
-    const models = {
-      reborn: new Image(),
-      ascendant: new Image(),
-      deity: new Image(),
-      angel: new Image(),
-    };
-    models.reborn.src = '/art/king-reborn-sprite.webp';
-    models.ascendant.src = '/art/king-ascendant-sprite.webp';
-    models.deity.src = '/art/boss-deity.webp';
+    const models = { angel: new Image() };
     models.angel.src = '/art/angel-minion.webp';
     const portrait = new Image();
     portrait.src = (
@@ -370,14 +334,11 @@ export function BattleCanvas({
             introShownStage = battle.rushStage;
             startedArrival = true;
             battle.inputLocked = true;
-            introRemaining = arrivalDuration(
-              battle.entities.find(
-                (e) => e.boss && !e.done && (e.stage || 0) === battle.rushStage,
-              )?.encounterId,
-            );
+            introQueue = arrivalRoster(battle);
+            introRemaining = introQueue[0]?.duration || 0;
             held.clear();
             setMoveAxis(battle, 0);
-            setArrival(true);
+            setArrival(introQueue[0] || null);
             play(
               battle.player.node?.kind === 'boss'
                 ? 'boss-arrival'
@@ -389,8 +350,17 @@ export function BattleCanvas({
           if (!startedArrival)
             introRemaining = Math.max(0, introRemaining - dt);
           if (introRemaining === 0) {
-            battle.inputLocked = false;
-            setArrival(false);
+            introQueue.shift();
+            const next = introQueue[0];
+            introRemaining = next?.duration || 0;
+            battle.inputLocked = Boolean(next);
+            setArrival(next || null);
+            if (next)
+              play(
+                battle.player.node?.kind === 'boss'
+                  ? 'boss-arrival'
+                  : 'elite-arrival',
+              );
           }
         } else stepBattle(battle, dt);
         if (battle.soundSeq !== lastSound) {
@@ -451,7 +421,7 @@ export function BattleCanvas({
               ? '已击败'
               : (target.rageUntil || 0) > battle.time
                 ? `圣翼狂怒 · 无敌 ${Math.ceil(target.rageUntil! - battle.time)}秒`
-                : target.angelBroken
+                : target.angelBroken && target.mutation === 'angelic'
                   ? '圣翼已碎 · 凡躯暴露'
                   : (target.invulnerableUntil || 0) > battle.time
                     ? `金身不坏 ${Math.ceil(target.invulnerableUntil! - battle.time)}秒`
@@ -465,9 +435,11 @@ export function BattleCanvas({
                           : target.encounterId === 'deity'
                             ? '黎明圣约 · 循光破界'
                             : target.encounterId === 'king-reborn'
-                              ? '第二条命 · 焚誓重生'
+                              ? '焚誓重生'
                               : target.encounterId === 'king-ascendant'
-                                ? `登神王权 · 第 ${target.life || 1} 条命`
+                                ? (target.life || 1) > 1
+                                  ? '蚀日王权'
+                                  : '圣日王权'
                                 : battle.entities.some(
                                       (v) =>
                                         v.guardianOf === target.id && !v.done,
@@ -480,7 +452,7 @@ export function BattleCanvas({
                                       : target.guardUntil > battle.time
                                         ? '正面举盾'
                                         : target.hp < target.maxHp * 0.5
-                                          ? '第二阶段'
+                                          ? '杀意渐盛'
                                           : '交战中',
           }));
         current.current.onSnapshot({
@@ -559,36 +531,22 @@ export function BattleCanvas({
       />
       {arrival || transitionArrival?.kind === 'revival' ? (
         <BossArrival
-          key={transitionArrival?.seq || `arrival-${battle.rushStage}`}
+          key={
+            transitionArrival
+              ? `revival-${transitionArrival.seq}`
+              : arrival?.key
+          }
           profile={
             transitionArrival
               ? ENCOUNTERS.find(
                   (e) => e.id === transitionArrival.encounterId,
-                ) || profile
-              : battle.rushStage > 0
-                ? ENCOUNTERS.find(
-                    (e) =>
-                      e.id ===
-                      battle.entities.find(
-                        (e) =>
-                          e.boss && !e.done && e.stage === battle.rushStage,
-                      )?.encounterId,
-                  ) || profile
-                : profile
+                ) || bossProfile(battle.player)
+              : arrival?.profile || bossProfile(battle.player)
           }
           chapterBoss={battle.player.node?.kind === 'boss'}
           paused={paused}
-          duration={
-            transitionArrival?.duration ||
-            arrivalDuration(
-              battle.entities.find(
-                (e) => e.boss && !e.done && (e.stage || 0) === battle.rushStage,
-              )?.encounterId,
-            )
-          }
-          pressureAfterSeconds={
-            battle.pressure ? battle.pressure.nextAt - battle.finalStart : null
-          }
+          duration={transitionArrival?.duration || arrival?.duration || 3}
+          form={transitionArrival?.form}
         />
       ) : null}
       <Dialog

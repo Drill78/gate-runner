@@ -21,16 +21,16 @@ interface BossArrivalProps {
   profile: ReturnType<typeof bossProfile>;
   chapterBoss: boolean;
   paused: boolean;
-  pressureAfterSeconds: number | null;
   duration: number;
+  form?: 'solar' | 'eclipse';
 }
 
 export function BossArrival({
   profile,
   chapterBoss,
   paused,
-  pressureAfterSeconds,
   duration,
+  form,
 }: BossArrivalProps) {
   const button = useRef<HTMLOutputElement>(null);
   const hidden = useSyncExternalStore(
@@ -61,13 +61,14 @@ export function BossArrival({
       tabIndex={-1}
       className={`ag-cutin ${chapterBoss ? 'ag-cutin--chapter' : 'ag-cutin--guardian'}`}
       data-paused={frozen}
+      data-form={form}
       style={
         {
           '--ag-cutin-color': profile.color,
           '--ag-cutin-duration': `${duration * 1000}ms`,
         } as CSSProperties
       }
-      aria-label={`${profile.name}登场。${profile.hint}。完整展示${duration}秒，期间战斗暂停。`}
+      aria-label={`${profile.name}登场。${profile.quote}`}
     >
       <span className="ag-cutin__backdrop" aria-hidden="true" />
       <span
@@ -120,24 +121,14 @@ export function BossArrival({
         <span className="ag-cutin__frame" aria-hidden="true" />
         <span className="ag-cutin__banner" aria-hidden="true">
           <span>{chapterBoss ? '灾厄降临' : '强敌突入'}</span>
-          <small>{chapterBoss ? 'CHAPTER BOSS' : 'FINAL ENCOUNTER'}</small>
         </span>
         <span className="ag-cutin__copy">
           <span className="ag-cutin__title">{profile.title}</span>
           <strong className="ag-cutin__name">{profile.name}</strong>
           <span className="ag-cutin__quote">「{profile.quote}」</span>
-          <span className="ag-cutin__hint">{profile.hint}</span>
-          {pressureAfterSeconds !== null ? (
-            <span className="ag-cutin__pressure">
-              交战 {pressureAfterSeconds} 秒后开始周期性全屏冲击
-            </span>
-          ) : null}
         </span>
       </span>
-      <span className="ag-cutin__skip">
-        {frozen ? '演出已暂停' : `静候强敌降临 · ${duration}秒完整演出`}
-        <span>展示期间战斗暂停</span>
-      </span>
+      <span className="ag-cutin__skip">{frozen ? '已暂停' : ''}</span>
       <span className="ag-cutin__time" aria-hidden="true" />
     </output>
   );

@@ -170,6 +170,25 @@
   object-position: center top;
   mix-blend-mode: lighten;
 }
+.ag-cutin[data-form='eclipse'] .ag-cutin__portrait {
+  filter: saturate(0.6) brightness(0.64) sepia(0.3);
+}
+.ag-cutin[data-form='eclipse'] .ag-cutin__portrait-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    122deg,
+    transparent 39%,
+    #120b12cc 40%,
+    #a4333666 41%,
+    transparent 42%,
+    transparent 63%,
+    #ff9f7155 64%,
+    transparent 65%
+  );
+  mix-blend-mode: hard-light;
+}
 
 .ag-cutin__frame {
   position: absolute;

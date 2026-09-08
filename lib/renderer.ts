@@ -10,6 +10,7 @@ import {
 import { VIEW, screenX, screenY } from './view.ts';
 import { ENCOUNTERS } from './bosses.ts';
 import { actIndex } from './endless.ts';
+import { drawAscensionBoss, drawHolyThreat } from './ascension-renderer.ts';
 
 export interface BattleArt {
   reborn?: HTMLImageElement;
@@ -206,26 +207,6 @@ export function drawBattle(
       const inner = radius * 0.48;
       ctx.moveTo(x + Math.cos(angle) * inner, y + Math.sin(angle) * inner);
       ctx.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
-    }
-    ctx.stroke();
-  };
-  const rune = (x: number, y: number, radius: number, rotation = 0) => {
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const angle = rotation + (i * Math.PI) / 3;
-      const px = x + Math.cos(angle) * radius;
-      const py = y + Math.sin(angle) * radius;
-      ctx.moveTo(
-        px - Math.cos(angle) * 3 * scale,
-        py - Math.sin(angle) * 3 * scale,
-      );
-      ctx.lineTo(
-        px + Math.cos(angle) * 3 * scale,
-        py + Math.sin(angle) * 3 * scale,
-      );
     }
     ctx.stroke();
   };
@@ -525,17 +506,23 @@ export function drawBattle(
                 ? '#f6edd516'
                 : '#180d2b99';
         ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = 17;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.ellipse(0, -10, 35 + pulse, 47 + pulse, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        if (e.mutation === 'fusion') {
-          ctx.strokeStyle = '#e9ab68';
+        ctx.shadowBlur = reducedMotion ? 0 : 9;
+        ctx.lineWidth = 2;
+        // Mutation glints hug the silhouette; no decorative collision-looking ring.
+        for (const side of [-1, 1]) {
           ctx.beginPath();
-          ctx.arc(0, -10, 48 + pulse, -Math.PI * 0.8, Math.PI * 0.65);
+          ctx.moveTo(side * 31, 18);
+          ctx.lineTo(side * (38 + pulse), -4);
+          ctx.lineTo(side * 33, -33);
           ctx.stroke();
+          if (e.mutation === 'fusion') {
+            ctx.strokeStyle = '#e9ab68';
+            ctx.beginPath();
+            ctx.moveTo(side * 41, 4);
+            ctx.lineTo(side * 47, -21);
+            ctx.lineTo(side * 39, -41);
+            ctx.stroke();
+          }
         }
         if (e.mutation === 'ashen') {
           for (let i = 0; i < 9; i++) {
@@ -565,37 +552,25 @@ export function drawBattle(
         if ((e.invulnerableUntil || 0) > b.time) {
           ctx.strokeStyle = e.mutation === 'angelic' ? '#ffffff' : '#ffe29b';
           ctx.lineWidth = 3;
-          rune(0, -10, 55, reducedMotion ? 0 : b.time * 0.4);
+          // The shield silhouette denotes the active immunity state, not an area attack.
           ctx.fillStyle = e.mutation === 'angelic' ? '#ffffff15' : '#ffd26422';
           ctx.beginPath();
-          ctx.arc(0, -10, 52, 0, Math.PI * 2);
+          ctx.moveTo(0, -66);
+          ctx.lineTo(47, -47);
+          ctx.lineTo(42, 13);
+          ctx.lineTo(0, 43);
+          ctx.lineTo(-42, 13);
+          ctx.lineTo(-47, -47);
+          ctx.closePath();
           ctx.fill();
+          ctx.stroke();
         }
         ctx.shadowBlur = 0;
       }
-      const model =
-        e.encounterId === 'king-reborn'
-          ? art?.reborn
-          : e.encounterId === 'king-ascendant'
-            ? art?.ascendant
-            : e.encounterId === 'deity'
-              ? art?.deity
-              : undefined;
-      if (model?.complete && model.naturalWidth > 0) {
-        const width =
-          e.encounterId === 'deity'
-            ? (w * 0.98) / scale
-            : e.encounterId === 'king-ascendant'
-              ? 165
-              : 138;
-        const height = (width * model.naturalHeight) / model.naturalWidth;
-        if (e.encounterId === 'deity') {
-          ctx.globalCompositeOperation = 'screen';
-          ctx.globalAlpha = 0.94;
-        }
-        ctx.drawImage(model, -width / 2, -height * 0.55, width, height);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
+      if (
+        ['king-reborn', 'king-ascendant', 'deity'].includes(e.encounterId || '')
+      ) {
+        drawAscensionBoss(ctx, e, b.time, reducedMotion, w, scale);
       } else if (e.encounterId === 'wyvern') {
         const flap = reducedMotion ? 0 : Math.sin(b.time * 3) * 5;
         for (const side of [-1, 1]) {
@@ -734,11 +709,6 @@ export function drawBattle(
         soldier(0, 0, color, 0, true, true);
       }
       ctx.restore();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, 42 * scale, 0, Math.PI * 2);
-      ctx.stroke();
     } else if (
       holyField &&
       art?.angel?.complete &&
@@ -795,16 +765,20 @@ export function drawBattle(
         }
         ctx.restore();
       }
-      if (e.angelBroken) {
+      if (e.angelBroken && e.mutation === 'angelic') {
         ctx.save();
         ctx.strokeStyle = '#ff676b';
         ctx.globalAlpha = reducedMotion
           ? 0.5
           : 0.3 + (Math.sin(b.time * 10) + 1) * 0.25;
         ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.ellipse(x, y, 43 * scale, 49 * scale, 0, 0, Math.PI * 2);
-        ctx.stroke();
+        for (const side of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(x + side * 19 * scale, y - 31 * scale);
+          ctx.lineTo(x + side * 27 * scale, y - 7 * scale);
+          ctx.lineTo(x + side * 17 * scale, y + 16 * scale);
+          ctx.stroke();
+        }
         ctx.restore();
       }
       const act = actIndex(b.player);
@@ -834,10 +808,21 @@ export function drawBattle(
       }
     }
     if (e.burnUntil > b.time) {
-      ctx.fillStyle = '#ebaf6150';
-      ctx.beginPath();
-      ctx.arc(x, y, 22 * scale, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.save();
+      ctx.strokeStyle = '#efa16f';
+      ctx.lineWidth = 2;
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(x + side * 14 * scale, y + 16 * scale);
+        ctx.quadraticCurveTo(
+          x + side * 25 * scale,
+          y - 4 * scale,
+          x + side * 12 * scale,
+          y - 18 * scale,
+        );
+        ctx.stroke();
+      }
+      ctx.restore();
     }
   }
   // Skills sit behind combat silhouettes; only their short accents move.
@@ -850,20 +835,6 @@ export function drawBattle(
     ctx.globalAlpha = (1 - progress) * 0.75;
     ctx.lineWidth = 2 * scale;
     if (classId === 'knight') {
-      const radius = (35 + spread * 62) * scale;
-      for (let i = 0; i < 2; i++) {
-        ctx.beginPath();
-        ctx.ellipse(
-          playerX,
-          playerY + 9 * scale,
-          radius + i * 12 * scale,
-          radius * 0.56 + i * 6 * scale,
-          0,
-          Math.PI * 1.05,
-          Math.PI * 1.95,
-        );
-        ctx.stroke();
-      }
       // A shield crest signals protection rather than a damaging projectile.
       const cy = playerY - 67 * scale;
       ctx.beginPath();
@@ -897,23 +868,13 @@ export function drawBattle(
         ctx.lineTo(x + 3 * scale, y - 8 * scale);
         ctx.stroke();
       }
-      ctx.beginPath();
-      ctx.ellipse(
-        playerX,
-        playerY + 8 * scale,
-        38 * scale,
-        18 * scale,
-        0,
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
     } else {
-      const radius = (30 + spread * 95) * scale;
-      rune(playerX, playerY, radius, reducedMotion ? 0 : progress * 0.4);
-      ctx.globalAlpha *= 0.65;
-      rune(playerX, playerY, radius * 0.72, Math.PI / 6);
-      sparks(playerX, playerY, radius + 12 * scale, '#eadbff', Math.PI / 6);
+      // Six sparks rise from the staff; the travelling fireballs carry the hit area.
+      for (let i = 0; i < 6; i++) {
+        const x = playerX + (i - 2.5) * 10 * scale;
+        const y = playerY - (35 + spread * 25 + Math.abs(i - 2.5) * 5) * scale;
+        sparks(x, y, 7 * scale, '#eadbff', Math.PI / 4, 4);
+      }
     }
     ctx.restore();
   }
@@ -930,17 +891,6 @@ export function drawBattle(
     ctx.strokeStyle = color;
     ctx.globalAlpha = (1 - pulse) * 0.65;
     ctx.lineWidth = (reducedMotion ? 2 : 3) * scale;
-    ctx.beginPath();
-    ctx.ellipse(
-      playerX,
-      playerY + 10,
-      34 + spread * w,
-      17 + spread * h * 0.55,
-      0,
-      0,
-      Math.PI * 2,
-    );
-    ctx.stroke();
     // Broken ground rays distinguish an unavoidable pulse from an aim warning.
     const rays = reducedMotion ? 4 : 6;
     ctx.beginPath();
@@ -1086,8 +1036,11 @@ export function drawBattle(
       owner?.encounterId === 'deity' ||
       owner?.encounterId === 'king-ascendant' ||
       owner?.mutation === 'angelic';
+    const eclipse = owner?.ascendantForm === 'eclipse';
     const color = holy
-      ? '#fff2bb'
+      ? eclipse
+        ? '#ffb0a1'
+        : '#fff2bb'
       : p.kind === 'star'
         ? '#d1b5ff'
         : p.kind === 'ember'
@@ -1097,16 +1050,7 @@ export function drawBattle(
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     if (b.time < p.spawnAt) {
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(
-        x,
-        y,
-        12 + (reducedMotion ? 0 : (p.spawnAt - b.time) * 8),
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
+      sparks(x, y, 9, color, p.phase, 4);
       ctx.restore();
       continue;
     }
@@ -1149,7 +1093,30 @@ export function drawBattle(
     ctx.globalAlpha = 1;
     ctx.lineWidth = 1.3 * scale;
     ctx.strokeStyle = '#18221e';
-    if (p.kind === 'star') {
+    if (holy && p.kind === 'ember') {
+      // Feather-shaped light has exactly the projectile radius; its faint trail is cosmetic.
+      const previous = projectilePosition(
+        p,
+        Math.max(p.spawnAt, b.time - 0.03),
+      );
+      ctx.translate(x, y);
+      ctx.rotate(Math.atan2(y - Y(previous.y), x - X(previous.x)));
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.quadraticCurveTo(0, -radius, -radius, -radius * 0.2);
+      ctx.lineTo(-radius * 0.4, 0);
+      ctx.lineTo(-radius, radius * 0.2);
+      ctx.quadraticCurveTo(0, radius, radius, 0);
+      ctx.fillStyle = eclipse ? '#f4b2a2' : '#fff0c9';
+      ctx.fill();
+      ctx.strokeStyle = eclipse ? '#93474e' : '#a48651';
+      ctx.stroke();
+      ctx.strokeStyle = eclipse ? '#ffe2cf' : '#fffbe5';
+      ctx.beginPath();
+      ctx.moveTo(-radius * 0.65, 0);
+      ctx.lineTo(radius * 0.7, 0);
+      ctx.stroke();
+    } else if (p.kind === 'star') {
       ctx.translate(x, y);
       ctx.rotate((reducedMotion ? 0 : b.time * 2) + p.phase);
       ctx.beginPath();
@@ -1226,39 +1193,36 @@ export function drawBattle(
       owner?.encounterId === 'deity' ||
       owner?.encounterId === 'king-ascendant' ||
       owner?.mutation === 'angelic';
+    const eclipse = owner?.ascendantForm === 'eclipse';
     ctx.fillStyle = holy
-      ? countdown < 0.35
-        ? '#ffd98555'
-        : '#dfb65727'
+      ? eclipse
+        ? countdown < 0.35
+          ? '#e15f6d55'
+          : '#a44c6827'
+        : countdown < 0.35
+          ? '#ffd98555'
+          : '#dfb65727'
       : countdown < 0.35
         ? '#ed714953'
         : '#d56c3f30';
     ctx.fillRect(left, 80, right - left, playerY + 30 - 80);
-    ctx.strokeStyle = holy ? '#ffe9af' : '#ffb28a';
+    ctx.strokeStyle = holy ? (eclipse ? '#ffc3b1' : '#ffe9af') : '#ffb28a';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 5]);
     ctx.strokeRect(left, 80, right - left, playerY + 30 - 80);
     ctx.setLineDash([]);
     if (holy) {
-      const center = (left + right) / 2;
-      ctx.save();
-      ctx.strokeStyle = '#fff7d7';
-      ctx.lineWidth = Math.max(2, Math.min(8, (right - left) * 0.09));
-      ctx.shadowColor = '#ffe6ac';
-      ctx.shadowBlur = reducedMotion ? 0 : 13;
-      ctx.globalAlpha = 0.35 + Math.max(0, 1 - countdown / 2.6) * 0.45;
-      ctx.beginPath();
-      ctx.moveTo(center, Y(-0.48));
-      ctx.lineTo(center, playerY - 82);
-      ctx.stroke();
-      ctx.lineWidth = 1.5;
-      rune(
-        center,
-        playerY - 18,
-        Math.min(35, (right - left) * 0.35),
-        reducedMotion ? 0 : b.time * 0.3,
+      drawHolyThreat(
+        ctx,
+        threat.name,
+        left,
+        right,
+        80,
+        playerY + 30,
+        countdown,
+        reducedMotion,
+        owner?.ascendantForm === 'eclipse',
       );
-      ctx.restore();
     }
     label(
       `${threat.name} · ${countdown.toFixed(1)}s`,
@@ -1347,24 +1311,17 @@ export function drawBattle(
       '#e5f4d7',
       '700',
     );
-    ctx.strokeStyle = inSafe
-      ? '#a8f8bc'
-      : cast.interruptible
-        ? '#d2b3ee'
-        : '#ffc592';
-    ctx.lineWidth = 2;
-    ctx.globalAlpha = 0.2 + t * 0.5;
-    ctx.beginPath();
-    ctx.ellipse(
-      playerX,
-      playerY,
-      reducedMotion ? 42 * scale : Math.max(22, (1 - t) * w * 0.8),
-      reducedMotion ? 24 * scale : Math.max(10, (1 - t) * h * 0.5),
-      0,
-      0,
-      Math.PI * 2,
+    // A small countdown rail sits above the instructions, not around the player.
+    const timerWidth = Math.min(w * 0.55, 220);
+    ctx.fillStyle = '#141b20d9';
+    ctx.fillRect((w - timerWidth) / 2, playerY - 124 * scale, timerWidth, 4);
+    ctx.fillStyle = inSafe ? '#a8f8bc' : '#ffc592';
+    ctx.fillRect(
+      (w - timerWidth) / 2,
+      playerY - 124 * scale,
+      timerWidth * t,
+      4,
     );
-    ctx.stroke();
     ctx.restore();
   }
   const count = Math.min(24, b.player.squad),
@@ -1387,18 +1344,18 @@ export function drawBattle(
   ctx.arc(playerX, playerY, 18 * scale, Math.PI * 1.1, Math.PI * 1.9);
   ctx.stroke();
   if (b.shield > 0) {
+    // Protection is indicated above the commander rather than as a false ground zone.
     ctx.strokeStyle = '#dac17c99';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(
-      playerX,
-      playerY + 10,
-      cols * 9 * scale,
-      rows * 9 * scale + 10,
-      0,
-      0,
-      Math.PI * 2,
-    );
+    const sy = playerY - 63 * scale;
+    ctx.moveTo(playerX, sy - 11 * scale);
+    ctx.lineTo(playerX + 11 * scale, sy - 6 * scale);
+    ctx.lineTo(playerX + 8 * scale, sy + 6 * scale);
+    ctx.lineTo(playerX, sy + 12 * scale);
+    ctx.lineTo(playerX - 8 * scale, sy + 6 * scale);
+    ctx.lineTo(playerX - 11 * scale, sy - 6 * scale);
+    ctx.closePath();
     ctx.stroke();
   }
   let impactCount = 0;
@@ -1441,8 +1398,7 @@ export function drawBattle(
           ctx.lineTo(x + dx * radius, y + dy * radius);
         }
         ctx.stroke();
-        ctx.strokeStyle = '#eee2ff';
-        rune(x, y, radius * 0.35);
+        sparks(x, y, radius * 0.35, '#eee2ff', 0, 4);
       }
       ctx.restore();
     } else if (e.type === 'burst') {
@@ -1452,19 +1408,6 @@ export function drawBattle(
       ctx.save();
       ctx.globalAlpha = (1 - progress) * 0.8;
       sparks(x, y, radius, e.color, Math.PI / 8, 8);
-      ctx.globalAlpha *= 0.5;
-      ctx.lineWidth = 1.5 * scale;
-      ctx.beginPath();
-      ctx.ellipse(
-        x,
-        y + 3 * scale,
-        radius * 0.75,
-        radius * 0.4,
-        0,
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
       ctx.restore();
     }
   }

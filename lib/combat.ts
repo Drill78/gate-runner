@@ -80,6 +80,11 @@ export interface GateSegment extends GateChoice {
   right: number;
 }
 export interface Entity {
+  ascendantForm?: 'solar' | 'eclipse';
+  castName?: string;
+  castStartedAt?: number;
+  castUntil?: number;
+  pendingRebirth?: boolean;
   life?: number;
   secondLife?: boolean;
   angelRevived?: boolean;
@@ -227,6 +232,7 @@ export interface BossPressure {
 }
 export interface Battle {
   transition: BattleTransition | null;
+  transitionQueue: BattleTransition[];
   transitionSeq: number;
   cinematicTime: number;
   attackSourceId?: number;
@@ -283,7 +289,40 @@ export interface BattleTransition {
   encounterId: string;
   remaining: number;
   duration: number;
+  entityId?: number;
+  form?: Entity['ascendantForm'];
 }
+
+export const ANGELIC_DAMAGE_TAKEN = 0.2;
+export const ASCENDANT_SOLAR_SKILLS = [
+  '日冕合拢',
+  '弑神圣枪',
+  '破晓敕令',
+  '天火星河',
+  '逆光王座',
+  '万光归冕',
+] as const;
+export const ASCENDANT_ECLIPSE_SKILLS = [
+  '无光圣轨',
+  '碎冠枪雨',
+  '黑日敕令',
+  '坠日逆流',
+  '蚀光牢笼',
+  '王座归零',
+] as const;
+export const DEITY_SKILLS = [
+  '创世光柱',
+  '星河巡礼',
+  '慈悲敕令',
+  '晨曦回响',
+  '六翼合奏',
+  '黎明归途',
+  '万象之弦',
+  '天平圣约',
+  '逐星织路',
+  '寂静钟鸣',
+  '破雾终曲',
+] as const;
 
 export const EPILOGUE_BLESSINGS = [
   '愿你归途有灯，长夜有星。',
@@ -334,7 +373,9 @@ export function spectacleDuration(e: Entity) {
   return e.encounterId === 'deity'
     ? 72
     : e.encounterId === 'king-ascendant'
-      ? 24
+      ? e.ascendantForm === 'eclipse'
+        ? 30
+        : 24
       : e.encounterId === 'king-reborn'
         ? 18
         : e.encounterId === 'king' && e.secondLife
@@ -347,6 +388,16 @@ export function spectacleDuration(e: Entity) {
                 )
               ? 8
               : 0;
+}
+
+export function bossAttackInterval(e: Entity, chapterBoss = true) {
+  if (!chapterBoss) return BALANCE.commanderAttackInterval;
+  if (e.encounterId === 'deity') return 5.8;
+  if (e.encounterId === 'king-ascendant')
+    return e.ascendantForm === 'eclipse' ? 3.9 : 4.8;
+  return e.encounterId?.startsWith('king')
+    ? BALANCE.finalBossAttackIntervals[kingPhase(e) - 1]
+    : BALANCE.chapterAttackInterval;
 }
 
 export function seededRandom(seed: number) {
@@ -773,7 +824,7 @@ export function createBattle(run: Run): Battle {
         e.mutation =
           encounter.mutations?.[stage]?.[index] ?? encounter.mutation;
         if (e.mutation === 'hollow') e.mutation = 'golden';
-        if (e.mutation === 'angelic') e.secondLife = false;
+        if (id === 'king-ascendant') e.ascendantForm = 'solar';
         if (id === 'king-reborn') {
           e.secondLife = false;
           e.life = 2;
@@ -817,6 +868,7 @@ export function createBattle(run: Run): Battle {
   addArmy(player, (player.relics.ambush || 0) * 8);
   return {
     transition: null,
+    transitionQueue: [],
     transitionSeq: 0,
     cinematicTime: 0,
     epilogue,
@@ -968,13 +1020,20 @@ function message(b: Battle, text: string, _color = '#ebd292') {
 }
 function beginTransition(b: Battle, kind: BattleTransition['kind'], e: Entity) {
   const duration = kind === 'shatter' ? 1.15 : arrivalDuration(e.encounterId);
-  b.transition = {
+  const next: BattleTransition = {
     seq: ++b.transitionSeq,
     kind,
     encounterId: e.encounterId || '',
     remaining: duration,
     duration,
+    entityId: e.id,
+    form: e.ascendantForm,
   };
+  if (b.transition) b.transitionQueue.push(next);
+  else {
+    b.transition = next;
+    sound(b, kind === 'shatter' ? 'time-shatter' : 'boss-arrival');
+  }
   b.inputAxis = 0;
   b.targetX = null;
   b.threats = [];
@@ -982,7 +1041,68 @@ function beginTransition(b: Battle, kind: BattleTransition['kind'], e: Entity) {
   b.projectiles = [];
   b.bullets = [];
   b.ritual = null;
-  sound(b, kind === 'shatter' ? 'time-shatter' : 'boss-arrival');
+}
+
+function reigniteKing(b: Battle, e: Entity) {
+  e.life = 2;
+  e.secondLife = false;
+  e.pendingRebirth = false;
+  e.encounterId =
+    e.encounterId === 'king-ascendant' ? 'king-ascendant' : 'king-reborn';
+  if (e.encounterId === 'king-ascendant') {
+    e.ascendantForm = 'eclipse';
+    e.x = e.anchorX = b.x >= 0 ? -0.52 : 0.52;
+  }
+  if (e.mutation === 'angelic' && e.angelBroken) e.mutation = undefined;
+  const profile = ENCOUNTERS.find((p) => p.id === e.encounterId)!;
+  const prefix =
+    e.mutation === 'ashen'
+      ? '黯化·'
+      : e.mutation === 'frenzied'
+        ? '血月·'
+        : e.mutation === 'golden'
+          ? '金身·'
+          : e.mutation === 'fusion'
+            ? '合葬·'
+            : '';
+  const suffix = /·\d+$/.exec(e.name)?.[0] || '';
+  e.name =
+    prefix +
+    (e.ascendantForm === 'eclipse' ? '灰烬之王·蚀日终誓' : profile.name) +
+    suffix;
+  e.hp = e.maxHp = e.maxHp * 0.85;
+  e.lifeStartedAt = b.time;
+  e.damageTakenTotal = 0;
+  e.phase = 1;
+  e.attackIndex = 0;
+  e.burnUntil = 0;
+  e.guardUntil = 0;
+  e.invulnerableUntil = 0;
+  e.rageUntil = 0;
+  e.healingPool = 0;
+  e.mutationShield = 0;
+  e.castName = undefined;
+  e.castUntil = 0;
+  e.lastAttack = b.time;
+  for (const ward of b.entities)
+    if (ward.guardianOf === e.id) {
+      ward.done = true;
+      ward.hp = 0;
+    }
+  b.finalStart = b.time;
+  b.nextBossCast = b.time + 2.4;
+  if (b.pressure) {
+    b.pressure.nextAt = b.time + 25;
+    b.pressure.pulses = 0;
+  }
+  beginTransition(b, 'revival', e);
+  message(
+    b,
+    e.ascendantForm === 'eclipse'
+      ? '日冕熄灭 · 无光的王誓仍在燃烧'
+      : '焚誓重生 · 王座尚未落幕',
+    profile.color,
+  );
 }
 
 export function hitEntity(
@@ -1009,11 +1129,11 @@ export function hitEntity(
     (1 - e.armor) *
     (frontalShield ? 0.3 : 1) *
     (soulWard ? 0.55 : 1) *
-    (e.mutation === 'angelic' && !e.angelBroken ? 0.58 : 1);
+    (e.mutation === 'angelic' && !e.angelBroken ? ANGELIC_DAMAGE_TAKEN : 1);
   const spectacle = spectacleDuration(e);
   if (spectacle) {
     // One shared, time-based budget covers every projectile, DOT and active skill.
-    // A giant army may reach the budget sooner, but cannot skip the six spectacles.
+    // A giant army may reach the budget sooner, but cannot skip the encounter's spectacles.
     const allowed =
       e.maxHp *
       Math.min(
@@ -1057,7 +1177,12 @@ export function hitEntity(
   if (e.hp > 0) return;
   if (e.mutation === 'angelic' && !e.angelRevived) {
     e.angelRevived = true;
+    e.pendingRebirth =
+      !!e.secondLife &&
+      (e.life || 1) === 1 &&
+      !!e.encounterId?.startsWith('king');
     e.hp = e.maxHp * 0.7;
+    if (e.encounterId === 'king') e.phase = kingPhase(e);
     e.rageUntil = e.invulnerableUntil = b.time + 10;
     e.lastAttack = b.time - 2;
     e.burnUntil = 0;
@@ -1070,40 +1195,7 @@ export function hitEntity(
     return;
   }
   if (e.secondLife && (e.life || 1) === 1) {
-    e.life = 2;
-    e.secondLife = false;
-    e.encounterId =
-      e.encounterId === 'king-ascendant' ? 'king-ascendant' : 'king-reborn';
-    const profile = ENCOUNTERS.find((p) => p.id === e.encounterId)!;
-    const prefix =
-      e.mutation === 'ashen'
-        ? '黯化·'
-        : e.mutation === 'frenzied'
-          ? '血月·'
-          : e.mutation === 'golden'
-            ? '金身·'
-            : e.mutation === 'fusion'
-              ? '合葬·'
-              : '';
-    e.name = prefix + profile.name;
-    e.hp = e.maxHp = e.maxHp * 0.85;
-    e.lifeStartedAt = b.time;
-    e.damageTakenTotal = 0;
-    e.phase = 1;
-    e.attackIndex = 0;
-    e.burnUntil = 0;
-    e.guardUntil = 0;
-    e.healingPool = 0;
-    e.mutationShield = 0;
-    e.lastAttack = b.time;
-    b.finalStart = b.time;
-    b.nextBossCast = b.time + 2.4;
-    if (b.pressure) {
-      b.pressure.nextAt = b.time + 25;
-      b.pressure.pulses = 0;
-    }
-    beginTransition(b, 'revival', e);
-    message(b, '焚誓重生 · 王座尚未落幕', profile.color);
+    reigniteKing(b, e);
     return;
   }
   e.done = true;
@@ -2104,6 +2196,12 @@ function safeCorridor(
 
 function rebornAttack(b: Battle, e: Entity, index: number, damage: number) {
   const side = index % 2 ? -1 : 1;
+  markCast(
+    b,
+    e,
+    ['焚誓巡礼', '王誓残碑', '不灭敕令', '双翼焚风', '焚魂回声'][index % 5],
+    5.2,
+  );
   switch (index % 5) {
     case 0:
       [-0.65, 0, 0.65].forEach((x, i) => {
@@ -2173,33 +2271,125 @@ function rebornAttack(b: Battle, e: Entity, index: number, damage: number) {
   }
 }
 
-function ascendantAttack(b: Battle, e: Entity, index: number, damage: number) {
-  const second = (e.life || 1) >= 2,
+function markCast(b: Battle, e: Entity, name: string, duration: number) {
+  e.castName = name;
+  e.castStartedAt = b.time;
+  e.castUntil = b.time + duration;
+}
+
+function eclipseAttack(b: Battle, e: Entity, index: number, damage: number) {
+  const spell = index % ASCENDANT_ECLIPSE_SKILLS.length,
     side = index % 2 ? -1 : 1;
+  markCast(b, e, ASCENDANT_ECLIPSE_SKILLS[spell], 4.9);
+  // The broken crown moves between side altars; fire no longer comes from a
+  // fixed central throne, and each oath has several readable movement beats.
+  e.x = e.anchorX = [-0.52, 0.52, 0][index % 3];
+  switch (spell) {
+    case 0:
+      [-0.56, 0, 0.56].forEach((x, i) =>
+        safeCorridor(
+          b,
+          x * side,
+          0.5,
+          1.75 + i * 1.2,
+          damage * 0.8,
+          '无光圣轨',
+        ),
+      );
+      message(b, '无光圣轨 · 侧翼、中央、彼岸，沿裂开的光前行');
+      break;
+    case 1:
+      [-0.72, -0.24].forEach((x) =>
+        warn(b, x * side, 0.34, 1.7, damage * 0.75, '碎冠枪雨'),
+      );
+      [0.24, 0.72].forEach((x) =>
+        warn(b, x * side, 0.34, 2.85, damage * 0.75, '碎冠枪雨'),
+      );
+      warn(b, b.x, 0.36, 4.1, damage * 0.7, '追身残冠');
+      message(b, '碎冠枪雨 · 左右枪阵先后落下，残冠最后追向旧影');
+      break;
+    case 2: {
+      const breakMax = e.maxHp * 0.05;
+      b.ritual = {
+        name: '黑日敕令',
+        bossId: e.id,
+        startedAt: b.time,
+        resolveAt: b.time + 3.1,
+        damage: damage * 0.9,
+        interruptible: true,
+        breakMax,
+        breakRemaining: breakMax,
+        safeX: side * 0.55,
+        safeWidth: 0.48,
+      };
+      groundZone(b, e, 0, 0.4, 'shadow', 1.65, 2.3);
+      warn(b, side * 0.55, 0.42, 4.4, damage * 0.7, '黑日余震');
+      message(b, '黑日敕令 · 绕过中央暗域，敕令后离开余震');
+      break;
+    }
+    case 3:
+      volley(
+        b,
+        e,
+        'ember',
+        [-0.82, -0.41, 0, 0.41, 0.82],
+        0.4,
+        2.05,
+        damage * 0.52,
+        -0.82,
+      );
+      volley(
+        b,
+        e,
+        'star',
+        [-0.62, -0.2, 0.2, 0.62],
+        1.45,
+        2.05,
+        damage * 0.52,
+        0.82,
+      );
+      warn(b, b.x, 0.36, 4.65, damage * 0.65, '坠日烙印');
+      message(b, '坠日逆流 · 暗火与残星交错，最后离开烙印');
+      break;
+    case 4:
+      groundZone(b, e, -0.72, 0.46, 'shadow', 1.7, 2.7);
+      groundZone(b, e, 0.72, 0.46, 'shadow', 1.7, 2.7);
+      warn(b, 0, 0.35, 2.9, damage * 0.8, '蚀光牢笼');
+      safeCorridor(b, 0, 0.64, 4.8, damage * 0.75, '牢笼坍缩');
+      message(b, '蚀光牢笼 · 避开正中裂隙，随后回到中央');
+      break;
+    default:
+      warn(b, 0, 0.64, 1.7, damage * 0.8, '王座归零');
+      safeCorridor(b, 0, 0.56, 3.0, damage * 0.8, '王座归零');
+      safeCorridor(b, side * 0.5, 0.5, 4.5, damage * 0.8, '无王之门');
+      message(b, '王座归零 · 离开王座、回到中心，再踏向最后的光隙');
+  }
+}
+
+function ascendantAttack(b: Battle, e: Entity, index: number, damage: number) {
+  if (e.ascendantForm === 'eclipse' || (e.life || 1) >= 2) {
+    e.ascendantForm = 'eclipse';
+    eclipseAttack(b, e, index, damage);
+    return;
+  }
+  const side = index % 2 ? -1 : 1;
+  markCast(
+    b,
+    e,
+    ASCENDANT_SOLAR_SKILLS[index % ASCENDANT_SOLAR_SKILLS.length],
+    4.8,
+  );
   switch (index % 6) {
     case 0:
       safeCorridor(b, side * 0.45, 0.66, 2.0, damage * 0.75, '日冕合拢');
-      safeCorridor(
-        b,
-        second ? 0 : -side * 0.45,
-        0.66,
-        3.6,
-        damage * 0.75,
-        '日冕回环',
-      );
+      safeCorridor(b, -side * 0.45, 0.66, 3.6, damage * 0.75, '日冕回环');
       message(b, '日冕合拢 · 两重日轮依次降下，随光转移');
       break;
     case 1:
       [-0.72, -0.24, 0.24, 0.72].forEach((x, i) =>
         warn(b, x * side, 0.33, 1.65 + i * 0.6, damage * 0.62, '弑神圣枪'),
       );
-      if (second) warn(b, b.x, 0.35, 4.65, damage * 0.55, '圣枪回声');
-      message(
-        b,
-        second
-          ? '弑神圣枪 · 枪阵之后，回声仍会追来'
-          : '弑神圣枪 · 圣枪依序降临，勿逆向穿行',
-      );
+      message(b, '弑神圣枪 · 圣枪依序降临，勿逆向穿行');
       break;
     case 2: {
       const breakMax = e.maxHp * 0.045;
@@ -2244,7 +2434,6 @@ function ascendantAttack(b: Battle, e: Entity, index: number, damage: number) {
     case 4:
       groundZone(b, e, side * 0.66, 0.5, 'ember', 1.8, 2.3);
       warn(b, -side * 0.5, 0.35, 3.0, damage * 0.7, '逆光王座');
-      if (second) groundZone(b, e, -side * 0.66, 0.4, 'shadow', 4.3, 1.3);
       message(b, '逆光王座 · 避开圣痕，最后返回熄灭的道路');
       break;
     default:
@@ -2263,7 +2452,8 @@ function deityAttack(b: Battle, e: Entity, index: number) {
   // The finale favours legible, long sequences over stacked damage or attrition.
   const damage = e.volleyDamage,
     side = index % 2 ? -1 : 1;
-  switch (index % 6) {
+  markCast(b, e, DEITY_SKILLS[index % DEITY_SKILLS.length], 5.7);
+  switch (index % DEITY_SKILLS.length) {
     case 0:
       safeCorridor(b, 0, 0.82, 2.6, damage, '创世光柱');
       safeCorridor(b, side * 0.45, 0.76, 4.5, damage, '黎明初现');
@@ -2318,10 +2508,86 @@ function deityAttack(b: Battle, e: Entity, index: number) {
       safeCorridor(b, 0, 0.7, 4.8, damage * 0.8, '六翼合奏');
       message(b, '六翼合奏 · 穿越羽光，回到中央的生路');
       break;
-    default:
+    case 5:
       safeCorridor(b, -0.45, 0.76, 2.3, damage * 0.7, '黎明归途');
       safeCorridor(b, 0.45, 0.76, 4.4, damage * 0.7, '黎明归途');
       message(b, '黎明归途 · 左侧的光将熄灭，向右迎接曙光');
+      break;
+    case 6:
+      volley(
+        b,
+        e,
+        'star',
+        [-0.78, -0.36, 0.36, 0.78],
+        0.55,
+        2.8,
+        damage * 0.55,
+        -0.92,
+      );
+      volley(
+        b,
+        e,
+        'star',
+        [-0.78, -0.36, 0.36, 0.78],
+        1.65,
+        2.8,
+        damage * 0.55,
+        0.92,
+      );
+      warn(b, side * 0.62, 0.34, 5.2, damage * 0.65, '万象之弦');
+      message(b, '万象之弦 · 两端琴弦轻拂星海，中央留有空隙');
+      break;
+    case 7:
+      safeCorridor(b, -side * 0.43, 0.82, 2.4, damage * 0.75, '天平圣约');
+      safeCorridor(b, side * 0.43, 0.82, 4.6, damage * 0.75, '天平圣约');
+      message(b, '天平圣约 · 跟随倾斜的圣光，从一端走向另一端');
+      break;
+    case 8:
+      [-0.78, -0.3, 0.18].forEach((x, i) =>
+        warn(b, x * side, 0.36, 2.1 + i * 1.05, damage * 0.7, '逐星织路'),
+      );
+      volley(b, e, 'ember', [-0.85, -0.4, 0.4, 0.85], 1.3, 3.0, damage * 0.45);
+      message(b, '逐星织路 · 星柱逐次织成道路，彼岸仍有生路');
+      break;
+    case 9:
+      b.ritual = {
+        name: '寂静钟鸣',
+        bossId: e.id,
+        startedAt: b.time,
+        resolveAt: b.time + 3.45,
+        damage: damage * 0.75,
+        interruptible: false,
+        breakMax: 0,
+        breakRemaining: 0,
+        safeX: 0,
+        safeWidth: 0.9,
+      };
+      warn(b, 0, 0.38, 5.15, damage * 0.65, '余音圣痕');
+      message(b, '寂静钟鸣 · 先听中央的钟声，再离开余音圣痕');
+      break;
+    default:
+      volley(
+        b,
+        e,
+        'star',
+        [-0.86, -0.43, 0.43, 0.86],
+        0.6,
+        2.9,
+        damage * 0.45,
+        -0.8,
+      );
+      volley(
+        b,
+        e,
+        'ember',
+        [-0.86, -0.43, 0.43, 0.86],
+        1.7,
+        2.9,
+        damage * 0.45,
+        0.8,
+      );
+      safeCorridor(b, 0, 0.9, 5.3, damage * 0.65, '破雾终曲');
+      message(b, '破雾终曲 · 穿越两翼的光，迎向中央的黎明');
   }
   b.messageUntil = b.time + 3.8;
 }
@@ -2332,7 +2598,21 @@ export function stepBattle(b: Battle, dt: number) {
   if (b.transition) {
     b.cinematicTime += dt;
     b.transition.remaining = Math.max(0, b.transition.remaining - dt);
-    if (b.transition.remaining <= 1e-8) b.transition = null;
+    if (b.transition.remaining <= 1e-8) {
+      const finished = b.transition;
+      b.transition = null;
+      const entity = b.entities.find((e) => e.id === finished.entityId);
+      if (finished.kind === 'shatter' && entity?.pendingRebirth && !entity.done)
+        reigniteKing(b, entity);
+      if (!b.transition && b.transitionQueue.length) {
+        b.transition = b.transitionQueue.shift()!;
+        b.transition.seq = ++b.transitionSeq;
+        sound(
+          b,
+          b.transition.kind === 'shatter' ? 'time-shatter' : 'boss-arrival',
+        );
+      }
+    }
     return;
   }
   prepareLevelChoice(b);
@@ -2523,12 +2803,23 @@ export function stepBattle(b: Battle, dt: number) {
         !e.angelBroken &&
         b.time >= (e.rageUntil || 0)
       ) {
-        e.angelBroken = true;
-        e.invulnerableUntil = 0;
-        e.healingPool = 0;
-        e.guardUntil = 0;
-        e.lastAttack = b.time;
-        beginTransition(b, 'shatter', e);
+        const fallenAngels = b.entities.filter(
+          (angel) =>
+            !angel.done &&
+            angel.start <= b.time &&
+            angel.mutation === 'angelic' &&
+            angel.angelRevived &&
+            !angel.angelBroken &&
+            b.time >= (angel.rageUntil || 0),
+        );
+        for (const angel of fallenAngels) {
+          angel.angelBroken = true;
+          angel.invulnerableUntil = 0;
+          angel.healingPool = 0;
+          angel.guardUntil = 0;
+          angel.lastAttack = b.time;
+          beginTransition(b, 'shatter', angel);
+        }
         message(b, '时停 · 圣翼崩解，凡躯再现', '#ffc4be');
         return;
       }
@@ -2551,7 +2842,7 @@ export function stepBattle(b: Battle, dt: number) {
       message(
         b,
         e.phase === 2
-          ? '王冠破碎 · 灰烬之王进入第二阶段'
+          ? '王冠破碎 · 封存的王权正在解放'
           : '终焉燃尽 · 最后的王权',
         '#ffcf88',
       );
@@ -2575,15 +2866,7 @@ export function stepBattle(b: Battle, dt: number) {
         !isEndless(b.player) ||
         (b.time >= b.nextBossCast && b.threats.length < 6)) &&
       b.time - e.lastAttack >
-        (e.boss
-          ? b.player.node?.kind === 'boss'
-            ? e.encounterId === 'deity'
-              ? 5.8
-              : e.encounterId?.startsWith('king')
-                ? BALANCE.finalBossAttackIntervals[kingPhase(e) - 1]
-                : BALANCE.chapterAttackInterval
-            : BALANCE.commanderAttackInterval
-          : 3.6) *
+        (e.boss ? bossAttackInterval(e, b.player.node?.kind === 'boss') : 3.6) *
           (e.mutation === 'frenzied' ? 0.76 : 1) *
           ((e.rageUntil || 0) > b.time ? 0.62 : 1)
     ) {

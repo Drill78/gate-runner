@@ -622,6 +622,7 @@ export function RoomScreen({
   onEpilogue,
   onCheckpoint,
   checkpointDepth,
+  onDeveloperMenu,
 }: {
   run: Run;
   onEnter: (id: string) => void;
@@ -637,21 +638,31 @@ export function RoomScreen({
   onEpilogue: () => void;
   onCheckpoint: (room: 46 | 91) => void;
   checkpointDepth: number;
+  onDeveloperMenu?: () => void;
 }) {
   const phase = run.phase;
   const act = ACTS[currentAct(run)];
   const [shopFilter, setShopFilter] = useState<ShopCategory | '全部'>('全部');
   if (['victory', 'defeat', 'fallen', 'ascension'].includes(phase))
     return (
-      <ExpeditionResults
-        run={run}
-        onRestart={onRestart}
-        onRevive={onRevive}
-        onAcceptDefeat={onAcceptDefeat}
-        onEpilogue={onEpilogue}
-        onCheckpoint={onCheckpoint}
-        checkpointDepth={checkpointDepth}
-      />
+      <section
+        className="room-screen room-results"
+        // Keyboard users must be able to focus and scroll the complete results.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        aria-label="远征结算，可向下滚动查看完整战绩与后续旅程"
+      >
+        <ExpeditionResults
+          run={run}
+          onRestart={onRestart}
+          onRevive={onRevive}
+          onAcceptDefeat={onAcceptDefeat}
+          onEpilogue={onEpilogue}
+          onCheckpoint={onCheckpoint}
+          checkpointDepth={checkpointDepth}
+          onDeveloperMenu={onDeveloperMenu}
+        />
+      </section>
     );
   return (
     <div
@@ -990,7 +1001,7 @@ export function Help() {
         </p>
       </section>
       <p className="save-explanation">
-        长夜远征前90关为六轮，91—100关为登神长阶，101关是祝福尾声，之后结束。第15、45、75关各获一枚归魂币，整局最多三枚；第45、90关点亮预设续战篝火。每五关的章节首领后恢复最大生命50%。详细异化与天使复生机制见教程后三页。
+        长夜远征前90关分为六轮，随后踏上登神长阶。第15、45、75关各获一枚归魂币，整局最多三枚；第45、90关点亮续战篝火。每五关的章节首领后恢复最大生命50%。异化的辨认与应对可在教程中查看。
         进度仅保存在当前浏览器，关卡间自动存档；战斗中刷新会回到该房间前的存档。左上角「角色」可查看装备、构筑与路线，或切换音效；查看时暂停战斗。
       </p>
     </div>

@@ -133,6 +133,7 @@ export default function Home() {
   const activeOverlay =
     overlay ??
     (Boolean(stored) &&
+    !run.devMode &&
     !tutorialSeen &&
     !tutorialDismissed &&
     run.phase !== 'setup'
@@ -302,7 +303,7 @@ export default function Home() {
 
   return (
     <main
-      className={`game-shell ${collection.secrets.includes('ascension') ? 'has-ascended' : ''} ${run.phase === 'setup' ? 'is-setup' : ''} ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
+      className={`game-shell ${collection.secrets.includes('ascension') ? 'has-ascended' : ''} ${run.devMode ? 'is-developer' : ''} ${run.phase === 'setup' ? 'is-setup' : ''} ${inExpedition ? 'is-expedition' : ''} ${inBattle ? 'is-battle' : ''}`}
     >
       {run.phase === 'setup' ? (
         <GateEntrance
@@ -456,7 +457,8 @@ export default function Home() {
               </span>
             )}
           </div>
-          {inExpedition ? (
+          {inExpedition &&
+          !['victory', 'defeat', 'fallen', 'ascension'].includes(run.phase) ? (
             <div className="expedition-hud">
               <div className="hud-left-edge">
                 <button
@@ -590,10 +592,7 @@ export default function Home() {
                       <div className="encounter-health-heading">
                         <span className="encounter-health-title">
                           <small>
-                            {encounter.chapterBoss ? '章节 BOSS' : '关底精英'}
-                            {encounter.lives > 1
-                              ? ` · 第${encounter.life}/${encounter.lives}命`
-                              : ''}
+                            {encounter.chapterBoss ? '章节首领' : '关底精英'}
                           </small>
                           <strong title={encounter.name}>
                             {encounter.name}
@@ -647,7 +646,9 @@ export default function Home() {
                   第 {run.floor + 1} 关 ·{' '}
                   {snapshot?.enrage
                     ? '狂暴'
-                    : `${snapshot?.wave || 1}/${battle.totalWaves} 波`}
+                    : battle.totalWaves > 0
+                      ? `${snapshot?.wave || 1}/${battle.totalWaves} 波`
+                      : '首领交锋'}
                 </span>
                 <span className="boss-pressure-timer">
                   {snapshot?.pressure && snapshot.time >= battle.finalStart ? (
@@ -762,6 +763,7 @@ export default function Home() {
               onLeaveShop={() => setRun((r) => completeRoom(r, false))}
               onEvent={(action) => setRun((r) => eventAction(r, action))}
               onRestart={restart}
+              onDeveloperMenu={() => setOverlay('settings')}
               onRetire={() => setRun((r) => retireEndless(r))}
               onRevive={() => {
                 const next = reviveRun(run);
@@ -783,9 +785,9 @@ export default function Home() {
       </div>
       {run.devMode && (
         <div className="developer-banner">
-          <span>开发者演练 · 正式存档与史册不受影响</span>
+          <span>开发者演练</span>
           <button onClick={restart}>退出演练</button>
-          <button onClick={() => setOverlay('settings')}>演武场设置</button>
+          <button onClick={() => setOverlay('settings')}>返回演武场</button>
         </div>
       )}
       <footer className="game-footer">
@@ -805,7 +807,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          正式版 <b>v1.2.0</b>
+          正式版 <b>v1.2.1</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>
@@ -872,7 +874,9 @@ export default function Home() {
                     ? '秘宝与构筑'
                     : activeOverlay === 'route'
                       ? '远征路线'
-                      : '冒险入门'}
+                      : activeOverlay === 'help'
+                        ? '冒险入门'
+                        : ''}
           </DialogTitle>
           <DialogDescription>
             {activeOverlay === 'codex'
@@ -957,7 +961,7 @@ export default function Home() {
                 go(id);
               }}
             />
-          ) : (
+          ) : activeOverlay === 'help' ? (
             <>
               <GameTutorial onComplete={closeOverlay} />
               <details className="tutorial-reference">
@@ -965,7 +969,7 @@ export default function Home() {
                 <Help />
               </details>
             </>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
       <Dialog

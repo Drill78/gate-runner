@@ -1,6 +1,6 @@
 # gate-runner · 灰烬之门 / Ashen Gates
 
-Gate Runner × Roguelike，原创中世纪奇幻远征：三幕各五关，以及六轮长夜、登神长阶与祝福尾声。当前版本 **1.2.0 · 登神远征**。
+Gate Runner × Roguelike，原创中世纪奇幻远征：三幕各五关，以及六轮长夜、登神长阶与祝福尾声。当前版本 **1.2.1 · 登神远征**。
 
 **[立即试玩](https://gate-runner-seven.vercel.app)** · [GitHub 仓库](https://github.com/Drill78/gate-runner)
 
