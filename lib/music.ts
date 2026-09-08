@@ -1,13 +1,37 @@
 import type { Battle } from './combat';
+import type { Phase } from './game';
 
-export type MusicTrack = 'normal' | 'boss' | 'final' | 'forbidden';
-export const MUSIC_TRACKS: Record<MusicTrack, { title: string; src: string }> =
-  {
-    normal: { title: '铁与誓言', src: '/audio/normal.mp3?v=0.7' },
-    boss: { title: '王座之前·诸王战歌', src: '/audio/boss.mp3?v=0.7' },
-    final: { title: '灰烬终誓·交响王权', src: '/audio/final.mp3?v=0.7' },
-    forbidden: { title: '门后的低语', src: '/audio/forbidden.mp3' },
-  };
+export type MusicTrack =
+  | 'normal'
+  | 'boss'
+  | 'final'
+  | 'forbidden'
+  | 'menu'
+  | 'map'
+  | 'event'
+  | 'shop';
+export const MUSIC_TRACKS: Record<
+  MusicTrack,
+  { title: string; src: string; loopStart?: number; volume?: number }
+> = {
+  normal: { title: '破晓行军', src: '/audio/normal.mp3?v=1.0' },
+  boss: { title: '暴君的审判', src: '/audio/boss.mp3?v=1.0' },
+  final: { title: '圣烬加冕', src: '/audio/final.mp3?v=1.0', loopStart: 10 },
+  forbidden: { title: '门后的低语', src: '/audio/forbidden.mp3' },
+  menu: { title: '誓言尚未熄灭', src: '/audio/menu.mp3?v=1.0', volume: 0.8 },
+  map: { title: '灰林远行', src: '/audio/map.mp3?v=1.0', volume: 0.7 },
+  event: { title: '命运的岔路', src: '/audio/event.mp3?v=1.0', volume: 0.72 },
+  shop: { title: '炉火与铜币', src: '/audio/shop.mp3?v=1.0', volume: 0.72 },
+};
+
+export function sceneMusic(phase: Phase): MusicTrack | null {
+  if (phase === 'battle') return null;
+  if (phase === 'setup' || phase === 'victory' || phase === 'defeat')
+    return 'menu';
+  if (phase === 'event') return 'event';
+  if (phase === 'shop') return 'shop';
+  return 'map';
+}
 
 export function battleMusic(battle: Battle): MusicTrack {
   if (battle.player.node?.enchanted) return 'forbidden';
@@ -23,6 +47,7 @@ export class MusicPlayer {
   private context: AudioContext | null = null;
   private bus: GainNode | null = null;
   private source: AudioBufferSourceNode | null = null;
+  private voiceGain: GainNode | null = null;
   private cache = new Map<MusicTrack, Promise<AudioBuffer>>();
   private desired: MusicTrack | null = null;
   private playing: MusicTrack | null = null;
@@ -45,7 +70,8 @@ export class MusicPlayer {
     this.fetchAudio = fetchAudio;
   }
 
-  unlock() {
+  unlock(unmute = false) {
+    if (unmute) this.muted = false;
     if (this.muted) return;
     try {
       if (!this.context) {
@@ -86,6 +112,7 @@ export class MusicPlayer {
     if (!this.desired) {
       this.source?.stop();
       this.source = null;
+      this.voiceGain = null;
       this.playing = null;
     }
     if (this.paused || this.muted || !this.desired) {
@@ -103,21 +130,44 @@ export class MusicPlayer {
         context.decodeAudioData(data),
       );
       this.cache.set(track, buffer);
+    } else {
+      this.cache.delete(track);
+      this.cache.set(track, buffer);
     }
+    // Keep long decoded stereo scores from accumulating across every game screen.
+    while (this.cache.size > 3)
+      this.cache.delete(this.cache.keys().next().value!);
     void buffer
       .then((decoded) => {
         if (this.revision !== revision || this.desired !== track) return;
         this.loading = null;
-        this.source?.stop();
+        if (this.source && this.voiceGain) {
+          const outgoing = this.source;
+          const gain = this.voiceGain;
+          gain.gain.cancelScheduledValues(context.currentTime);
+          gain.gain.setValueAtTime(gain.gain.value, context.currentTime);
+          gain.gain.linearRampToValueAtTime(0, context.currentTime + 0.5);
+          outgoing.stop(context.currentTime + 0.52);
+        }
         const source = context.createBufferSource();
+        const gain = context.createGain();
         source.buffer = decoded;
         source.loop = true;
-        source.connect(this.bus!);
-        this.bus!.gain.cancelScheduledValues(context.currentTime);
-        this.bus!.gain.setValueAtTime(0, context.currentTime);
-        this.bus!.gain.linearRampToValueAtTime(0.28, context.currentTime + 0.7);
+        source.loopStart = MUSIC_TRACKS[track].loopStart ?? 0;
+        source.connect(gain);
+        gain.connect(this.bus!);
+        source.onended = () => {
+          source.disconnect();
+          gain.disconnect();
+        };
+        gain.gain.setValueAtTime(0, context.currentTime);
+        gain.gain.linearRampToValueAtTime(
+          MUSIC_TRACKS[track].volume ?? 1,
+          context.currentTime + 0.7,
+        );
         source.start();
         this.source = source;
+        this.voiceGain = gain;
         this.playing = track;
         this.sync();
       })

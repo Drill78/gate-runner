@@ -39,4 +39,6 @@ next-env.d.ts
 /work/
 *.tsbuildinfo
 /artifacts/
+__pycache__/
+*.py[cod]
 /gate-runner/

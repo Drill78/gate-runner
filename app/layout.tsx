@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   icons: { icon: '/favicon.svg' },
-  title: '灰烬之门 · Ashen Gates',
+  title: '灰烬之门 1.0 · Ashen Gates',
   description:
     '选择你的职业，穿越数值之门，收集秘宝与天赋，征服十五关高塔。中世纪奇幻风格的选门跑酷肉鸽游戏。',
 };

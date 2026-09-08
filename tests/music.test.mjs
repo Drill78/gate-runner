@@ -109,7 +109,7 @@ test('late downloaded music cannot replace the active encounter', async () => {
   player.setState('forbidden', false, false);
   pending['/audio/forbidden.mp3'](new ArrayBuffer(3));
   await flush();
-  pending['/audio/normal.mp3?v=0.7'](new ArrayBuffer(8));
+  pending['/audio/normal.mp3?v=1.0'](new ArrayBuffer(8));
   await flush();
   assert.equal(started.length, 1);
   assert.equal(started[0].buffer.byteLength, 3);

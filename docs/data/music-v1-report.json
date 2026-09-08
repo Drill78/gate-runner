@@ -1,0 +1,420 @@
+{
+  "version": "1.0.0",
+  "target_lufs": -18,
+  "total_bytes": 10079730,
+  "tracks": [
+    {
+      "title": "破晓行军",
+      "bpm": 116,
+      "bars": 32,
+      "seed": 100101,
+      "form": "上扬主题—弦乐回答—拨弦桥段—高音域重奏",
+      "file": "normal.mp3",
+      "bytes": 1325665,
+      "sha256": "12680d9f681d16cb0b5dfd2ece386041a20a0fb232df7235ae6e49d20ffcbc75",
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop_start_sample": 0,
+      "loop_start_seconds": 0.0,
+      "codec": "MP3 / LAME 160 kbps CBR, gapless metadata",
+      "decoded": {
+        "samples": 2919724,
+        "seconds": 66.206893,
+        "peak_dbfs": -6.793,
+        "rms_dbfs": -20.186,
+        "clipped_samples": 0,
+        "seam_jump": 0.0168049,
+        "adjacent_step_p99": 0.1423043,
+        "seam_to_p99": 0.118,
+        "edge_20ms_rms_db_delta": 10.089
+      },
+      "loop": {
+        "samples": 2919724,
+        "seconds": 66.206893,
+        "peak_dbfs": -6.793,
+        "rms_dbfs": -20.186,
+        "clipped_samples": 0,
+        "seam_jump": 0.0168049,
+        "adjacent_step_p99": 0.1423043,
+        "seam_to_p99": 0.118,
+        "edge_20ms_rms_db_delta": 10.089
+      },
+      "loudness": {
+        "lufs": -18.01,
+        "true_peak_db": -6.79,
+        "loudness_range_lu": 1.3
+      },
+      "master": {
+        "samples": 2919724,
+        "seconds": 66.206893,
+        "peak_dbfs": -6.581,
+        "rms_dbfs": -19.751,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.148866,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 10.053
+      }
+    },
+    {
+      "title": "暴君的审判",
+      "bpm": 82,
+      "bars": 28,
+      "seed": 100102,
+      "form": "降D低音威压—半音下行—断拍围猎—两小节旧主题残影—重锤再现",
+      "file": "boss.mp3",
+      "bytes": 1640703,
+      "sha256": "b84c296e06594e0e8b125c468b378b72b1364260a17c768124309eb4505b220b",
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop_start_sample": 0,
+      "loop_start_seconds": 0.0,
+      "codec": "MP3 / LAME 160 kbps CBR, gapless metadata",
+      "decoded": {
+        "samples": 3614049,
+        "seconds": 81.951224,
+        "peak_dbfs": -5.166,
+        "rms_dbfs": -19.219,
+        "clipped_samples": 0,
+        "seam_jump": 0.0290358,
+        "adjacent_step_p99": 0.1126133,
+        "seam_to_p99": 0.258,
+        "edge_20ms_rms_db_delta": 22.133
+      },
+      "loop": {
+        "samples": 3614049,
+        "seconds": 81.951224,
+        "peak_dbfs": -5.166,
+        "rms_dbfs": -19.219,
+        "clipped_samples": 0,
+        "seam_jump": 0.0290358,
+        "adjacent_step_p99": 0.1126133,
+        "seam_to_p99": 0.258,
+        "edge_20ms_rms_db_delta": 22.133
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -5.08,
+        "loudness_range_lu": 3.6
+      },
+      "master": {
+        "samples": 3614049,
+        "seconds": 81.951224,
+        "peak_dbfs": -4.943,
+        "rms_dbfs": -18.779,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.1171738,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 22.082
+      }
+    },
+    {
+      "title": "圣烬加冕",
+      "bpm": 96,
+      "bars": 40,
+      "intro_bars": 4,
+      "seed": 100103,
+      "form": "管风琴与合唱前奏—D大调圣咏—交响金属—普通主题回忆—加冕齐奏",
+      "file": "final.mp3",
+      "bytes": 2001714,
+      "sha256": "7ac4dbef238b649b4ef186e6c865a83d87c438e3472a53f42231ba39d2cb6a5c",
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop_start_sample": 441000,
+      "loop_start_seconds": 10.0,
+      "codec": "MP3 / LAME 160 kbps CBR, gapless metadata",
+      "decoded": {
+        "samples": 4410000,
+        "seconds": 100.0,
+        "peak_dbfs": -5.903,
+        "rms_dbfs": -19.798,
+        "clipped_samples": 0,
+        "seam_jump": 0.0064733,
+        "adjacent_step_p99": 0.1221435,
+        "seam_to_p99": 0.053,
+        "edge_20ms_rms_db_delta": -27.434
+      },
+      "loop": {
+        "samples": 3969000,
+        "seconds": 90.0,
+        "peak_dbfs": -5.903,
+        "rms_dbfs": -19.46,
+        "clipped_samples": 0,
+        "seam_jump": 0.0029557,
+        "adjacent_step_p99": 0.1268785,
+        "seam_to_p99": 0.023,
+        "edge_20ms_rms_db_delta": 8.748
+      },
+      "loudness": {
+        "lufs": -17.99,
+        "true_peak_db": -5.79,
+        "loudness_range_lu": 5.1
+      },
+      "master": {
+        "samples": 4410000,
+        "seconds": 100.0,
+        "peak_dbfs": -5.631,
+        "rms_dbfs": -19.358,
+        "clipped_samples": 0,
+        "seam_jump": 0.0078119,
+        "adjacent_step_p99": 0.1275072,
+        "seam_to_p99": 0.061,
+        "edge_20ms_rms_db_delta": -27.417
+      }
+    },
+    {
+      "title": "誓言尚未熄灭",
+      "bpm": 72,
+      "bars": 16,
+      "seed": 100104,
+      "form": "号角、弦乐与钟声的安静序章",
+      "file": "menu.mp3",
+      "bytes": 1068101,
+      "sha256": "57f5dbcebf12b69bafee1d7ff2d29a3f5c8c70161048003ffd0715c6b219a9d4",
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop_start_sample": 0,
+      "loop_start_seconds": 0.0,
+      "codec": "MP3 / LAME 160 kbps CBR, gapless metadata",
+      "decoded": {
+        "samples": 2352000,
+        "seconds": 53.333333,
+        "peak_dbfs": -8.107,
+        "rms_dbfs": -20.707,
+        "clipped_samples": 0,
+        "seam_jump": 0.0054715,
+        "adjacent_step_p99": 0.0363677,
+        "seam_to_p99": 0.15,
+        "edge_20ms_rms_db_delta": 6.93
+      },
+      "loop": {
+        "samples": 2352000,
+        "seconds": 53.333333,
+        "peak_dbfs": -8.107,
+        "rms_dbfs": -20.707,
+        "clipped_samples": 0,
+        "seam_jump": 0.0054715,
+        "adjacent_step_p99": 0.0363677,
+        "seam_to_p99": 0.15,
+        "edge_20ms_rms_db_delta": 6.93
+      },
+      "loudness": {
+        "lufs": -17.99,
+        "true_peak_db": -8.09,
+        "loudness_range_lu": 0.8
+      },
+      "master": {
+        "samples": 2352000,
+        "seconds": 53.333333,
+        "peak_dbfs": -7.628,
+        "rms_dbfs": -20.263,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.0383233,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 6.935
+      }
+    },
+    {
+      "title": "灰林远行",
+      "bpm": 66,
+      "bars": 16,
+      "seed": 100105,
+      "form": "竖琴式分解和弦、木管与稀疏弦乐",
+      "file": "map.mp3",
+      "bytes": 1165273,
+      "sha256": "20d72ed2ebbf35aa72da266f6720bbf84819cbfcbef8ba026038dd420cf4ded6",
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop_start_sample": 0,
+      "loop_start_seconds": 0.0,
+      "codec": "MP3 / LAME 160 kbps CBR, gapless metadata",
+      "decoded": {
+        "samples": 2565818,
+        "seconds": 58.181814,
+        "peak_dbfs": -9.206,
+        "rms_dbfs": -20.725,
+        "clipped_samples": 0,
+        "seam_jump": 0.001133,
+        "adjacent_step_p99": 0.0325667,
+        "seam_to_p99": 0.035,
+        "edge_20ms_rms_db_delta": 21.493
+      },
+      "loop": {
+        "samples": 2565818,
+        "seconds": 58.181814,
+        "peak_dbfs": -9.206,
+        "rms_dbfs": -20.725,
+        "clipped_samples": 0,
+        "seam_jump": 0.001133,
+        "adjacent_step_p99": 0.0325667,
+        "seam_to_p99": 0.035,
+        "edge_20ms_rms_db_delta": 21.493
+      },
+      "loudness": {
+        "lufs": -18.03,
+        "true_peak_db": -9.21,
+        "loudness_range_lu": 9.2
+      },
+      "master": {
+        "samples": 2565818,
+        "seconds": 58.181814,
+        "peak_dbfs": -8.82,
+        "rms_dbfs": -20.28,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.034281,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 21.442
+      }
+    },
+    {
+      "title": "命运的岔路",
+      "bpm": 70,
+      "bars": 16,
+      "seed": 100106,
+      "form": "错落钟琴、低弦与悬而未决的和声",
+      "file": "event.mp3",
+      "bytes": 1098401,
+      "sha256": "5842df9a36b5fe91ab8d46f00fc44a88fbcb24b2b66238f46515fe93642697e2",
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop_start_sample": 0,
+      "loop_start_seconds": 0.0,
+      "codec": "MP3 / LAME 160 kbps CBR, gapless metadata",
+      "decoded": {
+        "samples": 2419200,
+        "seconds": 54.857143,
+        "peak_dbfs": -7.659,
+        "rms_dbfs": -20.302,
+        "clipped_samples": 0,
+        "seam_jump": 0.0004386,
+        "adjacent_step_p99": 0.02484,
+        "seam_to_p99": 0.018,
+        "edge_20ms_rms_db_delta": 2.178
+      },
+      "loop": {
+        "samples": 2419200,
+        "seconds": 54.857143,
+        "peak_dbfs": -7.659,
+        "rms_dbfs": -20.302,
+        "clipped_samples": 0,
+        "seam_jump": 0.0004386,
+        "adjacent_step_p99": 0.02484,
+        "seam_to_p99": 0.018,
+        "edge_20ms_rms_db_delta": 2.178
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -7.65,
+        "loudness_range_lu": 4.4
+      },
+      "master": {
+        "samples": 2419200,
+        "seconds": 54.857143,
+        "peak_dbfs": -7.29,
+        "rms_dbfs": -19.857,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.0261437,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 2.197
+      }
+    },
+    {
+      "title": "炉火与铜币",
+      "bpm": 94,
+      "bars": 16,
+      "seed": 100107,
+      "form": "摇摆鲁特琴、拨奏低音与温暖木管",
+      "file": "shop.mp3",
+      "bytes": 818369,
+      "sha256": "539f93e34abeb173be98801ca722b3b8afb796c529e006efe74515426e102878",
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop_start_sample": 0,
+      "loop_start_seconds": 0.0,
+      "codec": "MP3 / LAME 160 kbps CBR, gapless metadata",
+      "decoded": {
+        "samples": 1801532,
+        "seconds": 40.851066,
+        "peak_dbfs": -7.148,
+        "rms_dbfs": -19.961,
+        "clipped_samples": 0,
+        "seam_jump": 0.0054944,
+        "adjacent_step_p99": 0.0311464,
+        "seam_to_p99": 0.176,
+        "edge_20ms_rms_db_delta": 2.979
+      },
+      "loop": {
+        "samples": 1801532,
+        "seconds": 40.851066,
+        "peak_dbfs": -7.148,
+        "rms_dbfs": -19.961,
+        "clipped_samples": 0,
+        "seam_jump": 0.0054944,
+        "adjacent_step_p99": 0.0311464,
+        "seam_to_p99": 0.176,
+        "edge_20ms_rms_db_delta": 2.979
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -7.14,
+        "loudness_range_lu": 6.6
+      },
+      "master": {
+        "samples": 1801532,
+        "seconds": 40.851066,
+        "peak_dbfs": -6.729,
+        "rms_dbfs": -19.515,
+        "clipped_samples": 0,
+        "seam_jump": 0.0,
+        "adjacent_step_p99": 0.0328302,
+        "seam_to_p99": 0.0,
+        "edge_20ms_rms_db_delta": 3.009
+      }
+    },
+    {
+      "title": "门后的低语",
+      "bpm": 80,
+      "bars": 16,
+      "seed": 71804,
+      "file": "forbidden.mp3",
+      "bytes": 961504,
+      "sha256": "cb32248e7bd3edc95737d49fe79273f7a2d6808f8298bc080f9c5394d1312c57",
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop_start_sample": 0,
+      "loop_start_seconds": 0.0,
+      "codec": "MP3 / LAME 160 kbps CBR, gapless metadata",
+      "decoded": {
+        "samples": 2116800,
+        "seconds": 48.0,
+        "peak_dbfs": -5.881,
+        "rms_dbfs": -19.241,
+        "clipped_samples": 0,
+        "seam_jump": 0.0131461,
+        "adjacent_step_p99": 0.1205716,
+        "seam_to_p99": 0.109,
+        "edge_20ms_rms_db_delta": 13.659
+      },
+      "loop": {
+        "samples": 2116800,
+        "seconds": 48.0,
+        "peak_dbfs": -5.881,
+        "rms_dbfs": -19.241,
+        "clipped_samples": 0,
+        "seam_jump": 0.0131461,
+        "adjacent_step_p99": 0.1205716,
+        "seam_to_p99": 0.109,
+        "edge_20ms_rms_db_delta": 13.659
+      },
+      "loudness": {
+        "lufs": -18.0,
+        "true_peak_db": -5.87,
+        "loudness_range_lu": 0.9
+      }
+    }
+  ]
+}

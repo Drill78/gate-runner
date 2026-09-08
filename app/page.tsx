@@ -76,7 +76,7 @@ import {
 
 import { createBattle, activateSkill, type Battle } from '@/lib/combat';
 import { VIEW } from '@/lib/view';
-import { musicPlayer } from '@/lib/music';
+import { musicPlayer, sceneMusic } from '@/lib/music';
 
 import {
   subscribeStorage,
@@ -158,8 +158,17 @@ export default function Home() {
     };
   }, []);
   useEffect(() => {
-    if (!inBattle) musicPlayer.setState(null, true, muted);
-  }, [inBattle, muted]);
+    if (inBattle) return;
+    const syncMusic = () =>
+      musicPlayer.setState(
+        sceneMusic(run.phase),
+        document.hidden || paused,
+        muted,
+      );
+    syncMusic();
+    document.addEventListener('visibilitychange', syncMusic);
+    return () => document.removeEventListener('visibilitychange', syncMusic);
+  }, [inBattle, run.phase, paused, muted]);
   useEffect(() => {
     const visibility = () => {
       if (document.hidden && run.phase === 'battle') setPaused(true);
@@ -212,7 +221,11 @@ export default function Home() {
     setPaused(false);
     setRun(createRun(run.classId));
   };
-  const toggleSound = () => persistSound(!muted);
+  const setSoundEnabled = (enabled: boolean) => {
+    persistSound(!enabled);
+    if (enabled) musicPlayer.unlock(true);
+  };
+  const toggleSound = () => setSoundEnabled(muted);
   const closeOverlay = () => {
     if (activeOverlay === 'help') {
       setTutorialDismissed(true);
@@ -472,7 +485,10 @@ export default function Home() {
               {snapshot &&
               snapshot.encounters.length > 0 &&
               !snapshot.arriving ? (
-                <div className="encounter-health-stack">
+                <div
+                  className="encounter-health-stack"
+                  data-dual={snapshot.encounters.length > 1}
+                >
                   {snapshot.encounters.map((encounter) => (
                     <div
                       key={encounter.id}
@@ -484,7 +500,9 @@ export default function Home() {
                           <small>
                             {encounter.chapterBoss ? '章节 BOSS' : '关底精英'}
                           </small>
-                          <strong>{encounter.name}</strong>
+                          <strong title={encounter.name}>
+                            {encounter.name}
+                          </strong>
                         </span>
                         <span className="encounter-health-status">
                           {encounter.status}
@@ -669,7 +687,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          EARLY ACCESS <b>v0.5</b>
+          正式版 <b>v1.0</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>
@@ -758,7 +776,7 @@ export default function Home() {
                 <Switch
                   id="settings-audio"
                   checked={!muted}
-                  onCheckedChange={(enabled) => persistSound(!enabled)}
+                  onCheckedChange={setSoundEnabled}
                 />
               </label>
               <button
