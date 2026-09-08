@@ -1,0 +1,2597 @@
+{
+  "version": "1.1.0",
+  "policy": "Actual engine; 150 ms pilot reaction; real route, rewards, shop and skill APIs; no invulnerability in expedition samples. Separate late-build probes are explicitly synthetic.",
+  "createdAt": "2026-09-08T04:16:55.229Z",
+  "results": [
+    {
+      "difficulty": "normal",
+      "classId": "knight",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 266,
+          "maxHp": 266,
+          "weapon": 19,
+          "squad": 146899,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 83.4999999999974,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 60.89999999999868,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 48.1999999999994,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 187,
+          "maxHp": 210,
+          "weapon": 23,
+          "squad": 4981615,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 73.79999999999795,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 40.04999999999986,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 53.74999999999908,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 242,
+          "maxHp": 242,
+          "weapon": 25,
+          "squad": 195184,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 39.3999999999999,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 46.19999999999951,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 218,
+          "maxHp": 236,
+          "weapon": 17,
+          "squad": 80023,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 32.75000000000028,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 36.35000000000007,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 46.699999999999484,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "difficulty": "normal",
+      "classId": "ranger",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 112,
+          "maxHp": 201,
+          "weapon": 20,
+          "squad": 9182282,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 52.79999999999914,
+              "damage": 10,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 48.54999999999938,
+              "damage": 62,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 61.94999999999862,
+              "damage": 92,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 46,
+          "maxHp": 226,
+          "weapon": 18,
+          "squad": 4122310,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 65.8999999999984,
+              "damage": 39,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 61.099999999998666,
+              "damage": 61,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 75.89999999999783,
+              "damage": 180,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 163,
+          "maxHp": 183,
+          "weapon": 25,
+          "squad": 524491,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 48.799999999999365,
+              "damage": 10,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 37.74999999999999,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 49.8999999999993,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 216,
+          "maxHp": 267,
+          "weapon": 16,
+          "squad": 43892,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 47.84999999999942,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 49.64999999999932,
+              "damage": 16,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 61.74999999999863,
+              "damage": 54,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "difficulty": "normal",
+      "classId": "mage",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 242,
+          "maxHp": 258,
+          "weapon": 19,
+          "squad": 2486126,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 45.999999999999524,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 49.39999999999933,
+              "damage": 8,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 54.599999999999035,
+              "damage": 8,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 181,
+          "maxHp": 186,
+          "weapon": 23,
+          "squad": 6941645,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 48.1999999999994,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 45.449999999999555,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 53.79999999999908,
+              "damage": 8,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 175,
+          "maxHp": 213,
+          "weapon": 25,
+          "squad": 244884,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 39.3999999999999,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 44.6499999999996,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 58.6999999999988,
+              "damage": 38,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 165,
+          "maxHp": 240,
+          "weapon": 21,
+          "squad": 935123,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 48.64999999999937,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 71.99999999999805,
+              "damage": 78,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "difficulty": "hard",
+      "classId": "knight",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 236,
+          "maxHp": 236,
+          "weapon": 20,
+          "squad": 111895,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 62.74999999999857,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 45.34999999999956,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 50.14999999999929,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 206,
+          "maxHp": 206,
+          "weapon": 25,
+          "squad": 1048625,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 38.29999999999996,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 41.64999999999977,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 47.549999999999436,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 222,
+          "maxHp": 222,
+          "weapon": 25,
+          "squad": 307406,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 51.249999999999226,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 44.049999999999635,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 62.09999999999861,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 256,
+          "maxHp": 256,
+          "weapon": 16,
+          "squad": 162509,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 47.549999999999436,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 49.299999999999336,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 64.1499999999985,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "difficulty": "hard",
+      "classId": "ranger",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 14,
+          "won": false,
+          "cause": "pressure",
+          "hp": 0,
+          "maxHp": 202,
+          "weapon": 16,
+          "squad": 2123302,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 71.39999999999809,
+              "damage": 111,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 64.44999999999848,
+              "damage": 57,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 69.04999999999822,
+              "damage": 202,
+              "state": "lost"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 228,
+          "maxHp": 249,
+          "weapon": 21,
+          "squad": 3255872,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 58.999999999998785,
+              "damage": 59,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 47.749999999999424,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 57.049999999998896,
+              "damage": 24,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 10,
+          "won": false,
+          "cause": "boss_attack",
+          "hp": 0,
+          "maxHp": 178,
+          "weapon": 12,
+          "squad": 7296,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 62.64999999999858,
+              "damage": 95,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 65.54999999999842,
+              "damage": 57,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 193,
+          "maxHp": 246,
+          "weapon": 21,
+          "squad": 105714,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 46.699999999999484,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 49.149999999999345,
+              "damage": 53,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "difficulty": "hard",
+      "classId": "mage",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 211,
+          "maxHp": 211,
+          "weapon": 20,
+          "squad": 2391480,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 54.19999999999906,
+              "damage": 4,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 55.149999999999004,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 60.09999999999872,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 58,
+          "maxHp": 209,
+          "weapon": 23,
+          "squad": 10467638,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 53.99999999999907,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 49.149999999999345,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 66.19999999999838,
+              "damage": 129,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 228,
+          "maxHp": 231,
+          "weapon": 25,
+          "squad": 287357,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 45.89999999999953,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 61.449999999998646,
+              "damage": 3,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 62.349999999998595,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 15,
+          "won": true,
+          "cause": null,
+          "hp": 176,
+          "maxHp": 207,
+          "weapon": 19,
+          "squad": 13439497,
+          "endless": {
+            "embers": 0,
+            "reforges": 0,
+            "power": 1,
+            "legion": 1,
+            "keyLore": 0,
+            "keysOpened": 0,
+            "allies": [],
+            "covenantAt": 0
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 43.849999999999646,
+              "damage": 4,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 43.04999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 55.79999999999897,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "difficulty": "endless",
+      "classId": "knight",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 418,
+          "maxHp": 418,
+          "weapon": 104,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 88,
+            "reforges": 4,
+            "power": 57.0553984,
+            "legion": 2.856100000000001,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "commander",
+              "wyvern"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 83.4999999999974,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 60.89999999999868,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 48.1999999999994,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 33.70000000000022,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 44.14999999999963,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 37.05000000000003,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 27.15000000000025,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 31.700000000000315,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 38.69999999999994,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 35.00000000000015,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 36.55000000000006,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 38.29999999999996,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 26.40000000000024,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 34.1000000000002,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 39.59999999999989,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 526,
+          "maxHp": 526,
+          "weapon": 95,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 83,
+            "reforges": 3,
+            "power": 31.358143999999996,
+            "legion": 3.7129300000000014,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "commander",
+              "executioner"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 73.79999999999795,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 40.04999999999986,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 53.74999999999908,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 33.850000000000215,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 42.099999999999746,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 37.899999999999984,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 27.75000000000026,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 34.1000000000002,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 39.94999999999987,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 36.500000000000064,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 41.99999999999975,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 35.050000000000146,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 34.45000000000018,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 40.14999999999986,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 36.35000000000007,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 449,
+          "maxHp": 449,
+          "weapon": 98,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 87,
+            "reforges": 4,
+            "power": 53.41093632,
+            "legion": 2.856100000000001,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "stonewarden",
+              "hexblade"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 39.3999999999999,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 46.19999999999951,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 32.600000000000286,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 42.999999999999694,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 41.64999999999977,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 28.200000000000266,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 32.250000000000306,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 41.99999999999975,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 36.60000000000006,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 36.500000000000064,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 26.40000000000024,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 36.150000000000084,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 34.000000000000206,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 335,
+          "maxHp": 335,
+          "weapon": 96,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 86,
+            "reforges": 4,
+            "power": 53.49576960000002,
+            "legion": 2.856100000000001,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "hexblade",
+              "commander"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 32.75000000000028,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 36.35000000000007,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 46.699999999999484,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 31.90000000000032,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 52.299999999999166,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 43.64999999999966,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 28.40000000000027,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 33.00000000000026,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 36.35000000000007,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 35.65000000000011,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 35.75000000000011,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 42.9499999999997,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 26.40000000000024,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 33.35000000000024,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 35.40000000000013,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "difficulty": "endless",
+      "classId": "ranger",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 618,
+          "maxHp": 618,
+          "weapon": 104,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 43,
+            "reforges": 1,
+            "power": 6.826943999999999,
+            "legion": 2.856100000000001,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "lich",
+              "executioner"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 52.79999999999914,
+              "damage": 10,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 48.54999999999938,
+              "damage": 62,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 61.94999999999862,
+              "damage": 92,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 60.34999999999871,
+              "damage": 46,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 76.24999999999781,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 56.84999999999891,
+              "damage": 24,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 30.5500000000003,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 34.1000000000002,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 46.349999999999504,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 42.49999999999972,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 50.79999999999925,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 59.199999999998774,
+              "damage": 127,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 34.45000000000018,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 42.14999999999974,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 47.749999999999424,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 755,
+          "maxHp": 755,
+          "weapon": 90,
+          "squad": 8106479329266891,
+          "endless": {
+            "embers": 74,
+            "reforges": 2,
+            "power": 24.102187519999998,
+            "legion": 2.856100000000001,
+            "keyLore": 2,
+            "keysOpened": 2,
+            "allies": [
+              "commander",
+              "executioner"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 65.8999999999984,
+              "damage": 39,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 61.099999999998666,
+              "damage": 61,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 75.89999999999783,
+              "damage": 180,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 53.79999999999908,
+              "damage": 33,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 44.199999999999626,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 44.199999999999626,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 31.850000000000318,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 37.200000000000024,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 51.14999999999923,
+              "damage": 24,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 37.350000000000016,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 37.899999999999984,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 36.150000000000084,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 34.45000000000018,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 43.94999999999964,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 42.04999999999975,
+              "damage": 43,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 713,
+          "maxHp": 713,
+          "weapon": 99,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 34,
+            "reforges": 1,
+            "power": 7.09264128,
+            "legion": 2.1970000000000005,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "stonewarden",
+              "hexblade"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 48.799999999999365,
+              "damage": 10,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 37.74999999999999,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 49.699999999999314,
+              "damage": 49,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 35.250000000000135,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 44.6999999999996,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 46.4499999999995,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 31.25000000000031,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 33.75000000000022,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 37.05000000000003,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 37.899999999999984,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 30.050000000000292,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 42.099999999999746,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 39.89999999999987,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 756,
+          "maxHp": 810,
+          "weapon": 96,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 68,
+            "reforges": 2,
+            "power": 32.172220846079995,
+            "legion": 1.6900000000000002,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "hexblade",
+              "lich"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 47.84999999999942,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 49.64999999999932,
+              "damage": 16,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 61.74999999999863,
+              "damage": 54,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 35.70000000000011,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 51.14999999999923,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 45.69999999999954,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 28.700000000000273,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 32.15000000000031,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 38.89999999999993,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 35.9000000000001,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 37.000000000000036,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 50.59999999999926,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 30.300000000000296,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 35.40000000000013,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 59.199999999998774,
+              "damage": 54,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "difficulty": "endless",
+      "classId": "mage",
+      "sample": [
+        {
+          "seed": 734,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 564,
+          "maxHp": 564,
+          "weapon": 103,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 92,
+            "reforges": 4,
+            "power": 63.89445888,
+            "legion": 2.856100000000001,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "commander",
+              "wyvern"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 45.999999999999524,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 49.39999999999933,
+              "damage": 8,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 54.599999999999035,
+              "damage": 8,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 33.10000000000026,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 49.19999999999934,
+              "damage": 16,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 42.49999999999972,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 27.85000000000026,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 33.35000000000024,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 42.24999999999974,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 36.500000000000064,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 37.74999999999999,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 42.099999999999746,
+              "damage": 3,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 27.15000000000025,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 34.1000000000002,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 37.84999999999999,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 1743,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 610,
+          "maxHp": 610,
+          "weapon": 94,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 86,
+            "reforges": 3,
+            "power": 33.184831999999986,
+            "legion": 3.7129300000000014,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "commander",
+              "executioner"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 48.1999999999994,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 45.449999999999555,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 53.79999999999908,
+              "damage": 8,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 35.50000000000012,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 45.449999999999555,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 42.04999999999975,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 31.30000000000031,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 35.40000000000013,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 50.09999999999929,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 42.49999999999972,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 42.14999999999974,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 37.350000000000016,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 34.45000000000018,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 43.89999999999964,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 40.24999999999985,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 2752,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 519,
+          "maxHp": 519,
+          "weapon": 99,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 92,
+            "reforges": 4,
+            "power": 61.12680192,
+            "legion": 2.856100000000001,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "stonewarden",
+              "hexblade"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 39.3999999999999,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 44.6499999999996,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 58.34999999999882,
+              "damage": 38,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 35.40000000000013,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 48.249999999999396,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 48.99999999999935,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 31.600000000000314,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 36.25000000000008,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 50.09999999999929,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 41.99999999999975,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 41.79999999999976,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 27.05000000000025,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 41.99999999999975,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 37.200000000000024,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        },
+        {
+          "seed": 3761,
+          "depth": 75,
+          "won": true,
+          "cause": "incomplete",
+          "hp": 395,
+          "maxHp": 395,
+          "weapon": 101,
+          "squad": 9007199254740991,
+          "endless": {
+            "embers": 84,
+            "reforges": 4,
+            "power": 51.057216,
+            "legion": 2.856100000000001,
+            "keyLore": 3,
+            "keysOpened": 2,
+            "allies": [
+              "hexblade",
+              "lich"
+            ],
+            "covenantAt": 75
+          },
+          "bosses": [
+            {
+              "floor": 5,
+              "seconds": 43.09999999999969,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 10,
+              "seconds": 48.64999999999937,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 15,
+              "seconds": 71.99999999999805,
+              "damage": 78,
+              "state": "won"
+            },
+            {
+              "floor": 20,
+              "seconds": 40.74999999999982,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 25,
+              "seconds": 51.14999999999923,
+              "damage": 12,
+              "state": "won"
+            },
+            {
+              "floor": 30,
+              "seconds": 45.799999999999535,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 35,
+              "seconds": 29.25000000000028,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 40,
+              "seconds": 33.150000000000254,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 45,
+              "seconds": 41.54999999999978,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 50,
+              "seconds": 37.10000000000003,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 55,
+              "seconds": 37.550000000000004,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 60,
+              "seconds": 46.04999999999952,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 65,
+              "seconds": 27.450000000000255,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 70,
+              "seconds": 34.1000000000002,
+              "damage": 0,
+              "state": "won"
+            },
+            {
+              "floor": 75,
+              "seconds": 42.04999999999975,
+              "damage": 0,
+              "state": "won"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "deep": [
+    {
+      "classId": "knight",
+      "seed": 734,
+      "depth": 200,
+      "hp": 816,
+      "endless": {
+        "embers": 242,
+        "reforges": 12,
+        "power": 97841.16706292199,
+        "legion": 146.19202903754478,
+        "keyLore": 5,
+        "keysOpened": 4,
+        "allies": [
+          "commander",
+          "wyvern"
+        ],
+        "covenantAt": 200
+      },
+      "failure": null,
+      "targetReached": true
+    },
+    {
+      "classId": "knight",
+      "seed": 1743,
+      "depth": 200,
+      "hp": 813,
+      "endless": {
+        "embers": 232,
+        "reforges": 10,
+        "power": 32586.87230649741,
+        "legion": 247.06452907345073,
+        "keyLore": 5,
+        "keysOpened": 4,
+        "allies": [
+          "commander",
+          "executioner"
+        ],
+        "covenantAt": 200
+      },
+      "failure": null,
+      "targetReached": true
+    },
+    {
+      "classId": "ranger",
+      "seed": 734,
+      "depth": 149,
+      "hp": 0,
+      "endless": {
+        "embers": 74,
+        "reforges": 2,
+        "power": 45.29712516415488,
+        "legion": 13.785849184900009,
+        "keyLore": 5,
+        "keysOpened": 4,
+        "allies": [
+          "lich",
+          "executioner"
+        ],
+        "covenantAt": 145
+      },
+      "failure": "pressure",
+      "targetReached": false
+    },
+    {
+      "classId": "ranger",
+      "seed": 1743,
+      "depth": 200,
+      "hp": 3485,
+      "endless": {
+        "embers": 185,
+        "reforges": 7,
+        "power": 8777.592545312973,
+        "legion": 30.287510659225322,
+        "keyLore": 5,
+        "keysOpened": 4,
+        "allies": [
+          "commander",
+          "executioner"
+        ],
+        "covenantAt": 200
+      },
+      "failure": null,
+      "targetReached": true
+    },
+    {
+      "classId": "mage",
+      "seed": 734,
+      "depth": 200,
+      "hp": 880,
+      "endless": {
+        "embers": 242,
+        "reforges": 12,
+        "power": 97223.28238276363,
+        "legion": 146.19202903754478,
+        "keyLore": 5,
+        "keysOpened": 4,
+        "allies": [
+          "commander",
+          "wyvern"
+        ],
+        "covenantAt": 200
+      },
+      "failure": null,
+      "targetReached": true
+    },
+    {
+      "classId": "mage",
+      "seed": 1743,
+      "depth": 200,
+      "hp": 944,
+      "endless": {
+        "embers": 250,
+        "reforges": 11,
+        "power": 77227.8102711285,
+        "legion": 190.04963774880824,
+        "keyLore": 5,
+        "keysOpened": 4,
+        "allies": [
+          "commander",
+          "executioner"
+        ],
+        "covenantAt": 200
+      },
+      "failure": null,
+      "targetReached": true
+    }
+  ],
+  "probes": [
+    {
+      "floor": 20,
+      "dps": 49094.022875799776,
+      "stages": 1,
+      "bossHealth": 417403.1706530024,
+      "state": "won",
+      "seconds": 27.600000000000257,
+      "bossSeconds": 1.400000000000258
+    },
+    {
+      "floor": 25,
+      "dps": 63822.22973853972,
+      "stages": 3,
+      "bossHealth": 982411.0459639375,
+      "state": "won",
+      "seconds": 39.449999999999896,
+      "bossSeconds": 0.7499999999997584
+    },
+    {
+      "floor": 30,
+      "dps": 82968.89866010162,
+      "stages": 1,
+      "bossHealth": 1577069.6739506645,
+      "state": "won",
+      "seconds": 37.84999999999999,
+      "bossSeconds": 3.849999999999987
+    },
+    {
+      "floor": 35,
+      "dps": 107859.5682581321,
+      "stages": 1,
+      "bossHealth": 1036410.8369036692,
+      "state": "won",
+      "seconds": 28.300000000000267,
+      "bossSeconds": 2.100000000000268
+    },
+    {
+      "floor": 40,
+      "dps": 140217.43873557172,
+      "stages": 1,
+      "bossHealth": 1446644.988873663,
+      "state": "won",
+      "seconds": 32.05000000000032,
+      "bossSeconds": 1.550000000000317
+    },
+    {
+      "floor": 45,
+      "dps": 182282.67035624327,
+      "stages": 1,
+      "bossHealth": 5624717.012497482,
+      "state": "won",
+      "seconds": 38.54999999999995,
+      "bossSeconds": 4.549999999999947
+    },
+    {
+      "floor": 50,
+      "dps": 236967.47146311626,
+      "stages": 3,
+      "bossHealth": 5053176.823682768,
+      "state": "won",
+      "seconds": 37.65,
+      "bossSeconds": 1.3999999999997215
+    },
+    {
+      "floor": 100,
+      "dps": 3266797.823317617,
+      "stages": 1,
+      "bossHealth": 321814317.5372073,
+      "state": "won",
+      "seconds": 55.09999999999901,
+      "bossSeconds": 24.599999999999007
+    }
+  ]
+}

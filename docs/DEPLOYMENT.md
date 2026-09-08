@@ -1,6 +1,12 @@
 # 灰烬之门部署
 
-## 当前线上版本（1.0 正式版）
+## 当前线上版本（1.1 正式版）
+
+正式入口 https://gate-runner-seven.vercel.app 已发布 1.1。Vercel 部署 `dpl_Hg5KcEE1frKQGpa5wPPhxDrZ23ib`，提交 `d0174432272a62d0649d48f67733a362051abb28`。公共史册经 Vercel `/api/chronicle/:path*` 转发到 https://ashen-gates-zhour.green-salnut.chatgpt.site 的 Sites Worker 与 `DB` 数据库。33 项资源与 9 项线上接口检查均通过，详情见 [发布交接](RELEASE_HANDOFF.md) 和 [1.1 说明](V1_1_RELEASE.md)。
+
+复用 `artifacts/vercel-v11-bootstrap/` 固定 SHA 构建入口；Sites 迁移位于 `drizzle/`，发布时保留既有战绩与迁移历史。已将构建 peer 依赖 `@emnapi/core`、`@emnapi/runtime` 固定为 1.11.3，避免跨平台 npm ci 缺项。Git 推送仍不会自动发布。
+
+## 历史线上版本（1.0 正式版）
 
 **[打开灰烬之门 1.0](https://gate-runner-seven.vercel.app)**。2026-09-08 已发布到原 Vercel 生产地址，结束 Early Access。部署 `dpl_4t1DBxNFDrT3Gmh1Dno4kBuC1qx1` 状态 READY；内容提交 `b17463f18d6721066404b7bd025bcbf3217203bd` 已推送 GitHub main。完整内容见 [1.0 发布说明](V1_0_RELEASE.md)。
 
