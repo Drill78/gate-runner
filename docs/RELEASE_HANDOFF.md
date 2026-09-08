@@ -1,4 +1,36 @@
-# 灰烬之门 · 1.1.1 发布交接已完成
+# 灰烬之门 · 1.2.0 发布交接已完成
+
+2026-09-08。当前正式版为 **1.2.0 · 登神远征**，已在原地址上线。
+
+- 正式游戏：https://gate-runner-seven.vercel.app
+- GitHub：https://github.com/Drill78/gate-runner；固定内容提交 `2a0152b1457d906de0fd95e7c19a863db4a2cd7b`，标签 `v1.2.0`。
+- Vercel 部署 `dpl_5pFPTy6JkaZGiNndkc6bDad66rt8`，READY，原域名已绑定。
+- 公共史册与同版镜像：https://ashen-gates-zhour.green-salnut.chatgpt.site，访问模式 public。
+- Sites 版本5：`appgprj_6a9e636d67b0819191dcf937245fdd08~appgver_b412bf296c5c819188100d2715b16ff3`；部署 `appgdep_6a9fdf96ba3481919e0677a7fd6df5e7`，succeeded。两端使用相同内容提交。
+
+本次完成困难王二命、六轮长夜阵容与难度曲线、四种常规异化、天使复生与碎翼、第99关登神王、第100关主神及第101关祝福尾声。百关为正式结算，尾声结束后不再刷关。加入章节50%恢复与叙事、实际采样的结算曲线、39项成就中的新引导与隐藏「登神」、永久星印和金色界面、三枚归魂币与46／91关固定誓装续战、分起点排行榜，以及独立开发者演武场。七张新增AI美术、135秒登神配乐及扩展中文字体已接入；原八首MP3保持不变。
+
+**人工入口：设置 → 开发者演武场 → `721604`。** 推荐先选择「登神长阶·完整流程」从91关走到101关，再分别测试第90关终夜连战、困难复燃王、主神与归魂币。演练可调职业、生命、火力与兵力，不写正式存档、排行榜或成就；退出可回到之前的远征。完整入口说明见[1.2发布说明](V1_2_RELEASE.md)。
+
+用户设计原文意图保存在[设计约定](V1_2_ASCENSION_DESIGN.md)；[难度报告](V1_2_BALANCE_AUDIT.md)、[美术配乐记录](V1_2_MEDIA.md)、[完整数值册](BALANCE_REFERENCE.md)、[75项奖励](balance/rewards.csv)、[前100关曲线](balance/endless-curve.csv)、[交互查看器](balance/lab.html)已更新。
+
+验证：197项自动测试、TypeScript、lint、静态与Worker生产构建通过。36组实际引擎样本中，困难6组、完整无尽12组、46／91预设6组、关键首领9组均达成目标；站桩3组在92／93关失败。另有22组服务端渲染结构核验。第99关自然路线约48秒，第100关约72秒，不含冻结突入。没有浏览器交互测试或真人试听，不把自动驾驶当作真人胜率。
+
+线上41/41资源通过，其中39项SHA-256完全一致；HTML只映射构建文件名，CSS只接受已核实的Windows/Linux OKLab舍入差异。19项线上API检查通过，包含三模式榜、收藏权限、分起点登神榜、未解锁篝火拒绝、开发者登记拒绝。线上只写入明确命名的零关失败私人连通性记录，没有构造公共通关或登神荣誉。
+
+报告：[资源](releases/v1.2-verification.json)、[接口](releases/v1.2-chronicle-verification.json)、[结构](releases/v1.2-ui-structure.json)、[平衡样本](releases/v1.2-balance.json)。
+
+兼容处理：数据库新增 `0003` 的 `start_room`／`ruleset`，旧迁移和旧战绩保留；新无尽公共榜只比较登神纪元。旧本地无尽深度移到 `legacyEndlessDepth`，不会直接解锁新成就或续战；旧构筑换新远征ID，以私人续接重新挑战新版45／90关后才授予篝火。离线百关结算快照及自填称号幂等保存，101关不会覆盖；归魂币消费即时保存，刷新不返还。
+
+发布仍采用Vercel静态前端＋Sites Worker/D1。复用 `artifacts/vercel-v12-bootstrap/` 固定SHA构建入口、`artifacts/prepare-release-v12.mjs`、`artifacts/verify-release-vercel-v12.mjs` 和 `artifacts/verify-chronicle-live-v12.mjs`；发布IDs在 `artifacts/release-v12-ids.json`。先部署兼容API，再发布前端。官方打包包含全部迁移，本版包为117文件、45,137,920字节。保留两个固定的跨平台 `@emnapi` 依赖。GitHub推送仍不会自动部署；后续文档归档提交不改变本次内容SHA。
+
+3D重构仍是独立工程，最新原型行为应同时参考本文和1.2设计约定，本轮没有创建真实3D模型。
+
+---
+
+## 1.1.1 历史发布记录
+
+以下为历史归档，当前部署以本文顶部的1.2.0为准。
 
 2026-09-08。当前正式版为 **1.1.1 · 誓术觉醒与无垠军势**，已在原地址上线。
 

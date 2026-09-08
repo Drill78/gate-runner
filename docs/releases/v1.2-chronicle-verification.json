@@ -1,0 +1,31 @@
+{
+  "url": "https://gate-runner-seven.vercel.app/api/chronicle",
+  "checkedAt": "2026-09-08T10:14:40.548Z",
+  "passed": 19,
+  "checks": [
+    "Vercel proxy reaches live D1 service",
+    "normal board readable anonymously",
+    "hard board readable anonymously",
+    "endless board readable anonymously",
+    "anonymous personal history rejected",
+    "authenticated zero-floor QA settlement persists exactly once",
+    "unrelated identity cannot read QA history",
+    "owned epithet update persists",
+    "owned favorite persists and filters",
+    "unrelated identity cannot alter favorite",
+    "unfavorite preserves the underlying history record",
+    "legacy-shaped request gains scientific army storage",
+    "QA record never appears on public leaderboard",
+    "new-era ascension board filter 1",
+    "new-era ascension board filter 46",
+    "new-era ascension board filter 91",
+    "unearned recovery checkpoint rejected",
+    "developer expedition rejected by public API",
+    "zero-floor QA identity has no ascension honor"
+  ],
+  "qaRecord": {
+    "id": "2f4abd7c-7947-42bc-ab4b-aa57fa9b80a7",
+    "note": "Explicitly labelled zero-floor aborted API verification. Only its own private history can display it; no synthetic victory was submitted."
+  },
+  "browserTesting": false
+}

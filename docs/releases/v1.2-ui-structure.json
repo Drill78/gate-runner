@@ -1,0 +1,124 @@
+[
+  {
+    "classId": "knight",
+    "phase": "victory",
+    "bytes": 4172,
+    "ok": true
+  },
+  {
+    "classId": "knight",
+    "phase": "defeat",
+    "bytes": 4908,
+    "ok": true
+  },
+  {
+    "classId": "knight",
+    "phase": "fallen",
+    "bytes": 3934,
+    "ok": true
+  },
+  {
+    "classId": "knight",
+    "phase": "ascension",
+    "bytes": 5430,
+    "ok": true
+  },
+  {
+    "classId": "ranger",
+    "phase": "victory",
+    "bytes": 4149,
+    "ok": true
+  },
+  {
+    "classId": "ranger",
+    "phase": "defeat",
+    "bytes": 4885,
+    "ok": true
+  },
+  {
+    "classId": "ranger",
+    "phase": "fallen",
+    "bytes": 3911,
+    "ok": true
+  },
+  {
+    "classId": "ranger",
+    "phase": "ascension",
+    "bytes": 5407,
+    "ok": true
+  },
+  {
+    "classId": "mage",
+    "phase": "victory",
+    "bytes": 4154,
+    "ok": true
+  },
+  {
+    "classId": "mage",
+    "phase": "defeat",
+    "bytes": 4890,
+    "ok": true
+  },
+  {
+    "classId": "mage",
+    "phase": "fallen",
+    "bytes": 3916,
+    "ok": true
+  },
+  {
+    "classId": "mage",
+    "phase": "ascension",
+    "bytes": 5412,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 0,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 5,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 10,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 15,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 30,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 45,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 60,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 75,
+    "ok": true
+  },
+  {
+    "component": "ChapterInterlude",
+    "floor": 90,
+    "ok": true
+  },
+  {
+    "component": "DeveloperConsole",
+    "initialPasswordGate": true,
+    "ok": true
+  }
+]
