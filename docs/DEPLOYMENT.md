@@ -1,6 +1,20 @@
 # 试玩版部署
 
-**已发布 v0.5：[打开试玩](https://gate-runner-seven.vercel.app)**。2026-09-07 发布至 Vercel production，部署状态 READY。首页、脚本、样式、九张 WebP（含五种 Boss 立绘）与 favicon 共 13 项资源均经匿名 HTTP 检查返回 200，文件哈希与本地构建一致。
+## 当前线上版本（v0.6）
+
+2026-09-07，v0.6 全部代码、15 张页面 WebP 与四首 MP3 已推送到 GitHub `main`，提交 `680a91afc1327a0ee4b850d3d4f17a674e85e566`。114 项机制测试、TypeScript、lint 与生产构建全部通过。最终数值烟测与音乐编码检查分别见 [平衡审计](BALANCE_AUDIT.md) 和 [配乐文档](MUSIC.md)。
+
+**v0.6 已发布：[打开试玩](https://gate-runner-seven.vercel.app)**。Vercel production 部署 `dpl_2RibGiTfx2sxJMfXmDpQabvcLEqU` 于 2026-09-07 13:36:19 UTC 达到 READY，原地址已指向新版，构建约 33 秒。内容来自上述固定提交。
+
+2026-09-07 13:38:50 UTC 完成匿名检查：首页、JavaScript、CSS、15 张 WebP、4 首 MP3 与 favicon 共 23 项全部返回 200，MIME 正确。游戏 JavaScript 与 20 项素材的 SHA256 和本地构建完全一致。云端 CSS 仅有已逐项核对的 OKLab 浮点舍入差异（`.105807 .0479122` 与 `.105806 .0479124`），首页仅对应构建文件名不同，其余内容完全一致。完整线上哈希及比较方法见 [v0.6 验证记录](releases/v0.6-verification.json)。未执行浏览器或真机试玩；本部署的 Vercel error/fatal 日志查询没有记录，不能据此代表浏览器无错误。
+
+本次连接器不接受纯 Git 来源部署，因此上传两个小型构建文件，由 Vercel 克隆公开仓库并检出固定提交，再执行 `npm ci`、`npm run build`，发布 `release/dist`；未上传大体积内联素材。项目仍为 `gate-runner`（`prj_XEFqWJRsn9qzTWLMHHbSZXb5pQdm`），团队 `team_F5BQUB6GOyFZcJCMV436JWNr`，Node.js 24。这不等于已接通 Git 自动部署。可复用的本地构建入口保存在 `artifacts/vercel-v06-bootstrap/`，验证脚本为 `artifacts/verify-release-vercel-v06.mjs`；直接 Git 导入时仍使用仓库根目录、`npm ci`、`npm run build`、`dist`。
+
+v0.6 存档格式为 v4。旧 v2/v3 进度回到对应幕起点，保留构筑、金币、生命、兵力、经验和待领奖励；本版每幕五关，总十五关。收藏、声音和双击技能偏好独立保存，新开远征不会清空收藏。
+
+## 历史部署（v0.5，已由 v0.6 替换）
+
+v0.5 于 2026-09-07 发布至 Vercel production，部署状态 READY，现已被 v0.6 替换。发布当时首页、脚本、样式、九张 WebP（含五种 Boss 立绘）与 favicon 共 13 项资源均经匿名 HTTP 检查返回 200，文件哈希与本地构建一致。
 
 本次为已编译静态文件部署，项目名 `gate-runner`，代码提交 `7e74a70`，部署 ID `dpl_CeuXHXQpmr9qfh8WWTfLjH7VJFb6`。GitHub 源码已上传；尚未把该 Vercel 项目连接到 Git 自动部署。后续改代码需再次发布，或在项目设置连接 GitHub 后使用下述构建配置。
 
