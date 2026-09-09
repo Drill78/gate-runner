@@ -1,0 +1,1380 @@
+{
+  "version": "1.2.3",
+  "label": "final-elite",
+  "suite": "focused",
+  "trials": "elite",
+  "seed": 734,
+  "engineRoot": "C:\\Users\\zhour\\Documents\\learning\\Project\\gate runner\\lib",
+  "createdAt": "2026-09-09T01:44:48.832Z",
+  "method": "Actual engine, the existing 150 ms visible-state movement/aim/skill pilot and actual offered menus. No invulnerability, injected heals or injected rewards. Frozen trials reuse the recorded genuine seed-734 room-46/76/91 builds; the 99/100 frozen trials explicitly transplant that room-91 build without awarding rooms 91–98. They are controlled comparisons, not a claim that the route naturally stops there. Opening and natural expeditions start with createRun and use real map choices. Stationary controls still shoot and use skills. No resurrection coins are automatically spent. These deterministic checks are not human win rates.",
+  "engineHashes": {
+    "game": "b371f7d62ff7de02f4183f05abc11094daef0ddb2f9be55984d7d9f1b19f72bb",
+    "combat": "720fbc941a30432b3575ffc122b84b0f17d2d94960ff589af203a73010fb1982",
+    "army": "c04cd234a3c2766f2a6bdadd31ebaa595c8fe90c4dea63b0bdccbc5c53bf99b1",
+    "endless": "93e09674bb0aa795b9494f0cb9f0d7ab03b5d76d7ce644cb11e0124353951af9",
+    "presets": "69e02d8df16535747f57aabf509a2fa1653e88f380432d9c13340c5ee1196eaa",
+    "bosses": "723d67014e3af9c9fbd9ddb67dd44cc83cfe648908aa32bdd3c73f514d677ea5",
+    "encounter-tuning": "7bb8983333298d692909e38e7cc6f6b2f536222a0da8c733ab4454195235a123"
+  },
+  "endlessCurve": {
+    "bandSize": 15,
+    "openingBase": 1.26,
+    "roundHealth": [
+      0,
+      1.35,
+      5.4,
+      7.3,
+      9.9,
+      32.4
+    ],
+    "withinRoundGrowth": 0.32,
+    "roundDamage": [
+      1,
+      1.1,
+      1.38,
+      1.5,
+      1.65,
+      2.12
+    ],
+    "stairHealth": [
+      46,
+      49,
+      53,
+      58,
+      64,
+      69,
+      74,
+      80,
+      402,
+      74
+    ],
+    "stairDamage": [
+      2.3,
+      2.33,
+      2.37,
+      2.37,
+      2.42,
+      2.44,
+      2.46,
+      2.51,
+      2.55,
+      1.72
+    ]
+  },
+  "encounterScale": [
+    {
+      "room": 1,
+      "ordinaryPerWave": 2,
+      "troopHp": 1,
+      "eliteHp": 1.05,
+      "chapterBossHp": 1,
+      "damage": 1.04,
+      "eliteArmor": 0.18
+    },
+    {
+      "room": 6,
+      "ordinaryPerWave": 3,
+      "troopHp": 1.1,
+      "eliteHp": 1.05,
+      "chapterBossHp": 1,
+      "damage": 1.0816000000000001,
+      "eliteArmor": 0.18
+    },
+    {
+      "room": 11,
+      "ordinaryPerWave": 4,
+      "troopHp": 1.2,
+      "eliteHp": 1.05,
+      "chapterBossHp": 1,
+      "damage": 1.1232000000000002,
+      "eliteArmor": 0.18
+    },
+    {
+      "room": 16,
+      "ordinaryPerWave": 5,
+      "troopHp": 1.2,
+      "eliteHp": 1.25,
+      "chapterBossHp": 1.12,
+      "damage": 1.12,
+      "eliteArmor": 0.22
+    },
+    {
+      "room": 21,
+      "ordinaryPerWave": 5,
+      "troopHp": 1.32,
+      "eliteHp": 1.25,
+      "chapterBossHp": 1.12,
+      "damage": 1.12,
+      "eliteArmor": 0.22
+    },
+    {
+      "room": 26,
+      "ordinaryPerWave": 5,
+      "troopHp": 1.44,
+      "eliteHp": 1.25,
+      "chapterBossHp": 1.12,
+      "damage": 1.12,
+      "eliteArmor": 0.22
+    },
+    {
+      "room": 31,
+      "ordinaryPerWave": 6,
+      "troopHp": 1.55,
+      "eliteHp": 1.5,
+      "chapterBossHp": 1.35,
+      "damage": 1.22,
+      "eliteArmor": 0.28
+    },
+    {
+      "room": 36,
+      "ordinaryPerWave": 6,
+      "troopHp": 1.7050000000000003,
+      "eliteHp": 1.5,
+      "chapterBossHp": 1.35,
+      "damage": 1.22,
+      "eliteArmor": 0.28
+    },
+    {
+      "room": 41,
+      "ordinaryPerWave": 6,
+      "troopHp": 1.8599999999999999,
+      "eliteHp": 1.5,
+      "chapterBossHp": 1.35,
+      "damage": 1.22,
+      "eliteArmor": 0.28
+    },
+    {
+      "room": 46,
+      "ordinaryPerWave": 7,
+      "troopHp": 1.9,
+      "eliteHp": 1.8,
+      "chapterBossHp": 1.5,
+      "damage": 1.28,
+      "eliteArmor": 0.32
+    },
+    {
+      "room": 51,
+      "ordinaryPerWave": 7,
+      "troopHp": 2.09,
+      "eliteHp": 1.8,
+      "chapterBossHp": 1.5,
+      "damage": 1.28,
+      "eliteArmor": 0.32
+    },
+    {
+      "room": 56,
+      "ordinaryPerWave": 7,
+      "troopHp": 2.28,
+      "eliteHp": 1.8,
+      "chapterBossHp": 1.5,
+      "damage": 1.28,
+      "eliteArmor": 0.32
+    },
+    {
+      "room": 61,
+      "ordinaryPerWave": 8,
+      "troopHp": 2.35,
+      "eliteHp": 2.2,
+      "chapterBossHp": 1.75,
+      "damage": 1.34,
+      "eliteArmor": 0.36
+    },
+    {
+      "room": 66,
+      "ordinaryPerWave": 8,
+      "troopHp": 2.5850000000000004,
+      "eliteHp": 2.2,
+      "chapterBossHp": 1.75,
+      "damage": 1.34,
+      "eliteArmor": 0.36
+    },
+    {
+      "room": 71,
+      "ordinaryPerWave": 8,
+      "troopHp": 2.82,
+      "eliteHp": 2.2,
+      "chapterBossHp": 1.75,
+      "damage": 1.34,
+      "eliteArmor": 0.36
+    },
+    {
+      "room": 76,
+      "ordinaryPerWave": 9,
+      "troopHp": 3,
+      "eliteHp": 2.6,
+      "chapterBossHp": 2,
+      "damage": 1.4,
+      "eliteArmor": 0.4
+    },
+    {
+      "room": 81,
+      "ordinaryPerWave": 9,
+      "troopHp": 3.3000000000000003,
+      "eliteHp": 2.6,
+      "chapterBossHp": 2,
+      "damage": 1.4,
+      "eliteArmor": 0.4
+    },
+    {
+      "room": 86,
+      "ordinaryPerWave": 9,
+      "troopHp": 3.5999999999999996,
+      "eliteHp": 2.6,
+      "chapterBossHp": 2,
+      "damage": 1.4,
+      "eliteArmor": 0.4
+    },
+    {
+      "room": 91,
+      "ordinaryPerWave": 1,
+      "troopHp": 3,
+      "eliteHp": 1,
+      "chapterBossHp": 1,
+      "damage": 1.24,
+      "eliteArmor": 0
+    },
+    {
+      "room": 99,
+      "ordinaryPerWave": 1,
+      "troopHp": 3.3000000000000003,
+      "eliteHp": 1.15,
+      "chapterBossHp": 1.15,
+      "damage": 1.24,
+      "eliteArmor": 0
+    },
+    {
+      "room": 100,
+      "ordinaryPerWave": 1,
+      "troopHp": 3.3000000000000003,
+      "eliteHp": 1,
+      "chapterBossHp": 1,
+      "damage": 1,
+      "eliteArmor": 0
+    }
+  ],
+  "independentOfArmy": [
+    {
+      "room": 1,
+      "equal": true,
+      "enemies": 14
+    },
+    {
+      "room": 16,
+      "equal": true,
+      "enemies": 41
+    },
+    {
+      "room": 46,
+      "equal": true,
+      "enemies": 57
+    },
+    {
+      "room": 76,
+      "equal": true,
+      "enemies": 73
+    },
+    {
+      "room": 90,
+      "equal": true,
+      "enemies": 115
+    },
+    {
+      "room": 91,
+      "equal": true,
+      "enemies": 1
+    },
+    {
+      "room": 99,
+      "equal": true,
+      "enemies": 1
+    },
+    {
+      "room": 100,
+      "equal": true,
+      "enemies": 1
+    }
+  ],
+  "curve": [
+    {
+      "exponent": 0,
+      "logarithm": 0,
+      "actualArmyArmor": 0,
+      "expectedArmyArmor": 0,
+      "armorWithThreePlates": 0.24,
+      "expectedWithThreePlates": 0.24,
+      "firepowerMultiplier": 1.1154772174199359
+    },
+    {
+      "exponent": 3,
+      "logarithm": 3,
+      "actualArmyArmor": 0,
+      "expectedArmyArmor": 0,
+      "armorWithThreePlates": 0.24,
+      "expectedWithThreePlates": 0.24,
+      "firepowerMultiplier": 7.398031073973154
+    },
+    {
+      "exponent": 6,
+      "logarithm": 6,
+      "actualArmyArmor": 0.0444444444444444,
+      "expectedArmyArmor": 0.04444444444444445,
+      "armorWithThreePlates": 0.2737777777777778,
+      "expectedWithThreePlates": 0.2737777777777778,
+      "firepowerMultiplier": 17.346623380839635
+    },
+    {
+      "exponent": 12,
+      "logarithm": 12,
+      "actualArmyArmor": 0.10909090909090913,
+      "expectedArmyArmor": 0.1090909090909091,
+      "armorWithThreePlates": 0.3229090909090909,
+      "expectedWithThreePlates": 0.3229090909090909,
+      "firepowerMultiplier": 37.2781746379445
+    },
+    {
+      "exponent": 24,
+      "logarithm": 24,
+      "actualArmyArmor": 0.18666666666666665,
+      "expectedArmyArmor": 0.18666666666666668,
+      "armorWithThreePlates": 0.3818666666666667,
+      "expectedWithThreePlates": 0.3818666666666667,
+      "firepowerMultiplier": 77.14131177657553
+    },
+    {
+      "exponent": 42,
+      "logarithm": 42,
+      "actualArmyArmor": 0.24761904761904763,
+      "expectedArmyArmor": 0.24761904761904766,
+      "armorWithThreePlates": 0.42819047619047623,
+      "expectedWithThreePlates": 0.42819047619047623,
+      "firepowerMultiplier": 136.93601748454807
+    },
+    {
+      "exponent": 60,
+      "logarithm": 60,
+      "actualArmyArmor": 0.28148148148148144,
+      "expectedArmyArmor": 0.2814814814814815,
+      "armorWithThreePlates": 0.45392592592592584,
+      "expectedWithThreePlates": 0.45392592592592584,
+      "firepowerMultiplier": 196.7307231925206
+    },
+    {
+      "exponent": 136,
+      "logarithm": 136.40654018043395,
+      "actualArmyArmor": 0.33901142869288914,
+      "expectedArmyArmor": 0.3390114286928892,
+      "armorWithThreePlates": 0.4976486858065957,
+      "expectedWithThreePlates": 0.4976486858065957,
+      "firepowerMultiplier": 450.54775565104427
+    },
+    {
+      "exponent": 300,
+      "logarithm": 300,
+      "actualArmyArmor": 0.37009345794392523,
+      "expectedArmyArmor": 0.3700934579439253,
+      "armorWithThreePlates": 0.5212710280373831,
+      "expectedWithThreePlates": 0.5212710280373831,
+      "firepowerMultiplier": 993.9934659654878
+    },
+    {
+      "exponent": 10000,
+      "logarithm": 10000,
+      "actualArmyArmor": 0.399042011775272,
+      "expectedArmyArmor": 0.39904201177527193,
+      "armorWithThreePlates": 0.5432719289492067,
+      "expectedWithThreePlates": 0.5432719289492067,
+      "firepowerMultiplier": 33216.695986372906
+    },
+    {
+      "exponent": 9007199254740991,
+      "logarithm": 9007199254740991,
+      "actualArmyArmor": 0.399999999999999,
+      "expectedArmyArmor": 0.39999999999999897,
+      "armorWithThreePlates": 0.5439999999999993,
+      "expectedWithThreePlates": 0.5439999999999993,
+      "firepowerMultiplier": 29921268260572612
+    }
+  ],
+  "frozen": [
+    {
+      "name": "room-46-elite",
+      "stationary": false,
+      "entry": {
+        "classId": "knight",
+        "room": 46,
+        "hp": 295,
+        "maxHp": 295,
+        "armor": 0.2687692230209825,
+        "armyArmor": 0.1690559352511165,
+        "armyLog": 20.568507120711406,
+        "dps": 186573.68357068032,
+        "weapon": 63,
+        "gold": 6469,
+        "earned": 8787,
+        "relics": {
+          "steel": 3,
+          "bulwark": 1,
+          "bash": 2,
+          "aegis": 2,
+          "split": 2
+        },
+        "endless": {
+          "embers": 61,
+          "reforges": 3,
+          "power": 9.430909090909088,
+          "legion": 1.3,
+          "keyLore": 1,
+          "keysOpened": 1,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 45
+        }
+      },
+      "initial": {
+        "enemies": 58,
+        "swarms": 48,
+        "ordinaryHp": 1910604.0393817578,
+        "waves": 8,
+        "byWave": [
+          7,
+          7,
+          8,
+          7,
+          7,
+          8,
+          7,
+          7
+        ],
+        "bosses": [
+          {
+            "id": "hexblade",
+            "mutation": "golden",
+            "maxHp": 751563.2140042739,
+            "armor": 0.32,
+            "damage": 66.7392,
+            "spectacleSeconds": 3
+          }
+        ]
+      },
+      "state": "won",
+      "time": 29.80000000000029,
+      "cinematicTime": 0,
+      "bossTime": 3.600000000000289,
+      "skills": 3,
+      "damage": 0,
+      "leaks": 0,
+      "missedChests": 0,
+      "hp": 295,
+      "shield": 219,
+      "pressurePulses": 0,
+      "deathCause": null,
+      "bossDetails": [
+        {
+          "id": "hexblade",
+          "stage": 0,
+          "mutation": "golden",
+          "life": 1,
+          "attacks": 1,
+          "hp": -61730.52117363305,
+          "maxHp": 751563.2140042739,
+          "done": true
+        }
+      ],
+      "gatesTaken": [
+        {
+          "wave": 1,
+          "op": "+",
+          "value": 69000000000000000000,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 3,
+          "op": "×",
+          "value": 1.45,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 5,
+          "op": "+",
+          "value": 120000000000000000000,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 7,
+          "op": "×",
+          "value": 1.36,
+          "trialStep": null,
+          "trialFinal": false
+        }
+      ],
+      "passedAlive": 0,
+      "ending": {
+        "classId": "knight",
+        "room": 46,
+        "hp": 295,
+        "maxHp": 295,
+        "armor": 0.27091743476002017,
+        "armyArmor": 0.17149708495456842,
+        "armyLog": 21.01259313515235,
+        "dps": 192939.29264788682,
+        "weapon": 64,
+        "gold": 6968,
+        "earned": 9286,
+        "relics": {
+          "steel": 3,
+          "bulwark": 1,
+          "bash": 2,
+          "aegis": 2,
+          "split": 2
+        },
+        "endless": {
+          "embers": 61,
+          "reforges": 3,
+          "power": 9.430909090909088,
+          "legion": 1.3,
+          "keyLore": 1,
+          "keysOpened": 1,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 45
+        }
+      }
+    },
+    {
+      "name": "room-76-elite",
+      "stationary": false,
+      "entry": {
+        "classId": "knight",
+        "room": 76,
+        "hp": 380,
+        "maxHp": 380,
+        "armor": 0.3560863597588809,
+        "armyArmor": 0.26827995427145557,
+        "armyLog": 51.88184533267003,
+        "dps": 3731301.7769442736,
+        "weapon": 109,
+        "gold": 28390,
+        "earned": 38642,
+        "relics": {
+          "steel": 3,
+          "bulwark": 1,
+          "bash": 1,
+          "aegis": 1
+        },
+        "endless": {
+          "embers": 101,
+          "reforges": 5,
+          "power": 21.79411764705882,
+          "legion": 2.856100000000001,
+          "keyLore": 2,
+          "keysOpened": 2,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 75
+        }
+      },
+      "initial": {
+        "enemies": 74,
+        "swarms": 64,
+        "ordinaryHp": 16218053.102911413,
+        "waves": 8,
+        "byWave": [
+          9,
+          9,
+          10,
+          9,
+          9,
+          10,
+          9,
+          9
+        ],
+        "bosses": [
+          {
+            "id": "hexblade",
+            "mutation": "golden",
+            "maxHp": 4818240.878821921,
+            "armor": 0.4,
+            "damage": 103.16768,
+            "spectacleSeconds": 3
+          }
+        ]
+      },
+      "state": "won",
+      "time": 30.5500000000003,
+      "cinematicTime": 0,
+      "bossTime": 4.3500000000003,
+      "skills": 3,
+      "damage": 0,
+      "leaks": 1,
+      "missedChests": 0,
+      "hp": 380,
+      "shield": 183,
+      "pressurePulses": 0,
+      "deathCause": null,
+      "bossDetails": [
+        {
+          "id": "hexblade",
+          "stage": 0,
+          "mutation": "golden",
+          "life": 1,
+          "attacks": 2,
+          "hp": -1262791.50399167,
+          "maxHp": 4818240.878821921,
+          "done": true
+        }
+      ],
+      "gatesTaken": [
+        {
+          "wave": 1,
+          "op": "+",
+          "value": 1.3999999999999999e+51,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 3,
+          "op": "+",
+          "value": 1.7e+51,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 5,
+          "op": "+",
+          "value": 8e+51,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 7,
+          "op": "×",
+          "value": 2,
+          "trialStep": null,
+          "trialFinal": false
+        }
+      ],
+      "passedAlive": 1,
+      "ending": {
+        "classId": "knight",
+        "room": 76,
+        "hp": 380,
+        "maxHp": 380,
+        "armor": 0.3571757225957102,
+        "armyArmor": 0.2695178665860342,
+        "armyLog": 52.57329121484526,
+        "dps": 3810105.5842773863,
+        "weapon": 110,
+        "gold": 30310,
+        "earned": 40562,
+        "relics": {
+          "steel": 3,
+          "bulwark": 1,
+          "bash": 1,
+          "aegis": 1
+        },
+        "endless": {
+          "embers": 101,
+          "reforges": 5,
+          "power": 21.79411764705882,
+          "legion": 2.856100000000001,
+          "keyLore": 2,
+          "keysOpened": 2,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 75
+        }
+      }
+    },
+    {
+      "name": "room-46-elite",
+      "stationary": false,
+      "entry": {
+        "classId": "ranger",
+        "room": 46,
+        "hp": 377,
+        "maxHp": 377,
+        "armor": 0.18406864107451704,
+        "armyArmor": 0.18406864107451706,
+        "armyLog": 23.458572612016585,
+        "dps": 696284.8172859555,
+        "weapon": 65,
+        "gold": 6450,
+        "earned": 8803,
+        "relics": {
+          "steel": 3,
+          "keen": 3,
+          "quiver": 3,
+          "deadeye": 3,
+          "focus": 2,
+          "velocity": 2,
+          "execute": 2,
+          "hunter": 1,
+          "heavy": 2,
+          "ricochet": 3,
+          "lifebloom": 2,
+          "split": 2,
+          "constitution": 2,
+          "blast": 1,
+          "mirror": 1,
+          "vampire": 1,
+          "ambush": 1
+        },
+        "endless": {
+          "embers": 23,
+          "reforges": 1,
+          "power": 2.84,
+          "legion": 2.1970000000000005,
+          "keyLore": 1,
+          "keysOpened": 1,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 45
+        }
+      },
+      "initial": {
+        "enemies": 58,
+        "swarms": 48,
+        "ordinaryHp": 1910604.0393817578,
+        "waves": 8,
+        "byWave": [
+          7,
+          7,
+          8,
+          7,
+          7,
+          8,
+          7,
+          7
+        ],
+        "bosses": [
+          {
+            "id": "hexblade",
+            "mutation": "golden",
+            "maxHp": 751563.2140042739,
+            "armor": 0.32,
+            "damage": 66.7392,
+            "spectacleSeconds": 3
+          }
+        ]
+      },
+      "state": "won",
+      "time": 29.500000000000284,
+      "cinematicTime": 0,
+      "bossTime": 3.300000000000285,
+      "skills": 3,
+      "damage": 0,
+      "leaks": 0,
+      "missedChests": 0,
+      "hp": 377,
+      "shield": 0,
+      "pressurePulses": 0,
+      "deathCause": null,
+      "bossDetails": [
+        {
+          "id": "hexblade",
+          "stage": 0,
+          "mutation": "golden",
+          "life": 1,
+          "attacks": 1,
+          "hp": -51536.16528397065,
+          "maxHp": 751563.2140042739,
+          "done": true
+        }
+      ],
+      "gatesTaken": [
+        {
+          "wave": 1,
+          "op": "+",
+          "value": 5.4e+22,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 3,
+          "op": "×",
+          "value": 1.45,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 5,
+          "op": "×",
+          "value": 1.12,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 7,
+          "op": "×",
+          "value": 1.36,
+          "trialStep": null,
+          "trialFinal": false
+        }
+      ],
+      "passedAlive": 0,
+      "ending": {
+        "classId": "ranger",
+        "room": 46,
+        "hp": 377,
+        "maxHp": 377,
+        "armor": 0.18645583192936177,
+        "armyArmor": 0.1864558319293618,
+        "armyLog": 23.955570956283005,
+        "dps": 719488.7369549801,
+        "weapon": 66,
+        "gold": 6949,
+        "earned": 9302,
+        "relics": {
+          "steel": 3,
+          "keen": 3,
+          "quiver": 3,
+          "deadeye": 3,
+          "focus": 2,
+          "velocity": 2,
+          "execute": 2,
+          "hunter": 1,
+          "heavy": 2,
+          "ricochet": 3,
+          "lifebloom": 2,
+          "split": 2,
+          "constitution": 2,
+          "blast": 1,
+          "mirror": 1,
+          "vampire": 1,
+          "ambush": 1
+        },
+        "endless": {
+          "embers": 23,
+          "reforges": 1,
+          "power": 2.84,
+          "legion": 2.1970000000000005,
+          "keyLore": 1,
+          "keysOpened": 1,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 45
+        }
+      }
+    },
+    {
+      "name": "room-76-elite",
+      "stationary": false,
+      "entry": {
+        "classId": "ranger",
+        "room": 76,
+        "hp": 668,
+        "maxHp": 668,
+        "armor": 0.2835094388097559,
+        "armyArmor": 0.2835094388097559,
+        "armyLog": 61.41011032921337,
+        "dps": 8682907.636562653,
+        "weapon": 112,
+        "gold": 34707,
+        "earned": 44594,
+        "relics": {
+          "steel": 3,
+          "keen": 3,
+          "quiver": 3,
+          "deadeye": 3,
+          "focus": 2,
+          "velocity": 2,
+          "execute": 2,
+          "hunter": 1,
+          "heavy": 2,
+          "ricochet": 3,
+          "lifebloom": 2,
+          "split": 2,
+          "constitution": 3,
+          "blast": 3,
+          "mirror": 2,
+          "vampire": 3,
+          "ambush": 3,
+          "pierce": 3,
+          "army": 1,
+          "vitality": 3
+        },
+        "endless": {
+          "embers": 23,
+          "reforges": 1,
+          "power": 3.9544159999999993,
+          "legion": 4.826809000000002,
+          "keyLore": 2,
+          "keysOpened": 2,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 75
+        }
+      },
+      "initial": {
+        "enemies": 74,
+        "swarms": 64,
+        "ordinaryHp": 16218053.102911413,
+        "waves": 8,
+        "byWave": [
+          9,
+          9,
+          10,
+          9,
+          9,
+          10,
+          9,
+          9
+        ],
+        "bosses": [
+          {
+            "id": "hexblade",
+            "mutation": "golden",
+            "maxHp": 4818240.878821921,
+            "armor": 0.4,
+            "damage": 103.16768,
+            "spectacleSeconds": 3
+          }
+        ]
+      },
+      "state": "won",
+      "time": 29.30000000000028,
+      "cinematicTime": 0,
+      "bossTime": 3.100000000000282,
+      "skills": 2,
+      "damage": 0,
+      "leaks": 0,
+      "missedChests": 0,
+      "hp": 668,
+      "shield": 0,
+      "pressurePulses": 0,
+      "deathCause": null,
+      "bossDetails": [
+        {
+          "id": "hexblade",
+          "stage": 0,
+          "mutation": "golden",
+          "life": 1,
+          "attacks": 1,
+          "hp": -412835.65790615254,
+          "maxHp": 4818240.878821921,
+          "done": true
+        }
+      ],
+      "gatesTaken": [
+        {
+          "wave": 1,
+          "op": "+",
+          "value": 4.799999999999999e+60,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 3,
+          "op": "+",
+          "value": 5.7e+60,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 5,
+          "op": "+",
+          "value": 2.7e+61,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 7,
+          "op": "×",
+          "value": 2,
+          "trialStep": null,
+          "trialFinal": false
+        }
+      ],
+      "passedAlive": 0,
+      "ending": {
+        "classId": "ranger",
+        "room": 76,
+        "hp": 668,
+        "maxHp": 668,
+        "armor": 0.2845255072898287,
+        "armyArmor": 0.28452550728982867,
+        "armyLog": 62.13524289814352,
+        "dps": 8851101.91440785,
+        "weapon": 113,
+        "gold": 36627,
+        "earned": 46514,
+        "relics": {
+          "steel": 3,
+          "keen": 3,
+          "quiver": 3,
+          "deadeye": 3,
+          "focus": 2,
+          "velocity": 2,
+          "execute": 2,
+          "hunter": 1,
+          "heavy": 2,
+          "ricochet": 3,
+          "lifebloom": 2,
+          "split": 2,
+          "constitution": 3,
+          "blast": 3,
+          "mirror": 2,
+          "vampire": 3,
+          "ambush": 3,
+          "pierce": 3,
+          "army": 1,
+          "vitality": 3
+        },
+        "endless": {
+          "embers": 23,
+          "reforges": 1,
+          "power": 3.9544159999999993,
+          "legion": 4.826809000000002,
+          "keyLore": 2,
+          "keysOpened": 2,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 75
+        }
+      }
+    },
+    {
+      "name": "room-46-elite",
+      "stationary": false,
+      "entry": {
+        "classId": "mage",
+        "room": 46,
+        "hp": 187,
+        "maxHp": 187,
+        "armor": 0.1964112820499927,
+        "armyArmor": 0.1964112820499927,
+        "armyLog": 26.153889943731304,
+        "dps": 450763.07863532245,
+        "weapon": 63,
+        "gold": 6195,
+        "earned": 8803,
+        "relics": {
+          "steel": 3,
+          "ember": 2,
+          "echo": 3,
+          "summon": 1,
+          "split": 1,
+          "heavy": 1,
+          "velocity": 1,
+          "execute": 1,
+          "archmage": 1,
+          "surge": 3,
+          "focus": 1,
+          "ward": 3,
+          "lifebloom": 1
+        },
+        "endless": {
+          "embers": 45,
+          "reforges": 2,
+          "power": 6.006,
+          "legion": 1.6900000000000002,
+          "keyLore": 1,
+          "keysOpened": 1,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 45
+        }
+      },
+      "initial": {
+        "enemies": 58,
+        "swarms": 48,
+        "ordinaryHp": 1910604.0393817578,
+        "waves": 8,
+        "byWave": [
+          7,
+          7,
+          8,
+          7,
+          7,
+          8,
+          7,
+          7
+        ],
+        "bosses": [
+          {
+            "id": "hexblade",
+            "mutation": "golden",
+            "maxHp": 751563.2140042739,
+            "armor": 0.32,
+            "damage": 66.7392,
+            "spectacleSeconds": 3
+          }
+        ]
+      },
+      "state": "won",
+      "time": 30.00000000000029,
+      "cinematicTime": 0,
+      "bossTime": 3.800000000000292,
+      "skills": 1,
+      "damage": 0,
+      "leaks": 0,
+      "missedChests": 0,
+      "hp": 187,
+      "shield": 54,
+      "pressurePulses": 0,
+      "deathCause": null,
+      "bossDetails": [
+        {
+          "id": "hexblade",
+          "stage": 0,
+          "mutation": "golden",
+          "life": 1,
+          "attacks": 1,
+          "hp": -162315.75611684166,
+          "maxHp": 751563.2140042739,
+          "done": true
+        }
+      ],
+      "gatesTaken": [
+        {
+          "wave": 1,
+          "op": "×",
+          "value": 1.18,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 3,
+          "op": "+",
+          "value": 3.1000000000000002e+25,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 5,
+          "op": "+",
+          "value": 3.7000000000000003e+25,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 7,
+          "op": "×",
+          "value": 1.36,
+          "trialStep": null,
+          "trialFinal": false
+        }
+      ],
+      "passedAlive": 0,
+      "ending": {
+        "classId": "mage",
+        "room": 46,
+        "hp": 187,
+        "maxHp": 187,
+        "armor": 0.19806565439185686,
+        "armyArmor": 0.1980656543918569,
+        "armyLog": 26.540204075184693,
+        "dps": 462852.6760803684,
+        "weapon": 64,
+        "gold": 6694,
+        "earned": 9302,
+        "relics": {
+          "steel": 3,
+          "ember": 2,
+          "echo": 3,
+          "summon": 1,
+          "split": 1,
+          "heavy": 1,
+          "velocity": 1,
+          "execute": 1,
+          "archmage": 1,
+          "surge": 3,
+          "focus": 1,
+          "ward": 3,
+          "lifebloom": 1
+        },
+        "endless": {
+          "embers": 45,
+          "reforges": 2,
+          "power": 6.006,
+          "legion": 1.6900000000000002,
+          "keyLore": 1,
+          "keysOpened": 1,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 45
+        }
+      }
+    },
+    {
+      "name": "room-76-elite",
+      "stationary": false,
+      "entry": {
+        "classId": "mage",
+        "room": 76,
+        "hp": 362,
+        "maxHp": 362,
+        "armor": 0.29024490015048077,
+        "armyArmor": 0.29024490015048077,
+        "armyLog": 66.46746176863006,
+        "dps": 8362013.045050294,
+        "weapon": 109,
+        "gold": 31897,
+        "earned": 42199,
+        "relics": {
+          "steel": 3,
+          "ember": 1,
+          "echo": 3,
+          "summon": 1,
+          "surge": 2,
+          "blast": 1,
+          "archmage": 1
+        },
+        "endless": {
+          "embers": 79,
+          "reforges": 3,
+          "power": 13.4316,
+          "legion": 4.826809000000002,
+          "keyLore": 2,
+          "keysOpened": 2,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 75
+        }
+      },
+      "initial": {
+        "enemies": 74,
+        "swarms": 64,
+        "ordinaryHp": 16218053.102911413,
+        "waves": 8,
+        "byWave": [
+          9,
+          9,
+          10,
+          9,
+          9,
+          10,
+          9,
+          9
+        ],
+        "bosses": [
+          {
+            "id": "hexblade",
+            "mutation": "golden",
+            "maxHp": 4818240.878821921,
+            "armor": 0.4,
+            "damage": 103.16768,
+            "spectacleSeconds": 3
+          }
+        ]
+      },
+      "state": "won",
+      "time": 29.90000000000029,
+      "cinematicTime": 0,
+      "bossTime": 3.7000000000002906,
+      "skills": 1,
+      "damage": 0,
+      "leaks": 0,
+      "missedChests": 0,
+      "hp": 362,
+      "shield": 0,
+      "pressurePulses": 0,
+      "deathCause": null,
+      "bossDetails": [
+        {
+          "id": "hexblade",
+          "stage": 0,
+          "mutation": "golden",
+          "life": 1,
+          "attacks": 1,
+          "hp": -12130.037247477558,
+          "maxHp": 4818240.878821921,
+          "done": true
+        }
+      ],
+      "gatesTaken": [
+        {
+          "wave": 1,
+          "op": "×",
+          "value": 1.18,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 3,
+          "op": "×",
+          "value": 1.45,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 5,
+          "op": "+",
+          "value": 3.7999999999999995e+66,
+          "trialStep": null,
+          "trialFinal": false
+        },
+        {
+          "wave": 7,
+          "op": "×",
+          "value": 2,
+          "trialStep": null,
+          "trialFinal": false
+        }
+      ],
+      "passedAlive": 0,
+      "ending": {
+        "classId": "mage",
+        "room": 76,
+        "hp": 362,
+        "maxHp": 362,
+        "armor": 0.2912550074012916,
+        "armyArmor": 0.29125500740129157,
+        "armyLog": 67.27992692432277,
+        "dps": 8528826.867597498,
+        "weapon": 110,
+        "gold": 33817,
+        "earned": 44119,
+        "relics": {
+          "steel": 3,
+          "ember": 1,
+          "echo": 3,
+          "summon": 1,
+          "surge": 2,
+          "blast": 1,
+          "archmage": 1
+        },
+        "endless": {
+          "embers": 79,
+          "reforges": 3,
+          "power": 13.4316,
+          "legion": 4.826809000000002,
+          "keyLore": 2,
+          "keysOpened": 2,
+          "allies": [
+            "executioner",
+            "lich"
+          ],
+          "covenantAt": 75
+        }
+      }
+    }
+  ],
+  "opening": [],
+  "natural": []
+}

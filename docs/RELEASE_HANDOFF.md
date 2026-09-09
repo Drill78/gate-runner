@@ -1,4 +1,34 @@
-# 灰烬之门 · 1.2.1 发布交接已完成
+# 灰烬之门 · 1.2.3 发布交接
+
+2026-09-09。**1.2.3 · 灰潮与无垠军势** 已发布到原网址，公共史册和镜像同步为同版。
+
+- 正式游戏：https://gate-runner-seven.vercel.app
+- 内容提交 `2df1648942a847fc7bd86b46a55505f63e1276e7`，标签 `v1.2.3`；GitHub https://github.com/Drill78/gate-runner。
+- Vercel `dpl_PT1yjnLLjsn8c8taiw2LnKeMB83H`，READY，原域名已绑定。
+- Sites公共镜像/API：https://ashen-gates-zhour.green-salnut.chatgpt.site，版本7：`appgprj_6a9e636d67b0819191dcf937245fdd08~appgver_a00fc2c4ce74819191f4f980abc7167c`。
+- Sites部署 `appgdep_6aa0bd2aaff481918a7995443a1e4cb6`，succeeded；与Vercel使用同一内容提交。没有新增或修改数据库迁移。
+
+本轮修复GIF提前消失（原片18.2秒，显示18.4秒后淡出1.4秒，最多六张分区播放），101平方门改为4.05秒一扇，前几次真实平方，再进入中文“无限大”。奖励段的增长不覆盖百关结算。普通道路逐步加入每波2—9只兵潮，控制新增怪物收益；稀有门提供大量援军、×2或×5，荆棘外形与实际边界更清晰。
+
+新增对数军势防御，2.55×10^136约减伤33.90%，理论上限40%，与装备相乘。精英18%—40%护甲，第16—90关有三秒开场承伤保护，之后完全解除额外限制。提高中后期敌方数值及91—99压力；100继续保留演出空间。重复首领突入可跳过，首次、新形态、每轮最终战和91—100保持完整。
+
+完整内容见[1.2.3说明](V1_2_3_CHANGES.md)，可调公式、具体倍率及模拟限制见[数值审计](V1_2_3_BALANCE.md)。**250项自动测试、TypeScript、lint、静态及Worker构建通过**。三职业有／无钥匙六条自然路线均到达100，另一个种子的无钥匙骑士也通过；最终六个精英专项均完成1—2次出招。程序样本不等于真人通关率。
+
+浏览器实际验证：101真实增长至1e1344后显示“无限大”，分散GIF播放到后续画面，随后正常显示指定致谢页并可返回演武场；46关地图与普通怪潮运行。正式首页确认1.2.3，查询未返回error级控制台消息。未人工完整游玩1—100，也未进行设备性能基准。该浏览器声音关闭，本轮没有声称真人试听。
+
+线上55/55运行资源通过，53项SHA-256完全一致；HTML仅映射构建文件名，CSS仅接受已核实的Windows/Linux OKLab舍入差异。7项只读API检查通过，包含三模式榜、46／91起点榜及匿名私人历史拒绝；此次没有写入线上测试战绩。
+
+报告：[资源](releases/v1.2.3-verification.json)、[只读接口](releases/v1.2.3-chronicle-verification.json)、[浏览器](releases/v1.2.3-browser-verification.json)、[自然路线](releases/v1.2.3-natural-balance.json)、[固定构筑](releases/v1.2.3-focused-balance.json)、[最终精英](releases/v1.2.3-final-elites.json)。自然路线与固定样本在解除精英三秒后的残留单击限制之前完成；最后解除该限制后单独重跑六精英，详细版本区别保留在数值文档中。
+
+部署复用 `artifacts/vercel-v123-bootstrap/`、`artifacts/prepare-release-v123.mjs`、`artifacts/verify-release-vercel-v123.mjs`、`artifacts/verify-chronicle-readonly-v123.mjs`；IDs在 `artifacts/release-v123-ids.json`。GitHub和Sites源分支已推送内容提交，Git推送不自动部署。后续文档归档提交不改变这次上线的内容SHA。原始用户GIF在项目根目录保持未跟踪，运行用副本在public/art，勿误删原文件。
+
+## 1.2.2 历史发布记录
+
+2026-09-08，Vercel曾发布内容 `0afe7c1177e6e8ea9e152bedc8210ea5cd11d511`，部署 `dpl_DMBSS95C6ikEc6ekR73t385ywim1`，55项资源通过。包含长阶、99、100的日式RPG配乐与用户提供的完整祝福MP3/GIF、中文无限大和指定结尾文本。配乐方案见[JRPG终章配乐](JRPG_FINALE_SCORE.md)。当时Sites归档上传超时，镜像仍停在1.2.1；本次1.2.3已将镜像与API同步更新，不能把1.2.2记作两端同时发布。
+
+---
+
+## 1.2.1 历史发布记录
 
 2026-09-08。当前正式版 **1.2.1 · 真人反馈修复** 已发布到原网址。
 

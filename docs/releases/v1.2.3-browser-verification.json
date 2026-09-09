@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-09",
+  "environment": "Local Vite development server; real browser through CUA; existing narrow viewport",
+  "checks": [
+    "Home page displays v1.2.3.",
+    "Settings password opens developer console; hundred-room result preview enters stage101.",
+    "Stage101 visibly grows from the 1e42 preview army to 1e1344, later displays Chinese 无限大.",
+    "Multiple GIFs visibly reach different later scenes from the original animation; three-column/two-row locations remain dispersed.",
+    "Rendered cards report loaded=true, opacity=1, 18.4-second hold and 1.4-second fade; snapshots show four to five simultaneous cards.",
+    "Stage101 reaches the final page with 感谢游玩！ / 你已经到达了门的尽头 / 制作人： / 绿色咸咸圈&GPT-6 Astra.",
+    "Return-to-developer-console from final page works.",
+    "Stage46 preset opens its map and ordinary road; multiple staggered zombie groups are visible while combat runs.",
+    "No error-level browser console entries were returned by the inspected log query."
+  ],
+  "limits": [
+    "This was a bounded UI check, not manual completion of the full game or device performance benchmarking.",
+    "Audio was disabled in this browser session; supplied file duration/hash and playback timing are covered separately.",
+    "First/repeat boss skip rules, thorn collision geometry, rare gate values and complete GIF lifecycle limits are covered by automated tests; not every case was manually reproduced in the browser."
+  ],
+  "production": {
+    "url": "https://gate-runner-seven.vercel.app",
+    "homeVersion": "1.2.3",
+    "errorLogEntriesReturned": 0
+  }
+}

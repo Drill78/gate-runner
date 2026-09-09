@@ -1,0 +1,43 @@
+{
+  "checkedAt": "2026-09-09T02:00:06.383Z",
+  "base": "https://gate-runner-seven.vercel.app/api/chronicle",
+  "readOnly": true,
+  "passed": 7,
+  "checks": [
+    {
+      "path": "health",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "path": "board?mode=normal&sort=duration",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "path": "board?mode=hard&sort=army",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "path": "board?mode=endless&sort=depth",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "path": "board?mode=endless&sort=duration&route=46",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "path": "board?mode=endless&sort=duration&route=91",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "path": "history",
+      "status": 401,
+      "passed": true
+    }
+  ]
+}

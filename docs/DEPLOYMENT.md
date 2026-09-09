@@ -1,6 +1,16 @@
 # 灰烬之门部署
 
-## 当前线上版本（1.2.1 · 真人反馈修复）
+## 当前线上版本（1.2.3 · 灰潮与无垠军势）
+
+正式入口 https://gate-runner-seven.vercel.app 已更新1.2.3。内容SHA `2df1648942a847fc7bd86b46a55505f63e1276e7`，标签 `v1.2.3`；Vercel `dpl_PT1yjnLLjsn8c8taiw2LnKeMB83H`，READY。
+
+Sites镜像与公共史册版本7，部署 `appgdep_6aa0bd2aaff481918a7995443a1e4cb6`，succeeded，使用相同源码。保留原有D1和全部迁移，本轮没有数据库结构修改。1.2.2仅成功发布Vercel，Sites曾因上传超时停留1.2.1；本次已经补齐同步。
+
+250项测试、两套构建、线上55项资源与7项只读API检查通过。三职业六条自然无尽样本到达100；更多曲线、测试边界及浏览器结果见[发布交接](RELEASE_HANDOFF.md)和[1.2.3数值审计](V1_2_3_BALANCE.md)。
+
+复用 `artifacts/vercel-v123-bootstrap/` 固定SHA入口。先构建静态文件并存到 `artifacts/v123-static/`，再构建Worker和使用官方Sites脚本打包，推送对应源码后保存版本。更新兼容API后发布Vercel，最后匿名验证资源和接口。GitHub推送不自动发布；纯文档归档提交不改变运行内容SHA。演武场口令721604，默认倍率1用于人工试玩，演练不会写正式成绩。
+
+## 历史线上版本（1.2.1 · 真人反馈修复）
 
 正式入口 https://gate-runner-seven.vercel.app 已更新1.2.1。Vercel部署 `dpl_GK4WgFrd2Gzb182uD2NAKMJgvqxc`，READY；固定源码 `9a89c870dc4aa154bb63699fe24a613a9ee9c6e4`，标签 `v1.2.1`。同版Sites服务为版本6、部署 `appgdep_6a9ffcd9a7bc8191b3330d5a27ab6d90`，succeeded，API仍由原域名代理。没有新增数据库迁移。
 
