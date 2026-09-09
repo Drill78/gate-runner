@@ -15,10 +15,15 @@
   padding: 0;
   background: #080b0b;
   color: #fff4dc;
+  font: inherit;
   text-align: center;
   cursor: default;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.ag-cutin[data-skippable='true'] {
+  cursor: pointer;
 }
 
 .ag-cutin--chapter {

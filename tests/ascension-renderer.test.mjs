@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRun } from '../lib/game.ts';
+import { addRelic, createRun, effectiveGate, gateLabel } from '../lib/game.ts';
 import {
   createBattle,
   DEITY_SKILLS,
@@ -13,6 +13,17 @@ import {
   drawHolyThreat,
 } from '../lib/ascension-renderer.ts';
 import { screenX, screenY, VIEW } from '../lib/view.ts';
+import {
+  advanceEpilogueCelebration,
+  canStartEpilogueGif,
+  emptyEpilogueCelebration,
+  EPILOGUE_GIF_CYCLE_SECONDS,
+  EPILOGUE_GIF_HOLD_SECONDS,
+  EPILOGUE_GIF_LIFETIME,
+  EPILOGUE_GIF_LIMIT,
+  EPILOGUE_GIF_SPACING,
+  EPILOGUE_DURATION_SECONDS,
+} from '../lib/epilogue.ts';
 
 function recorder() {
   const calls = [],
@@ -362,7 +373,7 @@ test('the curtain call renders the Chinese infinity gag without numeric or rewar
     node: { id: '100-2', floor: 100, col: 2, kind: 'treasure', next: [] },
   });
   const b = createBattle(run);
-  syncEpiloguePlayback(b, 6);
+  syncEpiloguePlayback(b, 40);
   stepBattle(b, 0.05);
   assert.equal(b.epilogueInfinity, true);
   const before = structuredClone(b.player);
@@ -377,4 +388,178 @@ test('the curtain call renders the Chinese infinity gag without numeric or rewar
     JSON.stringify(words),
   );
   assert.deepEqual(b.player, before);
+});
+
+test('ordinary thorns are curved tangled branches clipped to the actual collision width', () => {
+  for (const width of [320, 390, 720]) {
+    for (const reduced of [false, true]) {
+      const b = arena('deity');
+      const thorn = {
+        ...b.entities[0],
+        id: 87,
+        kind: 'hazard',
+        variant: 'hazard',
+        name: '荆棘',
+        boss: false,
+        encounterId: undefined,
+        width: 0.38,
+        x: -0.23,
+        start: b.time - 1,
+        arrival: b.time + 3,
+      };
+      b.entities = [thorn];
+      const before = structuredClone(thorn),
+        rec = recorder();
+      drawBattle(rec.ctx, width, 667, b, reduced);
+      const clipIndex = rec.calls.findIndex((c) => c.method === 'clip');
+      assert.ok(clipIndex > 0);
+      const [left, , span] = rec.calls[clipIndex - 1].args;
+      assert.ok(
+        Math.abs(left - screenX(thorn.x - thorn.width / 2, width)) < 1e-9,
+      );
+      assert.ok(
+        Math.abs(span - thorn.width * width * VIEW.horizontalScale) < 1e-9,
+      );
+      assert.ok(
+        rec.calls.filter((c) => c.method === 'quadraticCurveTo').length > 20,
+      );
+      assert.ok(rec.calls.some((c) => c.method === 'bezierCurveTo'));
+      assert.equal(rec.stack.length, 0);
+      assert.deepEqual(thorn, before);
+    }
+  }
+});
+
+test('gate rarity changes the edge treatment without replacing the effective inscription', () => {
+  const colors = { rare: '#83dfef', epic: '#d0a1f4', legendary: '#f7d37f' };
+  for (const [rarity, color] of Object.entries(colors)) {
+    const b = arena('deity');
+    b.player = addRelic(b.player, 'mirror');
+    const choice = { op: '×', value: 2, left: -0.5, right: 0.5, rarity };
+    b.entities = [
+      {
+        ...b.entities[0],
+        kind: 'gate',
+        boss: false,
+        variant: 'gate',
+        gate: [choice],
+        encounterId: undefined,
+        start: b.time - 1,
+        arrival: b.time + 3,
+      },
+    ];
+    const rec = recorder();
+    drawBattle(rec.ctx, 390, 667, b, true);
+    assert.ok(
+      rec.calls.some((c) => c.method === 'stroke' && c.stroke === color),
+    );
+    const labels = rec.calls
+      .filter((c) => c.method === 'fillText')
+      .map((c) => c.args[0]);
+    assert.ok(labels.includes(gateLabel(effectiveGate(b.player, choice))));
+    assert.ok(
+      !labels.includes(gateLabel(choice)),
+      'the visible value includes the mirror relic',
+    );
+    assert.ok(labels.every((text) => !['稀有', '史诗', '传说'].includes(text)));
+  }
+});
+
+test('dense applause preserves every admitted image for a full cycle while keeping six unique slots', () => {
+  assert.equal(EPILOGUE_GIF_CYCLE_SECONDS, 18.2);
+  assert.ok(EPILOGUE_GIF_HOLD_SECONDS >= EPILOGUE_GIF_CYCLE_SECONDS);
+  let state = emptyEpilogueCelebration();
+  const events = [],
+    starts = new Map(),
+    finished = [],
+    admissions = [];
+  let peak = 0;
+  for (let step = 1; step <= 410; step++) {
+    const time = step * 0.2;
+    // The view removes only clips whose CSS full hold+fade has finished.
+    const expired = state.slots.filter(
+      (slot) => time - starts.get(slot.event.id) >= EPILOGUE_GIF_LIFETIME,
+    );
+    finished.push(...expired.map((slot) => time - starts.get(slot.event.id)));
+    state = {
+      ...state,
+      slots: state.slots.filter((slot) => !expired.includes(slot)),
+    };
+    const activeBefore = [...state.slots];
+    events.push({
+      id: step,
+      time,
+      x: 0.5,
+      y: 0.4,
+      text: step % 2 ? '恭喜' : '谢谢',
+    });
+    // Stress the combat cap: source events vanish after just 6.4 seconds.
+    state = advanceEpilogueCelebration(state, events.slice(-32), time);
+    assert.equal(
+      state.feedback.id,
+      step,
+      'every batch still gets immediate text feedback',
+    );
+    for (const slot of activeBefore)
+      assert.ok(
+        state.slots.includes(slot),
+        'new hits never evict playing GIFs',
+      );
+    for (const slot of state.slots) {
+      if (!starts.has(slot.event.id)) {
+        starts.set(slot.event.id, time);
+        admissions.push(time);
+      }
+    }
+    assert.ok(state.slots.length <= EPILOGUE_GIF_LIMIT);
+    assert.equal(
+      new Set(state.slots.map((slot) => slot.slot)).size,
+      state.slots.length,
+    );
+    assert.ok(
+      !state.pending || state.pending.id <= step,
+      'pending applause is a single latest event',
+    );
+    peak = Math.max(peak, state.slots.length);
+  }
+  assert.equal(peak, 6);
+  assert.ok(finished.length > 12);
+  assert.ok(
+    finished.every((duration) => duration >= EPILOGUE_GIF_CYCLE_SECONDS),
+  );
+  for (let i = 1; i < admissions.length; i++) {
+    assert.ok(admissions[i] - admissions[i - 1] >= EPILOGUE_GIF_SPACING - 1e-9);
+  }
+  assert.ok(
+    admissions.every(
+      (time) => time + EPILOGUE_GIF_LIFETIME + 1 <= EPILOGUE_DURATION_SECONDS,
+    ),
+  );
+  assert.equal(state.pending, null);
+});
+
+test('late blessings remain textual, and rewinding a new curtain call resets its prior slots', () => {
+  const event = { id: 1, time: 1, x: 0.5, y: 0.4, text: '恭喜' };
+  const initial = advanceEpilogueCelebration(
+    emptyEpilogueCelebration(),
+    [event],
+    1,
+  );
+  assert.equal(initial.slots.length, 1);
+  const late = advanceEpilogueCelebration(
+    initial,
+    [{ ...event, id: 9, time: 76 }],
+    76,
+  );
+  assert.equal(canStartEpilogueGif(76), false);
+  assert.equal(
+    late.slots[0],
+    initial.slots[0],
+    'even late feedback does not truncate an existing image',
+  );
+  assert.equal(late.feedback.id, 9);
+  assert.equal(late.pending, null);
+  const reset = advanceEpilogueCelebration(late, [], 0);
+  assert.equal(reset.slots.length, 0);
+  assert.equal(reset.lastSeenId, 0);
 });

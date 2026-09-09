@@ -296,7 +296,7 @@ test('burn damage scales with current player firepower and focus changes physica
     b.player.weaponTier = weapon;
     target.lastAttack = Infinity;
     target.burnUntil = b.time + 3;
-    const expected = attackDamage(b) * 0.64 * 0.05;
+    const expected = attackDamage(b) * 0.64 * 0.05 * (1 - target.armor);
     stepBattle(b, 0.05);
     assert.ok(Math.abs(target.maxHp - target.hp - expected) < 1e-8);
     return expected;

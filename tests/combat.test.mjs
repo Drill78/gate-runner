@@ -499,7 +499,7 @@ test('first gatekeeper pressures the player with five axes and a second half-hea
   b.x = 0.9;
   b.time = boss.start;
   advance(b, 1.01);
-  assert.equal(boss.maxHp, 1580);
+  assert.equal(boss.maxHp, 1659);
   assert.equal(b.projectiles.length, 5);
   boss.hp = boss.maxHp * 0.49;
   boss.attackIndex = 0;

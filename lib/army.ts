@@ -142,6 +142,12 @@ export function armyLog(run: ArmyState): number {
   const a = armyMagnitude(run);
   return a.exponent + Math.log10(a.mantissa);
 }
+// Formation depth has diminishing returns. Only the stored logarithm is read;
+// neither huge integer expansion nor enemy scaling from the player's army occurs.
+export function armyDefense(run: ArmyState): number {
+  const depth = Math.max(0, armyLog(run) - 3);
+  return 0.4 * (depth / (depth + 24));
+}
 export function formatMagnitude(value: Magnitude): string {
   if (value.exponent >= 16) {
     // Truncate at the display boundary rather than round 9.999 into misleading 10.00.

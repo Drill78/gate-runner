@@ -1,3 +1,4 @@
+import { armyMagnitude, powerMagnitude, setArmy } from '../lib/army.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -169,7 +170,7 @@ test('angelic protection regenerates, revives once, rages for ten seconds, then 
   const hp = e.hp;
   hitEntity(b, e, 100, false, false);
   assert.ok(
-    Math.abs(hp - e.hp - 20) < 1e-6,
+    Math.abs(hp - e.hp - 20 * (1 - e.armor)) < 1e-6,
     'white wings absorb eighty percent of an otherwise unmitigated hit',
   );
   const wounded = e.hp;
@@ -196,7 +197,7 @@ test('angelic protection regenerates, revives once, rages for ten seconds, then 
   advance(b, 0.1);
   const brokenHp = e.hp;
   hitEntity(b, e, 100, false, false);
-  assert.ok(Math.abs(brokenHp - e.hp - 100) < 1e-6);
+  assert.ok(Math.abs(brokenHp - e.hp - 100 * (1 - e.armor)) < 1e-6);
   overwhelm(b, e);
   assert.equal(e.done, true);
 });
@@ -494,41 +495,49 @@ function epilogueArena(classId = 'mage') {
   return { run, battle: createBattle(run) };
 }
 
-test('epilogue fake squares change only the display flag and preserve every saved player field', () => {
+test('epilogue squares really grow the army before a safe display limit, preserving the settled score', () => {
   for (const classId of ['knight', 'ranger', 'mage']) {
     const { run, battle: b } = epilogueArena(classId);
-    assert.ok(b.epilogue);
+    assert.deepEqual(b.player, run);
+    const before = armyMagnitude(b.player);
+    syncEpiloguePlayback(b, 3.2);
+    stepBattle(b, 0.05);
+    assert.equal(b.epilogueInfinity, false);
+    assert.equal(b.epilogueSquares, 1);
+    assert.deepEqual(armyMagnitude(b.player), powerMagnitude(before, 2));
+    syncEpiloguePlayback(b, 40);
+    stepBattle(b, 0.05);
+    assert.equal(b.epilogueInfinity, true);
+    const capped = structuredClone(b.player);
+    syncEpiloguePlayback(b, 70);
+    stepBattle(b, 0.05);
     assert.deepEqual(
       b.player,
-      run,
-      'even ambush must not grant troops on entry',
+      capped,
+      'infinity never does additional arithmetic',
     );
-    assert.ok(b.entities.every((e) => e.kind === 'chest' || e.kind === 'gate'));
-    assert.ok(
-      b.entities
-        .filter((e) => e.gate)
-        .every(
-          (e) =>
-            e.fakeSquare &&
-            e.gate.every((g) => g.op === '²' && g.left === -1 && g.right === 1),
-        ),
-    );
-    assert.equal(b.epilogueInfinity, false);
-    syncEpiloguePlayback(b, 2.9);
-    stepBattle(b, 2.9);
-    assert.equal(b.epilogueInfinity, false);
-    syncEpiloguePlayback(b, 12);
-    stepBattle(b, 9.1);
-    assert.equal(b.time, 12);
-    assert.equal(b.epilogueInfinity, true);
     assert.equal(activateSkill(b), false);
     damagePlayer(b, 99999);
+    assert.deepEqual(b.player, capped);
+    syncEpiloguePlayback(b, EPILOGUE_DURATION_SECONDS, true);
+    stepBattle(b, 0.05);
     assert.deepEqual(
       b.player,
       run,
-      'gates, chest hits, skills and damage cannot change the result',
+      'hundred-room score and resources are restored at curtain call',
     );
   }
+  const { run } = epilogueArena();
+  setArmy(run, { mantissa: 2.55, exponent: 136 });
+  const high = createBattle(run);
+  syncEpiloguePlayback(high, 12);
+  stepBattle(high, 0.05);
+  assert.equal(high.epilogueSquares, 3);
+  assert.equal(high.epilogueInfinity, false);
+  assert.ok(armyMagnitude(high.player).exponent > 1000);
+  syncEpiloguePlayback(high, 17);
+  stepBattle(high, 0.05);
+  assert.equal(high.epilogueInfinity, true);
 });
 
 test('epilogue time follows audio position and only an explicit music-ended signal can finish it', () => {
@@ -568,7 +577,7 @@ test('epilogue time follows audio position and only an explicit music-ended sign
     'running',
     'clearing all scenery cannot finish the song',
   );
-  const player = structuredClone(b.player);
+  const player = structuredClone(b.epilogueSettlement);
   syncEpiloguePlayback(b, EPILOGUE_DURATION_SECONDS, true);
   stepBattle(b, 0);
   assert.equal(b.state, 'won');
@@ -613,7 +622,9 @@ test('real epilogue volleys produce plentiful unique blessings while missed boxe
       seq,
       'the same destroyed box cannot emit twice',
     );
-    assert.deepEqual(b.player, run);
+    assert.deepEqual(b.epilogueSettlement, run);
+    for (const key of ['gold', 'xp', 'chests', 'combatTime'])
+      assert.equal(b.player[key], run[key]);
   }
   const { run, battle: missed } = epilogueArena();
   missed.shootTimer = Infinity;
@@ -624,14 +635,14 @@ test('real epilogue volleys produce plentiful unique blessings while missed boxe
   );
   assert.equal(missed.blessingSeq, 0);
   assert.deepEqual(missed.blessingEvents, []);
-  assert.deepEqual(missed.player, run);
+  assert.deepEqual(missed.epilogueSettlement, run);
 });
 
 test('epilogue keeps central gifts flowing while side gifts build toward the finale and finish travelling in time', () => {
   const { battle: plan } = epilogueArena();
   const gates = plan.entities.filter((e) => e.kind === 'gate');
   for (let i = 1; i < gates.length; i++)
-    assert.ok(Math.abs(gates[i].start - gates[i - 1].start - 1.35) < 1e-8);
+    assert.ok(Math.abs(gates[i].start - gates[i - 1].start - 4.05) < 1e-8);
   const boxes = plan.entities.filter((e) => e.kind === 'chest');
   assert.ok(boxes.every((e) => e.arrival <= EPILOGUE_DURATION_SECONDS));
   assert.ok(boxes.every((e) => e.start < EPILOGUE_DURATION_SECONDS - 2));
@@ -699,7 +710,7 @@ test('epilogue keeps central gifts flowing while side gifts build toward the fin
         assert.ok(frequency[0] < frequency[1] && frequency[1] < frequency[2]);
       }
       assert.equal(b.state, 'running');
-      assert.deepEqual(b.player, run);
+      assert.deepEqual(b.epilogueSettlement, run);
     }
   }
 });

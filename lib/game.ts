@@ -20,6 +20,7 @@ import {
   ARMY_PROJECTION_LIMIT,
   validMagnitude,
   armyMagnitude,
+  armyDefense,
   projectMagnitude,
   magnitude,
   multiplyMagnitude,
@@ -803,6 +804,11 @@ export function stats(run: Run, shield = 0, skillActive = false) {
   const synergy = familyCount(run) >= 3;
   const warrior = run.classId === 'knight';
   const ranger = run.classId === 'ranger';
+  const equipmentArmor = Math.min(
+    0.6,
+    (warrior ? 0.12 : 0) + r('plate') * 0.08,
+  );
+  const armyArmor = armyDefense(run);
   const criticalChance =
     (ranger ? 0.2 : 0.05) +
     r('keen') * 0.12 +
@@ -828,7 +834,9 @@ export function stats(run: Run, shield = 0, skillActive = false) {
       (skillActive && ranger ? 2 : 1),
     crit: Math.min(1, criticalChance),
     critMult: 2 + r('deadeye') * 0.6 + Math.max(0, criticalChance - 1),
-    armor: Math.min(0.6, (warrior ? 0.12 : 0) + r('plate') * 0.08),
+    armor: 1 - (1 - equipmentArmor) * (1 - armyArmor),
+    equipmentArmor,
+    armyArmor,
     shieldStart: (warrior ? 15 : 0) + r('bulwark') * 15 + r('ward') * 18,
     gateAdd: r('recruit') * 5,
     gateMult: r('mirror') * 0.08,
@@ -1745,6 +1753,7 @@ export interface GateChoice {
   op: '+' | '×' | '-' | '÷' | '²' | '√';
   value: number;
   armyValue?: Magnitude;
+  rarity?: 'rare' | 'epic' | 'legendary';
 }
 export function gateLabel(g: GateChoice) {
   if (g.op === '²') return 'x²';

@@ -15,7 +15,14 @@ import {
   type BattleTransition,
   syncEpiloguePlayback,
 } from '@/lib/combat';
-import { arrivalRoster, type ArrivalCard } from '@/lib/arrivals';
+import {
+  arrivalRoster,
+  ArrivalSequence,
+  seenArrivals,
+  transitionArrivalCard,
+  skipTransitionArrival,
+  type ArrivalCard,
+} from '@/lib/arrivals';
 import { pointerToWorldX, screenX, screenY, VIEW } from '@/lib/view';
 import { createHeroTapTracker } from '@/lib/controls';
 import { RelicCard } from '@/components/game-panels';
@@ -82,8 +89,10 @@ export function BattleCanvas({
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [arrival, setArrival] = useState<ArrivalCard | null>(null);
-  const [transitionArrival, setTransitionArrival] =
-    useState<BattleTransition | null>(null);
+  const [transitionArrival, setTransitionArrival] = useState<
+    (BattleTransition & { card: ArrivalCard | null }) | null
+  >(null);
+  const requestArrivalSkip = useRef<(key: string) => void>(() => {});
   const [levelChoices, setLevelChoices] = useState(battle.levelChoices);
   const { clock: epilogueClock } = useMemo(
     () => ({ battle, clock: new EpilogueClock() }),
@@ -140,9 +149,12 @@ export function BattleCanvas({
       w = 600,
       h = 640,
       lastSound = 0,
-      introRemaining = 0,
       introShownStage = -1;
-    let introQueue: ArrivalCard[] = [];
+    const shown = seenArrivals(battle);
+    const intro = new ArrivalSequence(shown);
+    let transitionDisplay:
+      | (BattleTransition & { card: ArrivalCard | null })
+      | null = null;
     const background = new Image();
     if (battle.epilogue) {
       const applause = new Image();
@@ -254,6 +266,38 @@ export function BattleCanvas({
         (held.has('ArrowRight') || held.has('KeyD') ? 1 : 0) -
           (held.has('ArrowLeft') || held.has('KeyA') ? 1 : 0),
       );
+    const displayIntro = () => {
+      battle.inputLocked = Boolean(intro.current);
+      setArrival(intro.current);
+      if (intro.current)
+        play(
+          battle.player.node?.kind === 'boss'
+            ? 'boss-arrival'
+            : 'elite-arrival',
+        );
+    };
+    const requestSkip = (key: string) => {
+      const frozen =
+        current.current.paused ||
+        document.hidden ||
+        finished ||
+        !!battle.levelChoices.length;
+      const skipped = intro.current
+        ? intro.skip(key, frozen)
+        : skipTransitionArrival(
+            battle,
+            transitionDisplay?.card || null,
+            key,
+            frozen,
+          );
+      if (!skipped) return;
+      heroTaps.reset();
+      held.clear();
+      setMoveAxis(battle, 0);
+      ensureAudio();
+      if (!battle.transition) displayIntro();
+    };
+    requestArrivalSkip.current = requestSkip;
     const key = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest('input,textarea,[role="dialog"]'))
         return;
@@ -280,8 +324,12 @@ export function BattleCanvas({
         return;
       }
       if (current.current.paused || document.hidden) return;
-      if (introRemaining > 0 || battle.transition) {
-        if (code === 'Enter' || code === 'Space') e.preventDefault();
+      if (intro.current || battle.transition) {
+        if (code === 'Enter' || code === 'Space') {
+          e.preventDefault();
+          const card = intro.current || transitionDisplay?.card;
+          if (!e.repeat && card) requestSkip(card.key);
+        }
         return;
       }
       ensureAudio();
@@ -295,7 +343,7 @@ export function BattleCanvas({
       if (
         !e.isPrimary ||
         current.current.paused ||
-        introRemaining > 0 ||
+        intro.remaining > 0 ||
         battle.transition ||
         battle.levelChoices.length
       )
@@ -328,7 +376,7 @@ export function BattleCanvas({
         current.current.doubleTapSkill &&
         !current.current.paused &&
         !document.hidden &&
-        introRemaining <= 0 &&
+        intro.remaining <= 0 &&
         !battle.transition &&
         !battle.levelChoices.length &&
         heroTaps.up({
@@ -355,7 +403,7 @@ export function BattleCanvas({
       if (
         current.current.paused ||
         document.hidden ||
-        introRemaining > 0 ||
+        intro.remaining > 0 ||
         battle.transition ||
         battle.levelChoices.length
       ) {
@@ -385,48 +433,30 @@ export function BattleCanvas({
           if (!battle.levelChoices.length) {
             introShownStage = battle.rushStage;
             startedArrival = true;
-            battle.inputLocked = true;
-            introQueue = arrivalRoster(battle);
-            introRemaining = introQueue[0]?.duration || 0;
+            intro.start(arrivalRoster(battle, shown));
             held.clear();
             setMoveAxis(battle, 0);
-            setArrival(introQueue[0] || null);
-            play(
-              battle.player.node?.kind === 'boss'
-                ? 'boss-arrival'
-                : 'elite-arrival',
-            );
+            displayIntro();
           }
         }
-        if (introRemaining > 0) {
-          if (!startedArrival)
-            introRemaining = Math.max(0, introRemaining - dt);
-          if (introRemaining === 0) {
-            introQueue.shift();
-            const next = introQueue[0];
-            introRemaining = next?.duration || 0;
-            battle.inputLocked = Boolean(next);
-            setArrival(next || null);
-            if (next)
-              play(
-                battle.player.node?.kind === 'boss'
-                  ? 'boss-arrival'
-                  : 'elite-arrival',
-              );
-          }
+        if (intro.current) {
+          if (!startedArrival && intro.tick(dt)) displayIntro();
         } else stepBattle(battle, dt);
         if (battle.soundSeq !== lastSound) {
           lastSound = battle.soundSeq;
           if (!battle.epilogue) play(battle.lastSound);
         }
       }
-      setTransitionArrival((previous) =>
-        previous?.seq === battle.transition?.seq
-          ? previous
-          : battle.transition
-            ? { ...battle.transition }
-            : null,
-      );
+      if (transitionDisplay?.seq !== battle.transition?.seq) {
+        const card = battle.transition
+          ? transitionArrivalCard(battle, battle.transition, shown)
+          : null;
+        if (card) shown.add(card.identity);
+        transitionDisplay = battle.transition
+          ? { ...battle.transition, card }
+          : null;
+        setTransitionArrival(transitionDisplay);
+      }
       drawBattle(ctx, w, h, battle, reducedMotion, background, models);
       if (now - lastUI > 100) {
         lastUI = now;
@@ -501,9 +531,11 @@ export function BattleCanvas({
                                       ? '狂暴'
                                       : target.guardUntil > battle.time
                                         ? '正面举盾'
-                                        : target.hp < target.maxHp * 0.5
-                                          ? '杀意渐盛'
-                                          : '交战中',
+                                        : target.armor > 0
+                                          ? `坚韧护甲 · 减伤 ${Math.round(target.armor * 100)}%`
+                                          : target.hp < target.maxHp * 0.5
+                                            ? '杀意渐盛'
+                                            : '交战中',
           }));
         current.current.onSnapshot({
           run: { ...battle.player },
@@ -517,7 +549,7 @@ export function BattleCanvas({
           totalWaves: battle.totalWaves,
           duration: battle.duration,
           enrage: battle.enrage,
-          arriving: introRemaining > 0 || !!battle.transition,
+          arriving: intro.remaining > 0 || !!battle.transition,
           pressure: battle.pressure ? { ...battle.pressure } : null,
           ritual: battle.ritual ? { ...battle.ritual } : null,
           encounters,
@@ -538,7 +570,7 @@ export function BattleCanvas({
     const keyup = (e: KeyboardEvent) => {
       if (!['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) return;
       held.delete(e.code);
-      if (!current.current.paused && introRemaining <= 0) updateAxis();
+      if (!current.current.paused && intro.remaining <= 0) updateAxis();
     };
     const blur = () => {
       held.clear();
@@ -570,6 +602,7 @@ export function BattleCanvas({
     }
     frame = requestAnimationFrame(loop);
     return () => {
+      requestArrivalSkip.current = () => {};
       battle.inputLocked = false;
       cancelAnimationFrame(frame);
       observer.disconnect();
@@ -612,15 +645,20 @@ export function BattleCanvas({
           }
           profile={
             transitionArrival
-              ? ENCOUNTERS.find(
-                  (e) => e.id === transitionArrival.encounterId,
-                ) || bossProfile(battle.player)
+              ? transitionArrival.card?.profile || bossProfile(battle.player)
               : arrival?.profile || bossProfile(battle.player)
           }
           chapterBoss={battle.player.node?.kind === 'boss'}
           paused={paused}
           duration={transitionArrival?.duration || arrival?.duration || 3}
           form={transitionArrival?.form}
+          skippable={
+            transitionArrival?.card?.skippable ?? arrival?.skippable ?? false
+          }
+          onSkip={() => {
+            const card = transitionArrival?.card || arrival;
+            if (card) requestArrivalSkip.current(card.key);
+          }}
         />
       ) : null}
       <Dialog

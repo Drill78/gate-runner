@@ -807,7 +807,7 @@ export default function Home() {
           )}
         </span>
         <span>
-          正式版 <b>v1.2.2</b>
+          正式版 <b>v1.2.3</b>
         </span>
       </footer>
       <Sheet open={characterOpen} onOpenChange={setCharacterOpen}>

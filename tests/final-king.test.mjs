@@ -1,3 +1,4 @@
+import { enemyDamageTuning } from '../lib/encounter-tuning.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, TOTAL_FLOORS } from '../lib/game.ts';
@@ -26,14 +27,17 @@ function encounter(phase = 1, attack = 0) {
   return { b, king };
 }
 
-test('the final king has extra durability, damage and faster phases without affecting early bosses', () => {
+test('the final king has extra durability, damage and faster phases with the campaign pressure adjustment', () => {
   const { b, king } = encounter();
   const oldBaseline =
     BALANCE.bossBaseHp *
     BALANCE.bossGrowth ** b.player.floor *
     BALANCE.bossActMultiplier[2];
   assert.equal(king.maxHp, oldBaseline * 1.6);
-  assert.equal(king.volleyDamage, (17 + b.player.floor * 1.6) * 1.2);
+  assert.equal(
+    king.volleyDamage,
+    (17 + b.player.floor * 1.6) * 1.2 * enemyDamageTuning(b.player),
+  );
   assert.deepEqual(
     [1, 2, 3].map((phase) => kingPhase(encounter(phase).king)),
     [1, 2, 3],

@@ -341,9 +341,17 @@ export function drawBattle(
           : g.op === '×'
             ? '#9cdaed'
             : '#badc8e';
+      const rarityTint =
+        g.rarity === 'legendary'
+          ? '#f7d37f'
+          : g.rarity === 'epic'
+            ? '#d0a1f4'
+            : g.rarity === 'rare'
+              ? '#83dfef'
+              : undefined;
       ctx.save();
-      ctx.shadowColor = color;
-      ctx.shadowBlur = reducedMotion ? 0 : 6;
+      ctx.shadowColor = rarityTint || color;
+      ctx.shadowBlur = reducedMotion ? 0 : rarityTint ? 9 : 6;
       round(
         x,
         y - gh / 2,
@@ -357,12 +365,35 @@ export function drawBattle(
             : g.op === '×'
               ? '#254856eF'
               : '#354b2aeF',
-        color,
+        rarityTint || color,
       );
       ctx.shadowBlur = 0;
       ctx.fillStyle = squared ? '#e8c989' : color;
       ctx.fillRect(x, y - gh / 2, 3, gh);
       ctx.fillRect(right - 3, y - gh / 2, 3, gh);
+      if (rarityTint) {
+        ctx.strokeStyle = rarityTint;
+        ctx.lineWidth = g.rarity === 'legendary' ? 2.5 : 1.7;
+        ctx.globalAlpha = reducedMotion
+          ? 0.9
+          : 0.82 + Math.sin(b.time * 2 + e.id) * 0.12;
+        const corner = Math.min(12 * scale, gw * 0.2);
+        // Small corner inlays carry rarity; the inscription retains the actual operation.
+        for (const [edge, direction] of [
+          [x + 1, 1],
+          [right - 1, -1],
+        ]) {
+          ctx.beginPath();
+          ctx.moveTo(edge, y - gh / 2 + corner);
+          ctx.lineTo(edge, y - gh / 2 + 1);
+          ctx.lineTo(edge + direction * corner, y - gh / 2 + 1);
+          ctx.moveTo(edge, y + gh / 2 - corner);
+          ctx.lineTo(edge, y + gh / 2 - 1);
+          ctx.lineTo(edge + direction * corner, y + gh / 2 - 1);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
       const font = Math.max(
         12,
         Math.min(34 * scale, gw / (inscription.length * 0.65)),
@@ -404,19 +435,101 @@ export function drawBattle(
     }
     if (e.kind === 'hazard') {
       const hw = e.width * w * VIEW.horizontalScale;
-      ctx.fillStyle = '#ab735027';
-      ctx.fillRect(x - hw / 2, y - 18, hw, 37);
-      ctx.strokeStyle = '#dbb280';
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 6; i++) {
-        const px = x - hw / 2 + (i * hw) / 5;
+      const left = x - hw / 2,
+        right = x + hw / 2;
+      ctx.save();
+      ctx.fillStyle = '#773f3926';
+      ctx.fillRect(left, y - 19, hw, 39);
+      // All branches and hooked thorns stay inside the actual horizontal hit span.
+      ctx.beginPath();
+      ctx.rect(left, y - 22, hw, 44);
+      ctx.clip();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const segments = Math.max(4, Math.ceil(hw / 22));
+      const sway = reducedMotion ? 0 : Math.sin(b.time * 1.4 + e.id) * 0.65;
+      for (let strand = 0; strand < 3; strand++) {
+        const nodes = Array.from({ length: segments + 1 }, (_, i) => ({
+          x: left + 2 + ((hw - 4) * i) / segments,
+          y:
+            y -
+            6 +
+            strand * 6 +
+            Math.sin(i * 1.45 + strand * 2.1 + e.id) * 6 +
+            sway,
+        }));
+        const vine = () => {
+          ctx.beginPath();
+          ctx.moveTo(nodes[0].x, nodes[0].y);
+          for (let i = 1; i < nodes.length - 1; i++) {
+            ctx.quadraticCurveTo(
+              nodes[i].x,
+              nodes[i].y,
+              (nodes[i].x + nodes[i + 1].x) / 2,
+              (nodes[i].y + nodes[i + 1].y) / 2,
+            );
+          }
+          ctx.lineTo(nodes.at(-1)!.x, nodes.at(-1)!.y);
+          ctx.stroke();
+        };
+        ctx.strokeStyle = ['#261c21', '#3d2a29', '#624238'][strand];
+        ctx.lineWidth = 7 - strand;
+        vine();
+        ctx.strokeStyle = ['#77584a', '#a47a59', '#d0a777'][strand];
+        ctx.lineWidth = 1.1 + strand * 0.25;
+        vine();
+      }
+      const thorns = Math.max(4, Math.floor(hw / 13));
+      for (let i = 0; i < thorns; i++) {
+        const px = left + ((i + 0.5) * hw) / thorns;
+        const side = (i + e.id) % 2 ? 1 : -1;
+        const baseY = y + Math.sin(i * 1.7 + e.id) * 5 + sway;
+        const tipY = y + side * (15 + (i % 3) * 2);
+        const bend = ((i % 3) - 1) * 4;
+        ctx.fillStyle = i % 3 === 0 ? '#b09168' : '#80614c';
+        ctx.strokeStyle = '#ddbd89';
+        ctx.lineWidth = 0.8;
         ctx.beginPath();
-        ctx.moveTo(px - 5, y + 7);
-        ctx.lineTo(px, y - 9);
-        ctx.lineTo(px + 5, y + 7);
+        ctx.moveTo(px - 4, baseY + side * 2);
+        ctx.quadraticCurveTo(px - 1, baseY + side * 8, px + bend + 3, tipY);
+        ctx.quadraticCurveTo(px + bend + 1, baseY + side * 6, px + 5, baseY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        if (i % 3 === 1) {
+          ctx.strokeStyle = '#aa815a';
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(px, baseY);
+          ctx.bezierCurveTo(
+            px + 9,
+            baseY - side * 5,
+            px + 12,
+            baseY + side * 11,
+            px + 5,
+            baseY + side * 12,
+          );
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+      ctx.save();
+      ctx.strokeStyle = '#e3b58a';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.74;
+      for (const [edge, direction] of [
+        [left, 1],
+        [right, -1],
+      ]) {
+        ctx.beginPath();
+        ctx.moveTo(edge + direction * 4, y - 19);
+        ctx.lineTo(edge, y - 19);
+        ctx.lineTo(edge, y + 20);
+        ctx.lineTo(edge + direction * 4, y + 20);
         ctx.stroke();
       }
-      label('荆棘', x, y - 28, 13, '#f0c296');
+      ctx.restore();
+      label('荆棘', x, y - 31, 13, '#f0c296');
       return;
     }
     if (e.kind === 'chest') {

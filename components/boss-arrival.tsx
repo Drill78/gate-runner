@@ -23,6 +23,8 @@ interface BossArrivalProps {
   paused: boolean;
   duration: number;
   form?: 'solar' | 'eclipse';
+  skippable: boolean;
+  onSkip: () => void;
 }
 
 export function BossArrival({
@@ -31,8 +33,10 @@ export function BossArrival({
   paused,
   duration,
   form,
+  skippable,
+  onSkip,
 }: BossArrivalProps) {
-  const button = useRef<HTMLOutputElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const hidden = useSyncExternalStore(
     subscribeVisibility,
     pageHidden,
@@ -56,19 +60,43 @@ export function BossArrival({
   }, []);
 
   return (
-    <output
+    <button
       ref={button}
-      tabIndex={-1}
+      type="button"
       className={`ag-cutin ${chapterBoss ? 'ag-cutin--chapter' : 'ag-cutin--guardian'}`}
       data-paused={frozen}
       data-form={form}
+      data-skippable={skippable && !frozen}
+      aria-disabled={!skippable || frozen}
+      aria-keyshortcuts={skippable ? 'Enter Space' : undefined}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onPointerUp={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (skippable && !frozen) onSkip();
+      }}
+      onKeyDown={(event) => {
+        if (!['Space', 'Enter'].includes(event.code)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (!event.repeat && skippable && !frozen) onSkip();
+      }}
+      onKeyUp={(event) => {
+        if (!['Space', 'Enter'].includes(event.code)) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       style={
         {
           '--ag-cutin-color': profile.color,
           '--ag-cutin-duration': `${duration * 1000}ms`,
         } as CSSProperties
       }
-      aria-label={`${profile.name}登场。${profile.quote}`}
+      aria-label={`${profile.name}登场。${profile.quote}${skippable ? '。点击或按空格、Enter跳过' : ''}`}
     >
       <span className="ag-cutin__backdrop" aria-hidden="true" />
       <span
@@ -128,8 +156,10 @@ export function BossArrival({
           <span className="ag-cutin__quote">「{profile.quote}」</span>
         </span>
       </span>
-      <span className="ag-cutin__skip">{frozen ? '已暂停' : ''}</span>
+      <span className="ag-cutin__skip">
+        {frozen ? '已暂停' : skippable ? '点击或按 空格 / Enter 跳过' : ''}
+      </span>
       <span className="ag-cutin__time" aria-hidden="true" />
-    </output>
+    </button>
   );
 }

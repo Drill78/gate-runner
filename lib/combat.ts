@@ -28,7 +28,16 @@ import {
   multiplyArmy,
   trackArmyPeak,
   formatMagnitude,
+  powerMagnitude,
+  setArmy,
 } from './army.ts';
+import {
+  hordeSize,
+  troopHealthTuning,
+  rulerHealthTuning,
+  enemyDamageTuning,
+  eliteDamageReduction,
+} from './encounter-tuning.ts';
 import { bossProfile, ENCOUNTERS } from './bosses.ts';
 import {
   EPILOGUE_BLESSINGS,
@@ -82,6 +91,8 @@ export const BALANCE = {
   pressureRamp: [3, 4, 6],
   enrageAfter: 22,
 } as const;
+export const EPILOGUE_SAFE_EXPONENT = 2000;
+export const EPILOGUE_GATE_EVERY = 3;
 
 export interface GateSegment extends GateChoice {
   left: number;
@@ -110,6 +121,9 @@ export interface Entity {
   lifeStartedAt?: number;
   blessing?: string;
   fakeSquare?: boolean;
+  swarm?: boolean;
+  rewardWeight?: number;
+  resilienceSeconds?: number;
   stage?: number;
   mutation?: BossMutation;
   fusionId?: string;
@@ -249,6 +263,11 @@ export interface Battle {
   epilogueInfinity: boolean;
   epiloguePlaybackSeconds: number;
   epilogueMusicEnded: boolean;
+  epilogueSettlement: Run | null;
+  epilogueSquares: number;
+  swarmContactAt: number;
+  swarmGoldRemainder: number;
+  swarmXpRemainder: number;
   blessingSeq: number;
   blessingEvents: EpilogueBlessingEvent[];
   rushStage: number;
@@ -366,7 +385,7 @@ export function spectacleDuration(e: Entity) {
                   e.encounterId || '',
                 )
               ? 8
-              : 0;
+              : e.resilienceSeconds || 0;
 }
 
 export function bossAttackInterval(e: Entity, chapterBoss = true) {
@@ -465,6 +484,23 @@ export function makeGate(
         pair[1],
       ]
     : pair;
+  // Rare fortune belongs to a visible positive lane, never to a compulsory red
+  // trial. First-room teaching gates remain predictable.
+  if (floor > 0 || wave > 0) {
+    const positives = choices
+      .map((g, i) => (g.op === '+' || g.op === '×' ? i : -1))
+      .filter((i) => i >= 0);
+    const fortune = random();
+    if (positives.length && fortune < 0.15) {
+      const index = positives[Math.floor(random() * positives.length)];
+      choices[index] =
+        fortune < 0.015
+          ? { op: '×', value: 5, rarity: 'legendary' }
+          : fortune < 0.07
+            ? { op: '×', value: 2, rarity: 'epic' }
+            : { op: '+', value: add * 4, rarity: 'rare' };
+    }
+  }
   return choices.map((g, i) => ({
     ...g,
     left: splits[i] + 0.016,
@@ -482,7 +518,10 @@ export function scaleGateNumbers(
     if (g.op !== '+' && g.op !== '-') return g;
     const base = 6 + Math.floor(floor * 0.65);
     const variation = Math.max(0.85, Math.min(1.25, g.value / base));
-    const ratio = g.op === '+' ? 0.14 + depth * 0.01 : 0.12 + depth * 0.02;
+    const ratio =
+      g.op === '+'
+        ? (0.14 + depth * 0.01) * (g.rarity === 'rare' ? 4 : 1)
+        : 0.12 + depth * 0.02;
     const amount =
       typeof squad === 'number' ? magnitude(squad) : armyMagnitude(squad);
     if (amount.exponent >= 15) {
@@ -522,6 +561,7 @@ export function createBattle(run: Run): Battle {
     treasure = player.node?.kind === 'treasure';
   const difficulty =
     healthGrowth(player, BALANCE.hpGrowth) *
+    troopHealthTuning(player) *
     (elite ? 1.24 : 1) *
     (superElite ? BALANCE.superEliteHpMultiplier : 1) *
     (treasure ? 0.85 : 1) *
@@ -573,7 +613,8 @@ export function createBattle(run: Run): Battle {
       volleyDamage:
         (8 + Math.min(14, player.floor) * 1.3) *
         depthDamage(player) *
-        (player.difficulty === 'hard' ? 1.08 : 1),
+        (player.difficulty === 'hard' ? 1.08 : 1) *
+        enemyDamageTuning(player),
       reward: 'gold',
       wave,
       attackIndex: 0,
@@ -585,10 +626,12 @@ export function createBattle(run: Run): Battle {
   for (let i = 0; i < waves; i++) {
     const t = i * spacing;
     if (epilogue) {
-      const gate = put('gate', t, 0, 0, 'gate', '无限之门', i + 1);
-      gate.gate = [{ op: '²', value: 2, left: -1, right: 1 }];
-      gate.gatePrepared = true;
-      gate.fakeSquare = true;
+      if (i % EPILOGUE_GATE_EVERY === 0) {
+        const gate = put('gate', t, 0, 0, 'gate', '无限之门', i + 1);
+        gate.gate = [{ op: '²', value: 2, left: -1, right: 1 }];
+        gate.gatePrepared = true;
+        gate.fakeSquare = true;
+      }
       const lanes = [0];
       const sideX = (t < 18 ? Math.floor(i / 2) % 2 : i % 2) ? 0.56 : -0.56;
       if (t >= 18 || i % 2 === 0) lanes.push(sideX);
@@ -610,7 +653,7 @@ export function createBattle(run: Run): Battle {
     }
     const variant = i % 4 === 2 ? 'archer' : i % 4 === 3 ? 'guard' : 'soldier';
     const x = (random() * 0.72 + 0.1) * (random() > 0.5 ? 1 : -1);
-    put(
+    const vanguard = put(
       'enemy',
       t + 1.0,
       x,
@@ -628,6 +671,23 @@ export function createBattle(run: Run): Battle {
           : '骸骨先锋',
       i + 1,
     );
+    const swarmCount = hordeSize(player, i) - 1;
+    for (let j = 0; j < swarmCount; j++) {
+      const lane = ((j + i * 2) % (swarmCount + 1)) / (swarmCount + 1);
+      const follower = put(
+        'enemy',
+        t + 0.72 + j * 0.17,
+        -0.84 + lane * 1.68 + (random() - 0.5) * 0.07,
+        vanguard.maxHp * (0.38 + random() * 0.12),
+        'soldier',
+        '灰潮行尸',
+        i + 1,
+      );
+      follower.width = 0.22;
+      follower.swarm = true;
+      follower.rewardWeight = 0.35 / swarmCount;
+      follower.lastAttack = Number.POSITIVE_INFINITY;
+    }
     if (i === 2 || i === 5 || (treasure && i === 7)) {
       const chest = put(
         'chest',
@@ -709,6 +769,7 @@ export function createBattle(run: Run): Battle {
           ? BALANCE.eliteCommanderBaseHp
           : BALANCE.commanderBaseHp) *
       healthGrowth(player, BALANCE.bossGrowth) *
+      rulerHealthTuning(player, bossRoom) *
       (isEndless(player) && player.floor >= 15 && bossRoom ? 1.4 : 1) *
       (bossRoom
         ? BALANCE.bossActMultiplier[act]
@@ -729,7 +790,8 @@ export function createBattle(run: Run): Battle {
       : 12 + Math.min(14, player.floor) * 1.4) *
     depthDamage(player) *
     (profile.id === 'king' ? BALANCE.finalBossDamageMultiplier : 1.1) *
-    (player.difficulty === 'hard' ? 1.08 : 1);
+    (player.difficulty === 'hard' ? 1.08 : 1) *
+    enemyDamageTuning(player);
   if (player.difficulty === 'hard' && bossRoom && act < 2) {
     const partner = ENCOUNTERS.find(
       (e) => e.kind === 'boss' && e.act === act && e.id !== profile.id,
@@ -839,6 +901,16 @@ export function createBattle(run: Run): Battle {
   if (epilogue) {
     entities.splice(entities.indexOf(final), 1);
   }
+  for (const entity of entities) {
+    if (
+      entity.boss &&
+      ENCOUNTERS.find((p) => p.id === entity.encounterId)?.kind === 'elite'
+    ) {
+      entity.armor = eliteDamageReduction(player);
+      if (isEndless(player) && player.floor >= 15 && player.floor < 90)
+        entity.resilienceSeconds = 3;
+    }
+  }
   if (!epilogue) addArmy(player, (player.relics.ambush || 0) * 8);
   return {
     transition: null,
@@ -849,6 +921,11 @@ export function createBattle(run: Run): Battle {
     epilogueInfinity: false,
     epiloguePlaybackSeconds: 0,
     epilogueMusicEnded: false,
+    epilogueSettlement: epilogue ? structuredClone(run) : null,
+    epilogueSquares: 0,
+    swarmContactAt: 0,
+    swarmGoldRemainder: 0,
+    swarmXpRemainder: 0,
     blessingSeq: 0,
     blessingEvents: [],
     rushStage: 0,
@@ -1152,7 +1229,10 @@ export function hitEntity(
     (soulWard ? 0.55 : 1) *
     (e.mutation === 'angelic' && !e.angelBroken ? ANGELIC_DAMAGE_TAKEN : 1);
   const spectacle = spectacleDuration(e);
-  if (spectacle) {
+  const elapsed = b.time - (e.lifeStartedAt ?? e.start);
+  const openingArmor =
+    !!e.resilienceSeconds && spectacle === e.resilienceSeconds;
+  if (spectacle && (!openingArmor || elapsed < spectacle)) {
     // One shared, time-based budget covers every projectile, DOT and active skill.
     // A giant army may reach the budget sooner, but cannot skip the encounter's spectacles.
     const allowed =
@@ -1273,12 +1353,19 @@ export function hitEntity(
           (b.player.encountersDefeated[identity] || 0) + 1;
       }
     }
-    grantGold(b.player, 4 + actIndex(b.player) * 2);
+    const rewardWeight = e.rewardWeight ?? 1;
+    let gold = 4 + actIndex(b.player) * 2;
+    if (e.swarm) {
+      b.swarmGoldRemainder += gold * rewardWeight;
+      gold = Math.floor(b.swarmGoldRemainder + 1e-9);
+      b.swarmGoldRemainder -= gold;
+    }
+    if (gold) grantGold(b.player, gold);
     b.player.hp = Math.min(
       b.player.maxHp,
-      b.player.hp + (b.player.relics.vampire || 0) * 3,
+      b.player.hp + (b.player.relics.vampire || 0) * 3 * rewardWeight,
     );
-    const xp = e.boss
+    let xp = e.boss
       ? b.player.node?.kind === 'boss'
         ? 45
         : 20
@@ -1287,15 +1374,21 @@ export function hitEntity(
         : e.variant === 'archer'
           ? 8
           : 6;
+    if (e.swarm) {
+      b.swarmXpRemainder += xp * rewardWeight;
+      xp = Math.floor(b.swarmXpRemainder + 1e-9);
+      b.swarmXpRemainder -= xp;
+    }
     const gained = grantExperience(b.player, xp);
-    b.effects.push({
-      type: 'text',
-      x: e.x,
-      y: worldY(e, b.time) + 0.07,
-      text: `+${4 + actIndex(b.player) * 2} 金 · +${xp} XP`,
-      color: '#acdfba',
-      life: 1.2,
-    });
+    if (gold || xp)
+      b.effects.push({
+        type: 'text',
+        x: e.x,
+        y: worldY(e, b.time) + 0.07,
+        text: `+${gold} 金 · +${xp} XP`,
+        color: '#acdfba',
+        life: 1.2,
+      });
     if (gained) {
       message(
         b,
@@ -2636,8 +2729,8 @@ export function syncEpiloguePlayback(
 }
 
 function stepEpilogue(b: Battle) {
-  // No Run field is changed here: the celebration must preserve the hundredth
-  // room's resources and score. Audio stalls and pauses freeze this clock too.
+  // Early squares grow the live celebration army. The hundredth-room settlement
+  // is retained separately and restored when the recording ends.
   const targetTime = b.epiloguePlaybackSeconds;
   while (b.time < targetTime - 1e-8) {
     const dt = Math.min(0.05, targetTime - b.time),
@@ -2668,8 +2761,15 @@ function stepEpilogue(b: Battle) {
     for (const entity of b.entities) {
       if (entity.done || b.time < entity.arrival) continue;
       if (entity.kind === 'gate' && entity.fakeSquare) {
-        // This is a visual joke. Never call applyGate or write a magnitude.
-        b.epilogueInfinity = true;
+        if (!b.epilogueInfinity) {
+          const next = powerMagnitude(armyMagnitude(b.player), 2);
+          if (next.exponent >= EPILOGUE_SAFE_EXPONENT || b.epilogueSquares >= 6)
+            b.epilogueInfinity = true;
+          else {
+            setArmy(b.player, next);
+            b.epilogueSquares++;
+          }
+        }
         sound(b, 'gate');
       }
       // Unbroken chests expire silently: only an actual hit creates a blessing.
@@ -2678,6 +2778,7 @@ function stepEpilogue(b: Battle) {
   }
   b.time = targetTime;
   if (b.epilogueMusicEnded) {
+    if (b.epilogueSettlement) b.player = structuredClone(b.epilogueSettlement);
     b.state = 'won';
     b.inputAxis = 0;
     b.targetX = null;
@@ -3008,7 +3109,12 @@ export function stepBattle(b: Battle, dt: number) {
       e.done = true;
     } else if (e.kind === 'hazard') {
       if (Math.abs(b.x - e.x) < e.width / 2 + 0.035)
-        damagePlayer(b, 18 + Math.min(100, b.player.floor) * 1.8, 0.13);
+        damagePlayer(
+          b,
+          (18 + Math.min(100, b.player.floor) * 1.8) *
+            enemyDamageTuning(b.player),
+          0.13,
+        );
       e.done = true;
     } else if (e.kind === 'chest') {
       e.done = true;
@@ -3019,9 +3125,27 @@ export function stepBattle(b: Battle, dt: number) {
       } else message(b, '宝箱远去 · 需要持续瞄准', '#b6bda6');
     } else if (!e.boss) {
       const collision = Math.abs(b.x - e.x) < e.width / 2 + 0.05;
+      if (e.swarm) {
+        // A crowd is a dodging/clearing challenge, not dozens of unavoidable
+        // off-screen penalties. Overlapping bodies share a short contact gap.
+        if (collision && b.time >= b.swarmContactAt) {
+          damagePlayer(
+            b,
+            (14 + Math.min(100, b.player.floor) * 1.25) *
+              0.4 *
+              enemyDamageTuning(b.player),
+            0.025,
+          );
+          b.swarmContactAt = b.time + 0.25;
+        }
+        e.done = true;
+        if (b.state !== 'running') return;
+        continue;
+      }
       damagePlayer(
         b,
-        (collision ? 14 : 8) + Math.min(100, b.player.floor) * 1.25,
+        ((collision ? 14 : 8) + Math.min(100, b.player.floor) * 1.25) *
+          enemyDamageTuning(b.player),
         collision ? 0.14 : 0.07,
       );
       e.done = true;
